@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Navigation() {
   const { user } = useAuth();
+  const typedUser = user as any;
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("home");
 
@@ -99,19 +100,19 @@ export default function Navigation() {
                     <div className="flex flex-col space-y-4 mt-8">
                       <div className="flex items-center space-x-3 p-3 border-b">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={user?.profileImageUrl || ""} />
+                          <AvatarImage src={typedUser?.profileImageUrl || ""} />
                           <AvatarFallback className="bg-primary text-white">
-                            {getInitials(user?.firstName, user?.lastName)}
+                            {getInitials(typedUser?.firstName, typedUser?.lastName)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">
-                            {user?.firstName || user?.lastName 
-                              ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
-                              : user?.email || "User"
+                            {typedUser?.firstName || typedUser?.lastName 
+                              ? `${typedUser.firstName || ""} ${typedUser.lastName || ""}`.trim()
+                              : typedUser?.email || "User"
                             }
                           </div>
-                          <div className="text-sm text-gray-500">{user?.email}</div>
+                          <div className="text-sm text-gray-500">{typedUser?.email}</div>
                         </div>
                       </div>
                       <Button variant="outline" onClick={handleLogout} className="w-full">
@@ -123,9 +124,9 @@ export default function Navigation() {
               ) : (
                 <div className="flex items-center space-x-3">
                   <Avatar className="w-8 h-8 cursor-pointer">
-                    <AvatarImage src={user?.profileImageUrl || ""} />
+                    <AvatarImage src={typedUser?.profileImageUrl || ""} />
                     <AvatarFallback className="bg-primary text-white text-sm">
-                      {getInitials(user?.firstName, user?.lastName)}
+                      {getInitials(typedUser?.firstName, typedUser?.lastName)}
                     </AvatarFallback>
                   </Avatar>
                   <Button variant="outline" size="sm" onClick={handleLogout}>

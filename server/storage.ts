@@ -141,7 +141,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(prayers)
       .where(and(eq(prayers.id, id), eq(prayers.userId, userId)));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Prayer support operations
@@ -163,7 +163,7 @@ export class DatabaseStorage implements IStorage {
           eq(prayerSupport.type, type)
         )
       );
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getPrayerSupports(prayerId: string): Promise<PrayerSupport[]> {
@@ -294,7 +294,7 @@ export class DatabaseStorage implements IStorage {
           eq(groupMembers.userId, userId)
         )
       );
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getPublicGroups(): Promise<(PrayerGroup & { memberCount: number })[]> {

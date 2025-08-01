@@ -167,7 +167,7 @@ export default function AddPrayerModal({ isOpen, onClose }: AddPrayerModalProps)
                   </div>
                   <FormControl>
                     <Switch
-                      checked={field.value}
+                      checked={field.value || false}
                       onCheckedChange={field.onChange}
                       disabled={createPrayerMutation.isPending}
                     />

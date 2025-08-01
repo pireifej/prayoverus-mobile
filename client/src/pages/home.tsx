@@ -76,7 +76,7 @@ export default function Home() {
   }, [queryClient]);
 
   // Fetch user's prayers
-  const { data: userPrayers = [], isLoading: prayersLoading } = useQuery({
+  const { data: userPrayers = [], isLoading: prayersLoading } = useQuery<Prayer[]>({
     queryKey: ["/api/prayers/mine"],
     enabled: !!user,
   });
@@ -143,7 +143,7 @@ export default function Home() {
           <Card className="bg-gradient-to-r from-primary to-blue-600 border-0 text-white relative overflow-hidden">
             <CardContent className="p-6 md:p-8 relative z-10">
               <h2 className="text-2xl md:text-3xl font-semibold mb-2">
-                {getGreeting()}, {user.firstName || "Friend"} 🙏
+                {getGreeting()}, {(user as any)?.firstName || "Friend"} 🙏
               </h2>
               <p className="text-blue-100 mb-4">Take a moment to connect with your prayers today</p>
               <Button 

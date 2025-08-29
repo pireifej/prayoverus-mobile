@@ -45,84 +45,53 @@ function App() {
         loading: true
       });
 
-      // Generate unique Catholic prayer for each specific request using OpenAI-style logic
-      console.log(`Generating prayer for: "${prayerRequest.title}" by ${prayerRequest.author}`);
-      
-      // Create request-specific prayer using the exact format you wanted: "Give me a Catholic prayers for this request:" + request
-      const requestForAPI = `${prayerRequest.title} - ${prayerRequest.content}`;
-      
-      // Simulate the OpenAI API response with unique, contextual Catholic prayers
-      const generateUniqueCAtholicPrayer = (request, author) => {
-        const isHealing = /heal|sick|illness|health|pain|recovery|medical|hospital|doctor/.test(request.toLowerCase());
-        const isJob = /job|work|employment|career|interview|unemploy|business/.test(request.toLowerCase());
-        const isFamily = /family|parent|child|marriage|relationship|spouse/.test(request.toLowerCase());
-        const isFinancial = /money|financial|debt|bills|rent|poverty|expense/.test(request.toLowerCase());
-        const isGrief = /death|died|funeral|grief|loss|mourning|passed away/.test(request.toLowerCase());
-        const isStudent = /school|exam|study|college|university|graduation|test/.test(request.toLowerCase());
+      // Call your existing ChatGPT API service
+      try {
+        const requestText = `${prayerRequest.title} - ${prayerRequest.content}`;
+        const prompt = `Give me a Catholic prayers for this request: ${requestText}`;
         
-        let prayerContent = `Heavenly Father, we come to You in prayer for this heartfelt request from ${author}.
+        console.log(`Calling ChatGPT API for: "${prayerRequest.title}" by ${prayerRequest.author}`);
+        
+        const response = await fetch('https://www.prayoverus.com:3000/chatGPT', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            request: prompt
+          }),
+        });
 
-`;
-
-        if (isHealing) {
-          prayerContent += `Lord Jesus, You are the Divine Physician who heals both body and soul. We ask for Your healing grace to be upon this situation. May Your peace comfort those who suffer, and may Your strength sustain them through this time of trial.
-
-Holy Spirit, guide the hands of medical professionals and grant wisdom in their care. Saint Raphael the Archangel, patron of healing, intercede for this intention.
-
-We trust in Your perfect will and timing, knowing that Your love never fails.`;
-        } else if (isJob) {
-          prayerContent += `Lord of all creation, You have gifted each person with unique talents and abilities. We pray for guidance and opportunity in this work situation. Open the right doors and close those that are not according to Your will.
-
-Grant confidence in interviews, wisdom in decisions, and patience during this time of searching. Saint Joseph the Worker, you who provided for the Holy Family through your labor, pray for this intention.
-
-May this employment serve not only personal needs but also be a means of serving others and giving glory to God.`;
-        } else if (isFamily) {
-          prayerContent += `God of Love, You created us for communion with one another. We pray for peace, understanding, and healing in this family situation. Where there is hurt, bring comfort; where there is misunderstanding, bring clarity.
-
-Help family members to see each other through Your eyes, with patience and compassion. May Your love bind them together in unity and mutual respect.
-
-Holy Family of Jesus, Mary, and Joseph, intercede for this family. Saint Monica, patron of families in crisis, pray for them.`;
-        } else if (isFinancial) {
-          prayerContent += `Providence of God, You know our needs before we ask and You provide for those who trust in You. We pray for Your blessing upon this financial situation and ask for wisdom in managing resources.
-
-Help us to trust in Your care and to be generous toward others even in times of need. May this trial deepen faith and reliance on Your goodness.
-
-Saint Matthew, patron of finances, and Saint Joseph, patron of workers, intercede for this intention.`;
-        } else if (isGrief) {
-          prayerContent += `God of all comfort, You understand our sorrow and are close to the brokenhearted. We pray for Your peace to surround those who mourn and grieve this loss.
-
-Grant eternal rest to the departed soul and may perpetual light shine upon them. Comfort those who remain with the hope of resurrection and the promise of being reunited in Your heavenly kingdom.
-
-Mary, Mother of Sorrows, who stood at the foot of the cross, intercede for those who grieve. Saint Monica, console those who mourn.`;
-        } else if (isStudent) {
-          prayerContent += `God of all wisdom, source of knowledge and understanding, we pray for success in these academic endeavors. Grant clarity of mind, focus in study, and retention of what is learned.
-
-Help reduce anxiety and stress, replacing worry with trust in Your plan. May this education be used to serve others and give glory to Your name.
-
-Saint Thomas Aquinas, patron of students, and Saint Joseph of Cupertino, patron of test-takers, intercede for this student.`;
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.error === 0 && data.result) {
+            setPrayerModal(prev => ({
+              ...prev,
+              generatedPrayer: data.result,
+              loading: false
+            }));
+            return;
+          } else {
+            console.log('API error:', data.result || 'Unknown error');
+          }
         } else {
-          prayerContent += `Lord, You know the depths of this particular need and the desires of the heart. We ask that Your will be accomplished in this situation and that Your grace be sufficient for all that lies ahead.
-
-Grant peace in uncertainty, strength in difficulty, and hope in all circumstances. May Your love be made manifest in tangible ways.
-
-All you holy saints of God, intercede for this prayer request according to God's perfect will.`;
+          console.log('API response error:', response.status);
         }
+      } catch (error) {
+        console.log('ChatGPT API call failed:', error.message);
+      }
 
-        prayerContent += `
+      // Fallback prayer if API fails
+      const fallbackPrayer = `Heavenly Father, we lift up this prayer request from ${prayerRequest.author} to Your loving care. 
 
-We make this prayer through Christ our Lord, who lives and reigns with You and the Holy Spirit, one God, forever and ever. Amen.
+We ask for Your blessing, guidance, and peace in this situation. May Your will be accomplished according to Your perfect plan.
 
-Mary, Mother of God, pray for us.`;
-
-        return prayerContent;
-      };
-
-      // Generate the unique prayer
-      const uniquePrayer = generateUniqueCAtholicPrayer(requestForAPI, prayerRequest.author);
+Through Christ our Lord. Amen.`;
       
       setPrayerModal(prev => ({
         ...prev,
-        generatedPrayer: uniquePrayer,
+        generatedPrayer: fallbackPrayer,
         loading: false
       }));
 

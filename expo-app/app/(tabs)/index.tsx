@@ -12,12 +12,9 @@ import {
   FAB,
   Chip,
   Button,
-  ActivityIndicator,
   Surface,
 } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
 
 // Mock prayer data for demo
 const mockPrayers = [
@@ -49,15 +46,9 @@ const mockPrayers = [
 ];
 
 export default function HomeScreen() {
-  const { user, logout } = useAuth();
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'answered'>('all');
   const [prayers, setPrayers] = useState(mockPrayers);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  if (!user) {
-    router.replace('/login');
-    return null;
-  }
 
   const filteredPrayers = prayers.filter((prayer) => {
     if (filter === 'all') return true;
@@ -136,14 +127,14 @@ export default function HomeScreen() {
         {/* Welcome Card */}
         <Surface style={styles.welcomeCard} elevation={2}>
           <Text variant="headlineSmall" style={styles.greeting}>
-            {getGreeting()}, {user?.firstName || 'Friend'} 🙏
+            {getGreeting()}, Friend 🙏
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
             Take a moment to connect with your prayers today
           </Text>
           <Button
             mode="contained"
-            onPress={() => router.push('/add-prayer')}
+            onPress={() => Alert.alert('Add Prayer', 'Add prayer feature coming soon!')}
             style={styles.addButton}
             icon="plus"
           >
@@ -196,7 +187,7 @@ export default function HomeScreen() {
               </Text>
               <Button
                 mode="contained"
-                onPress={() => router.push('/add-prayer')}
+                onPress={() => Alert.alert('Add Prayer', 'Add prayer feature coming soon!')}
                 style={styles.emptyButton}
                 icon="plus"
               >
@@ -294,7 +285,7 @@ export default function HomeScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => router.push('/add-prayer')}
+        onPress={() => Alert.alert('Add Prayer', 'Add prayer feature coming soon!')}
       />
     </View>
   );

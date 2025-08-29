@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-export default function App() {
+function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -90,3 +90,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
+
+// Register the main component
+AppRegistry.registerComponent('main', () => App);
+export default App;

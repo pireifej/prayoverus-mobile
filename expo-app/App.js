@@ -48,7 +48,7 @@ function App() {
       // Call your existing ChatGPT API service
       try {
         const requestText = `${prayerRequest.title} - ${prayerRequest.content}`;
-        const prompt = `Give me a Catholic prayers for this request: ${requestText}`;
+        const prompt = `Give me a Catholic prayers for this request: ${requestText}. The person who made this request is named ${prayerRequest.author}. Please include their name in the prayer and refer to them in third-person.`;
         
         console.log(`Calling ChatGPT API for: "${prayerRequest.title}" by ${prayerRequest.author}`);
         
@@ -83,9 +83,9 @@ function App() {
       }
 
       // Fallback prayer if API fails
-      const fallbackPrayer = `Heavenly Father, we lift up this prayer request from ${prayerRequest.author} to Your loving care. 
+      const fallbackPrayer = `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request. 
 
-We ask for Your blessing, guidance, and peace in this situation. May Your will be accomplished according to Your perfect plan.
+Grant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.
 
 Through Christ our Lord. Amen.`;
       

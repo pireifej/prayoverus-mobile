@@ -1,16 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LoginScreen } from './UserAuth';
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
   const [prayers, setPrayers] = useState([]);
-  const [communityPrayers, setCommunityPrayers] = useState([
-    { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false },
-    { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false },
-  ]);
+  const [communityPrayers, setCommunityPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: false });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+
+  // Load community prayers from the API when user logs in
+  useEffect(() => {
+    if (currentUser) {
+      loadCommunityPrayers();
+      loadUserPrayers();
+    }
+  }, [currentUser]);
+
+  const loadCommunityPrayers = async () => {
+    try {
+      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers/community');
+      if (response.ok) {
+        const data = await response.json();
+        setCommunityPrayers(data.map(prayer => ({
+          ...prayer,
+          author: prayer.user?.firstName || 'Anonymous',
+          prayedFor: false // Initialize prayer support status
+        })));
+      }
+    } catch (error) {
+      console.log('Failed to load community prayers:', error.message);
+      // Keep sample data if API fails
+      setCommunityPrayers([
+        { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false },
+        { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false },
+      ]);
+    }
+  };
+
+  const loadUserPrayers = async () => {
+    try {
+      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers/mine', {
+        headers: {
+          'Authorization': `Bearer ${currentUser.id}` // In production, use proper JWT tokens
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPrayers(data);
+      }
+    } catch (error) {
+      console.log('Failed to load user prayers:', error.message);
+    }
+  };
 
   const addPrayer = () => {
     if (newPrayer.title.trim() && newPrayer.content.trim()) {
@@ -19,7 +63,8 @@ function App() {
         title: newPrayer.title,
         content: newPrayer.content,
         isPublic: newPrayer.isPublic,
-        author: 'You',
+        author: currentUser?.firstName || 'You',
+        userId: currentUser?.id,
         date: new Date().toLocaleDateString(),
         prayedFor: false
       };
@@ -30,9 +75,35 @@ function App() {
       }
       
       setNewPrayer({ title: '', content: '', isPublic: false });
+      // In production, save to database via API
+      savePrayerToAPI(prayer);
       Alert.alert('Success', 'Prayer added successfully!');
     } else {
       Alert.alert('Error', 'Please fill in both title and content');
+    }
+  };
+
+  const savePrayerToAPI = async (prayer) => {
+    try {
+      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.id}`
+        },
+        body: JSON.stringify({
+          title: prayer.title,
+          content: prayer.content,
+          isPublic: prayer.isPublic
+        })
+      });
+      
+      if (response.ok) {
+        console.log('Prayer saved to database');
+        loadCommunityPrayers(); // Refresh community prayers
+      }
+    } catch (error) {
+      console.log('Failed to save prayer to API:', error.message);
     }
   };
 
@@ -122,6 +193,11 @@ Through Christ our Lord. Amen.`;
     // Close the modal
     closePrayerModal();
   };
+
+  // Show login screen if no current user
+  if (!currentUser) {
+    return <LoginScreen onLogin={setCurrentUser} />;
+  }
 
   if (currentScreen === 'personal') {
     return (
@@ -285,6 +361,15 @@ Through Christ our Lord. Amen.`;
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      
+      {/* User Header */}
+      <View style={styles.userHeader}>
+        <Text style={styles.welcomeText}>Welcome, {currentUser.firstName}!</Text>
+        <TouchableOpacity onPress={() => setCurrentUser(null)} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+      
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>PrayOverUs</Text>
         <Text style={styles.subtitle}>Prayer Community App</Text>
@@ -376,6 +461,32 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontWeight: '600',
     marginTop: 8,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  welcomeText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  logoutText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',

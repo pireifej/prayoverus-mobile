@@ -1,10 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import OpenAI from "openai";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertPrayerSchema, insertPrayerGroupSchema, insertPrayerSupportSchema, insertPrayerCommentSchema } from "@shared/schema";
 import { z } from "zod";
+
+// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -231,6 +235,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error leaving group:", error);
       res.status(500).json({ message: "Failed to leave group" });
+    }
+  });
+
+  // AI Prayer generation route
+  app.post('/api/generate-prayer', async (req, res) => {
+    try {
+      const { title, content, author } = req.body;
+      
+      if (!title || !content) {
+        return res.status(400).json({ message: "Title and content are required" });
+      }
+
+      const prompt = `Create a heartfelt, compassionate prayer for someone in need. The prayer request is:
+
+Title: ${title}
+Content: ${content}
+Requested by: ${author}
+
+Please write a sincere, respectful prayer that:
+- Shows empathy and understanding
+- Offers comfort and hope
+- Maintains appropriate spiritual tone
+- Is 3-4 sentences long
+- Avoids denominational specificity
+- Focuses on healing, guidance, or support as appropriate
+
+Return only the prayer text, nothing else.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "You are a compassionate spiritual guide who writes heartfelt prayers for people in need. Write sincere, inclusive prayers that offer comfort and hope."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+
+      const prayer = response.choices[0].message.content?.trim() || "May you find peace, comfort, and strength during this time. You are in our thoughts and prayers.";
+      
+      res.json({ prayer });
+    } catch (error) {
+      console.error("Error generating prayer:", error);
+      res.status(500).json({ 
+        message: "Failed to generate prayer",
+        prayer: "We are unable to generate a prayer at this time, but please know that you are in our thoughts and prayers. May you find peace and comfort."
+      });
     }
   });
 

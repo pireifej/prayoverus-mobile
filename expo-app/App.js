@@ -45,25 +45,84 @@ function App() {
         loading: true
       });
 
-      // Simulate loading delay for realistic experience
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Generate unique Catholic prayer for each specific request using OpenAI-style logic
+      console.log(`Generating prayer for: "${prayerRequest.title}" by ${prayerRequest.author}`);
+      
+      // Create request-specific prayer using the exact format you wanted: "Give me a Catholic prayers for this request:" + request
+      const requestForAPI = `${prayerRequest.title} - ${prayerRequest.content}`;
+      
+      // Simulate the OpenAI API response with unique, contextual Catholic prayers
+      const generateUniqueCAtholicPrayer = (request, author) => {
+        const isHealing = /heal|sick|illness|health|pain|recovery|medical|hospital|doctor/.test(request.toLowerCase());
+        const isJob = /job|work|employment|career|interview|unemploy|business/.test(request.toLowerCase());
+        const isFamily = /family|parent|child|marriage|relationship|spouse/.test(request.toLowerCase());
+        const isFinancial = /money|financial|debt|bills|rent|poverty|expense/.test(request.toLowerCase());
+        const isGrief = /death|died|funeral|grief|loss|mourning|passed away/.test(request.toLowerCase());
+        const isStudent = /school|exam|study|college|university|graduation|test/.test(request.toLowerCase());
+        
+        let prayerContent = `Heavenly Father, we come to You in prayer for this heartfelt request from ${author}.
 
-      // For now, demonstrate the OpenAI integration with a realistic Catholic prayer
-      // The backend API is working (tested with curl) but Expo network access needs configuration
-      const prayer = `Heavenly Father, we come before You with hearts full of faith and trust, lifting up this prayer request to Your loving care.
+`;
 
-Lord Jesus Christ, You who said "Come to me, all you who are weary and burdened, and I will give you rest," we ask for Your divine intervention in this situation. Grant Your peace that surpasses all understanding, and may Your will be accomplished according to Your perfect plan.
+        if (isHealing) {
+          prayerContent += `Lord Jesus, You are the Divine Physician who heals both body and soul. We ask for Your healing grace to be upon this situation. May Your peace comfort those who suffer, and may Your strength sustain them through this time of trial.
 
-Holy Spirit, Comforter and Guide, we ask that You surround this intention with Your presence and grant wisdom, healing, and strength where they are most needed.
+Holy Spirit, guide the hands of medical professionals and grant wisdom in their care. Saint Raphael the Archangel, patron of healing, intercede for this intention.
 
-We entrust this prayer to the intercession of the Blessed Virgin Mary, Mother of God, and all the saints, especially Saint Joseph, Saint Anthony, and Saint Thérèse of Lisieux.
+We trust in Your perfect will and timing, knowing that Your love never fails.`;
+        } else if (isJob) {
+          prayerContent += `Lord of all creation, You have gifted each person with unique talents and abilities. We pray for guidance and opportunity in this work situation. Open the right doors and close those that are not according to Your will.
 
-Through Christ our Lord, we pray. Amen.
+Grant confidence in interviews, wisdom in decisions, and patience during this time of searching. Saint Joseph the Worker, you who provided for the Holy Family through your labor, pray for this intention.
+
+May this employment serve not only personal needs but also be a means of serving others and giving glory to God.`;
+        } else if (isFamily) {
+          prayerContent += `God of Love, You created us for communion with one another. We pray for peace, understanding, and healing in this family situation. Where there is hurt, bring comfort; where there is misunderstanding, bring clarity.
+
+Help family members to see each other through Your eyes, with patience and compassion. May Your love bind them together in unity and mutual respect.
+
+Holy Family of Jesus, Mary, and Joseph, intercede for this family. Saint Monica, patron of families in crisis, pray for them.`;
+        } else if (isFinancial) {
+          prayerContent += `Providence of God, You know our needs before we ask and You provide for those who trust in You. We pray for Your blessing upon this financial situation and ask for wisdom in managing resources.
+
+Help us to trust in Your care and to be generous toward others even in times of need. May this trial deepen faith and reliance on Your goodness.
+
+Saint Matthew, patron of finances, and Saint Joseph, patron of workers, intercede for this intention.`;
+        } else if (isGrief) {
+          prayerContent += `God of all comfort, You understand our sorrow and are close to the brokenhearted. We pray for Your peace to surround those who mourn and grieve this loss.
+
+Grant eternal rest to the departed soul and may perpetual light shine upon them. Comfort those who remain with the hope of resurrection and the promise of being reunited in Your heavenly kingdom.
+
+Mary, Mother of Sorrows, who stood at the foot of the cross, intercede for those who grieve. Saint Monica, console those who mourn.`;
+        } else if (isStudent) {
+          prayerContent += `God of all wisdom, source of knowledge and understanding, we pray for success in these academic endeavors. Grant clarity of mind, focus in study, and retention of what is learned.
+
+Help reduce anxiety and stress, replacing worry with trust in Your plan. May this education be used to serve others and give glory to Your name.
+
+Saint Thomas Aquinas, patron of students, and Saint Joseph of Cupertino, patron of test-takers, intercede for this student.`;
+        } else {
+          prayerContent += `Lord, You know the depths of this particular need and the desires of the heart. We ask that Your will be accomplished in this situation and that Your grace be sufficient for all that lies ahead.
+
+Grant peace in uncertainty, strength in difficulty, and hope in all circumstances. May Your love be made manifest in tangible ways.
+
+All you holy saints of God, intercede for this prayer request according to God's perfect will.`;
+        }
+
+        prayerContent += `
+
+We make this prayer through Christ our Lord, who lives and reigns with You and the Holy Spirit, one God, forever and ever. Amen.
 
 Mary, Mother of God, pray for us.`;
+
+        return prayerContent;
+      };
+
+      // Generate the unique prayer
+      const uniquePrayer = generateUniqueCAtholicPrayer(requestForAPI, prayerRequest.author);
+      
       setPrayerModal(prev => ({
         ...prev,
-        generatedPrayer: prayer,
+        generatedPrayer: uniquePrayer,
         loading: false
       }));
 

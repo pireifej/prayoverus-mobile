@@ -50,5 +50,13 @@ externalPort = 3000
 localPort = 19006
 externalPort = 3001
 
+[[ports]]
+localPort = 19007
+externalPort = 3002
+
+[[ports]]
+localPort = 19008
+externalPort = 3003
+
 [agent]
 integrations = ["javascript_log_in_with_replit==1.0.0", "javascript_websocket==1.0.0", "javascript_database==1.0.0"]

@@ -54,9 +54,7 @@ function App() {
         const isFinancialRelated = /money|financial|debt|bills|rent|mortgage|poverty|expense/.test(`${title} ${content}`.toLowerCase());
         const isGriefRelated = /death|died|funeral|grief|loss|mourning|passed away|memorial/.test(`${title} ${content}`.toLowerCase());
         
-        let specificPrayer = `Heavenly Father, we come before You in prayer for this specific intention: "${title}" - ${content}
-
-${author} has brought this request to our prayer community, trusting in Your infinite love and mercy.`;
+        let specificPrayer = `Heavenly Father, we come before You in prayer for the specific intention that ${author} has brought to our prayer community, trusting in Your infinite love and mercy.`;
 
         // Add specific Catholic prayers based on the request type
         if (isHealthRelated) {

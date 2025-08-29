@@ -23,5 +23,5 @@ echo ""
 echo "🔍 A QR code will appear below - scan it with your camera (iOS) or Expo Go app (Android)"
 echo ""
 
-# Start expo with tunnel for better connectivity
-npx expo start --tunnel
+# Start expo in development mode (without tunnel to avoid ngrok prompt)
+npx expo start --dev-client

@@ -45,67 +45,43 @@ function App() {
         loading: true
       });
 
-      // Generate custom Catholic prayer for each specific request
-      const generateCustomCatholicPrayer = (title, content, author) => {
-        // Extract key themes from the request to customize the prayer
-        const isHealthRelated = /health|heal|sick|illness|recovery|medical|hospital|doctor|pain|surgery/.test(`${title} ${content}`.toLowerCase());
-        const isJobRelated = /job|work|employment|career|interview|unemploy|income|business/.test(`${title} ${content}`.toLowerCase());
-        const isRelationshipRelated = /relationship|marriage|family|friend|conflict|divorce|love|dating/.test(`${title} ${content}`.toLowerCase());
-        const isFinancialRelated = /money|financial|debt|bills|rent|mortgage|poverty|expense/.test(`${title} ${content}`.toLowerCase());
-        const isGriefRelated = /death|died|funeral|grief|loss|mourning|passed away|memorial/.test(`${title} ${content}`.toLowerCase());
-        
-        let specificPrayer = `Heavenly Father, we come before You in prayer for the specific intention that ${author} has brought to our prayer community, trusting in Your infinite love and mercy.`;
+      // Call backend API to generate Catholic prayer using OpenAI
+      try {
+        const response = await fetch('http://localhost:5000/api/generate-prayer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: prayerRequest.title,
+            content: prayerRequest.content,
+            author: prayerRequest.author
+          }),
+        });
 
-        // Add specific Catholic prayers based on the request type
-        if (isHealthRelated) {
-          specificPrayer += `
-
-Lord Jesus, Divine Physician of body and soul, we ask for Your healing touch upon this situation. You who healed the sick and gave sight to the blind, we trust in Your power to bring restoration and comfort. Grant strength to endure, wisdom to healthcare providers, and peace that surpasses understanding.
-
-Saint Raphael the Archangel, patron of healing, intercede for this intention.`;
-        } else if (isJobRelated) {
-          specificPrayer += `
-
-Almighty God, You provide for all our needs according to Your riches. We ask for Your guidance in this work situation, that the right opportunities may open and Your will be done. Grant wisdom in decisions and confidence in abilities You have given.
-
-Saint Joseph the Worker, patron of workers and employment, pray for this intention.`;
-        } else if (isRelationshipRelated) {
-          specificPrayer += `
-
-God of Love, You created us for communion with You and with one another. We pray for healing, understanding, and peace in this relationship situation. Where there is hurt, bring healing; where there is misunderstanding, bring clarity; where there is division, bring unity.
-
-Saint John the Beloved, patron of love and friendship, intercede for this intention.`;
-        } else if (isFinancialRelated) {
-          specificPrayer += `
-
-Providence of God, You know our material needs before we ask. We pray for Your provision and guidance in this financial situation. Help us to trust in Your care and to be good stewards of the resources You provide. Grant wisdom in financial decisions and peace in times of need.
-
-Saint Matthew, patron of finances, pray for this intention.`;
-        } else if (isGriefRelated) {
-          specificPrayer += `
-
-God of all comfort, we pray for those who mourn and grieve. You understand our sorrow and are close to the brokenhearted. Grant eternal rest to the departed and consolation to those who remain. May the hope of resurrection bring peace and the promise of reunion bring comfort.
-
-Saint Monica, patron of those who grieve, intercede for this intention.`;
+        if (response.ok) {
+          const data = await response.json();
+          
+          setPrayerModal(prev => ({
+            ...prev,
+            generatedPrayer: data.prayer,
+            loading: false
+          }));
+          return;
         } else {
-          specificPrayer += `
-
-Lord, You know the depths of this particular need better than we do. We ask that Your will be accomplished in this situation, that Your grace may be sufficient, and that Your love may be made manifest in tangible ways.
-
-All you holy saints of God, intercede for this prayer request.`;
+          const errorData = await response.json();
+          console.log('API response error:', errorData.message);
         }
+      } catch (error) {
+        console.log('Backend API call failed:', error.message);
+      }
 
-        specificPrayer += `
+      // Fallback prayer when OpenAI API is unavailable
+      const prayer = `We are unable to generate a personalized prayer at this time due to API limitations, but please know that you are in our thoughts and prayers. 
 
-We make this prayer through Christ our Lord, who lives and reigns with You and the Holy Spirit, one God, forever and ever. Amen.
+Heavenly Father, we lift up this prayer request in faith, trusting in Your infinite love and mercy. We ask for Your blessing, guidance, and peace according to Your perfect will. May Your grace be sufficient and Your love be made manifest in this situation.
 
-Mary, Mother of God and our Mother, pray for us.`;
-
-        return specificPrayer;
-      };
-
-      // Generate truly custom prayer based on the specific request
-      const prayer = generateCustomCatholicPrayer(prayerRequest.title, prayerRequest.content, prayerRequest.author);
+Through Christ our Lord. Amen.`;
       setPrayerModal(prev => ({
         ...prev,
         generatedPrayer: prayer,

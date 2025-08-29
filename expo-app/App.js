@@ -83,15 +83,6 @@ We entrust this prayer to the intercession of the Blessed Virgin Mary and all th
         loading: false
       }));
 
-      // Mark as prayed for
-      setCommunityPrayers(prevPrayers =>
-        prevPrayers.map(prayer =>
-          prayer.id === prayerRequest.id
-            ? { ...prayer, prayedFor: true }
-            : prayer
-        )
-      );
-
     } catch (error) {
       console.error('Error generating prayer:', error);
       setPrayerModal(prev => ({
@@ -104,6 +95,20 @@ We entrust this prayer to the intercession of the Blessed Virgin Mary and all th
 
   const closePrayerModal = () => {
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+  };
+
+  const markAsPrayed = () => {
+    // Mark as prayed for when user clicks Amen
+    setCommunityPrayers(prevPrayers =>
+      prevPrayers.map(prayer =>
+        prayer.id === prayerModal.prayer?.id
+          ? { ...prayer, prayedFor: true }
+          : prayer
+      )
+    );
+    
+    // Close the modal
+    closePrayerModal();
   };
 
   if (currentScreen === 'personal') {
@@ -223,7 +228,7 @@ We entrust this prayer to the intercession of the Blessed Virgin Mary and all th
                 </ScrollView>
               )}
               
-              <TouchableOpacity style={styles.closeModalButton} onPress={closePrayerModal}>
+              <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
                 <Text style={styles.closeModalButtonText}>Amen</Text>
               </TouchableOpacity>
             </View>

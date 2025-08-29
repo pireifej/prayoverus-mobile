@@ -7,6 +7,8 @@ PrayOverUs is a full-stack prayer community platform available as both a web app
 - ✅ **Cross-Platform Architecture**: Shared backend API serving both web and mobile clients
 - ✅ **Mobile-Optimized UX**: Bottom navigation, touch-friendly interfaces, and native mobile patterns
 - ✅ **Complete Feature Parity**: All web features available in mobile app including prayers, community, groups, and profiles
+- ✅ **Expo Version Created**: Expo-based mobile app for instant QR code preview and testing
+- ✅ **Mobile Preview Ready**: Users can scan QR code with Expo Go app to test on real devices
 
 # User Preferences
 

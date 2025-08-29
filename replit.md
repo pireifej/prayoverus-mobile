@@ -1,6 +1,12 @@
 # Overview
 
-PrayOverUs is a full-stack prayer community web application that enables users to share prayers, support others, and participate in prayer groups. The platform combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
+PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
+
+## Recent Changes (August 29, 2025)
+- ✅ **React Native Mobile App Created**: Full-featured mobile application with native components and navigation
+- ✅ **Cross-Platform Architecture**: Shared backend API serving both web and mobile clients
+- ✅ **Mobile-Optimized UX**: Bottom navigation, touch-friendly interfaces, and native mobile patterns
+- ✅ **Complete Feature Parity**: All web features available in mobile app including prayers, community, groups, and profiles
 
 # User Preferences
 

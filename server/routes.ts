@@ -247,29 +247,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Title and content are required" });
       }
 
-      const prompt = `Create a heartfelt, compassionate prayer for someone in need. The prayer request is:
-
-Title: ${title}
-Content: ${content}
-Requested by: ${author}
-
-Please write a sincere, respectful prayer that:
-- Shows empathy and understanding
-- Offers comfort and hope
-- Maintains appropriate spiritual tone
-- Is 3-4 sentences long
-- Avoids denominational specificity
-- Focuses on healing, guidance, or support as appropriate
-
-Return only the prayer text, nothing else.`;
+      const prompt = `Give me a Catholic prayers for this request: ${title} - ${content}`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-5",
         messages: [
-          {
-            role: "system",
-            content: "You are a compassionate spiritual guide who writes heartfelt prayers for people in need. Write sincere, inclusive prayers that offer comfort and hope."
-          },
           {
             role: "user",
             content: prompt

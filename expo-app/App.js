@@ -45,18 +45,38 @@ function App() {
         loading: true
       });
 
-      // For development mode, create a simple prayer response without backend API
-      // This avoids network issues with cross-origin requests in Expo
-      const prayers = {
-        'Prayer for healing': 'Heavenly Father, we lift up this request for healing and recovery. May your loving presence bring comfort, strength, and restoration during this difficult time. Grant wisdom to medical professionals and surround this person with your peace.',
-        'Job search guidance': 'Divine Creator, we seek your guidance for those searching for meaningful employment. Open doors of opportunity, provide clarity in decision-making, and grant confidence during this transition. May the right path be illuminated with your light.',
-        'default': 'Loving God, we bring this heartfelt request before you. Please provide comfort, guidance, and strength to all who are in need. May your presence be felt, your love be known, and your peace surround those we pray for.'
+      // Generate Catholic prayers for each specific request
+      const catholicPrayers = {
+        'Prayer for healing': `Heavenly Father, we come before You with faith and trust, lifting up this request for healing and recovery. We pray for ${prayerRequest.author}'s grandmother, asking that You surround her with Your healing love and divine mercy. 
+
+Lord Jesus, You are the Divine Physician who heals both body and soul. We ask that You place Your healing hands upon her and grant her strength and comfort during this time of need. May Your peace, which surpasses all understanding, guard her heart and mind.
+
+Holy Spirit, be her comforter and guide. Grant wisdom to all medical professionals caring for her, and bless their efforts with success. We trust in Your perfect will and timing, knowing that You work all things together for good for those who love You.
+
+Mary, Health of the Sick, pray for her. Saint Raphael the Archangel, pray for her. Through Christ our Lord. Amen.`,
+
+        'Job search guidance': `Almighty God, we humbly ask for Your divine guidance and blessing upon this job search. You know our needs before we even ask, and You have plans to prosper us and not to harm us, to give us hope and a future.
+
+Lord, we pray that You would open the right doors of opportunity and close those that are not according to Your will. Grant wisdom in the job search process, confidence in interviews, and discernment in decision-making. May the right position be revealed according to Your perfect timing.
+
+We ask for Your provision during this time of transition, and that anxiety may be replaced with trust in Your faithfulness. Help us to remember that our identity and worth come from You, not from our work or career status.
+
+Saint Joseph the Worker, patron of workers and employment, intercede for us. Through Christ our Lord. Amen.`,
+
+        'default': `Merciful Father, we lift up this heartfelt prayer request before Your throne of grace. You know the deepest needs and desires of our hearts even before we speak them aloud.
+
+We ask that You pour out Your love, comfort, and strength upon all those mentioned in this prayer intention. May Your will be done in their lives, and may they feel Your presence in both times of joy and difficulty.
+
+Grant them the grace to trust in Your perfect plan, even when the path ahead seems unclear. Fill them with hope that comes from knowing You are always with them, and that nothing can separate them from Your love.
+
+We entrust this prayer to the intercession of the Blessed Virgin Mary and all the saints. Through Christ our Lord. Amen.`
       };
+
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const prayer = prayers[prayerRequest.title] || prayers['default'];
+      // Get appropriate Catholic prayer based on request
+      const prayer = catholicPrayers[prayerRequest.title] || catholicPrayers['default'];
       setPrayerModal(prev => ({
         ...prev,
         generatedPrayer: prayer,

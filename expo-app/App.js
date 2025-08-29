@@ -45,38 +45,69 @@ function App() {
         loading: true
       });
 
-      // Generate Catholic prayers for each specific request
-      const catholicPrayers = {
-        'Prayer for healing': `Heavenly Father, we come before You with faith and trust, lifting up this request for healing and recovery. We pray for ${prayerRequest.author}'s grandmother, asking that You surround her with Your healing love and divine mercy. 
+      // Generate custom Catholic prayer for each specific request
+      const generateCustomCatholicPrayer = (title, content, author) => {
+        // Extract key themes from the request to customize the prayer
+        const isHealthRelated = /health|heal|sick|illness|recovery|medical|hospital|doctor|pain|surgery/.test(`${title} ${content}`.toLowerCase());
+        const isJobRelated = /job|work|employment|career|interview|unemploy|income|business/.test(`${title} ${content}`.toLowerCase());
+        const isRelationshipRelated = /relationship|marriage|family|friend|conflict|divorce|love|dating/.test(`${title} ${content}`.toLowerCase());
+        const isFinancialRelated = /money|financial|debt|bills|rent|mortgage|poverty|expense/.test(`${title} ${content}`.toLowerCase());
+        const isGriefRelated = /death|died|funeral|grief|loss|mourning|passed away|memorial/.test(`${title} ${content}`.toLowerCase());
+        
+        let specificPrayer = `Heavenly Father, we come before You in prayer for this specific intention: "${title}" - ${content}
 
-Lord Jesus, You are the Divine Physician who heals both body and soul. We ask that You place Your healing hands upon her and grant her strength and comfort during this time of need. May Your peace, which surpasses all understanding, guard her heart and mind.
+${author} has brought this request to our prayer community, trusting in Your infinite love and mercy.`;
 
-Holy Spirit, be her comforter and guide. Grant wisdom to all medical professionals caring for her, and bless their efforts with success. We trust in Your perfect will and timing, knowing that You work all things together for good for those who love You.
+        // Add specific Catholic prayers based on the request type
+        if (isHealthRelated) {
+          specificPrayer += `
 
-Mary, Health of the Sick, pray for her. Saint Raphael the Archangel, pray for her. Through Christ our Lord. Amen.`,
+Lord Jesus, Divine Physician of body and soul, we ask for Your healing touch upon this situation. You who healed the sick and gave sight to the blind, we trust in Your power to bring restoration and comfort. Grant strength to endure, wisdom to healthcare providers, and peace that surpasses understanding.
 
-        'Job search guidance': `Almighty God, we humbly ask for Your divine guidance and blessing upon this job search. You know our needs before we even ask, and You have plans to prosper us and not to harm us, to give us hope and a future.
+Saint Raphael the Archangel, patron of healing, intercede for this intention.`;
+        } else if (isJobRelated) {
+          specificPrayer += `
 
-Lord, we pray that You would open the right doors of opportunity and close those that are not according to Your will. Grant wisdom in the job search process, confidence in interviews, and discernment in decision-making. May the right position be revealed according to Your perfect timing.
+Almighty God, You provide for all our needs according to Your riches. We ask for Your guidance in this work situation, that the right opportunities may open and Your will be done. Grant wisdom in decisions and confidence in abilities You have given.
 
-We ask for Your provision during this time of transition, and that anxiety may be replaced with trust in Your faithfulness. Help us to remember that our identity and worth come from You, not from our work or career status.
+Saint Joseph the Worker, patron of workers and employment, pray for this intention.`;
+        } else if (isRelationshipRelated) {
+          specificPrayer += `
 
-Saint Joseph the Worker, patron of workers and employment, intercede for us. Through Christ our Lord. Amen.`,
+God of Love, You created us for communion with You and with one another. We pray for healing, understanding, and peace in this relationship situation. Where there is hurt, bring healing; where there is misunderstanding, bring clarity; where there is division, bring unity.
 
-        'default': `Merciful Father, we lift up this heartfelt prayer request before Your throne of grace. You know the deepest needs and desires of our hearts even before we speak them aloud.
+Saint John the Beloved, patron of love and friendship, intercede for this intention.`;
+        } else if (isFinancialRelated) {
+          specificPrayer += `
 
-We ask that You pour out Your love, comfort, and strength upon all those mentioned in this prayer intention. May Your will be done in their lives, and may they feel Your presence in both times of joy and difficulty.
+Providence of God, You know our material needs before we ask. We pray for Your provision and guidance in this financial situation. Help us to trust in Your care and to be good stewards of the resources You provide. Grant wisdom in financial decisions and peace in times of need.
 
-Grant them the grace to trust in Your perfect plan, even when the path ahead seems unclear. Fill them with hope that comes from knowing You are always with them, and that nothing can separate them from Your love.
+Saint Matthew, patron of finances, pray for this intention.`;
+        } else if (isGriefRelated) {
+          specificPrayer += `
 
-We entrust this prayer to the intercession of the Blessed Virgin Mary and all the saints. Through Christ our Lord. Amen.`
+God of all comfort, we pray for those who mourn and grieve. You understand our sorrow and are close to the brokenhearted. Grant eternal rest to the departed and consolation to those who remain. May the hope of resurrection bring peace and the promise of reunion bring comfort.
+
+Saint Monica, patron of those who grieve, intercede for this intention.`;
+        } else {
+          specificPrayer += `
+
+Lord, You know the depths of this particular need better than we do. We ask that Your will be accomplished in this situation, that Your grace may be sufficient, and that Your love may be made manifest in tangible ways.
+
+All you holy saints of God, intercede for this prayer request.`;
+        }
+
+        specificPrayer += `
+
+We make this prayer through Christ our Lord, who lives and reigns with You and the Holy Spirit, one God, forever and ever. Amen.
+
+Mary, Mother of God and our Mother, pray for us.`;
+
+        return specificPrayer;
       };
 
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      
-      // Get appropriate Catholic prayer based on request
-      const prayer = catholicPrayers[prayerRequest.title] || catholicPrayers['default'];
+      // Generate truly custom prayer based on the specific request
+      const prayer = generateCustomCatholicPrayer(prayerRequest.title, prayerRequest.content, prayerRequest.author);
       setPrayerModal(prev => ({
         ...prev,
         generatedPrayer: prayer,

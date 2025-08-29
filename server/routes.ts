@@ -250,14 +250,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const prompt = `Give me a Catholic prayers for this request: ${title} - ${content}`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
             content: prompt
           }
         ],
-        max_tokens: 150,
+        max_tokens: 300,
         temperature: 0.7,
       });
 

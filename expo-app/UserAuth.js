@@ -1,17 +1,93 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 
 export function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Registration form fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [gender, setGender] = useState('male');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = async () => {
+  const handleCreateAccount = async () => {
+    if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim() || !phone.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      console.log('Creating new account with production API...');
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      // Use default picture for now - image upload can be added later
+      const pictureFileName = 'defaultUser.png';
+      
+      const response = await fetch('https://www.prayoverus.com:3000/createUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          firstName: firstName,
+          lastName: lastName,
+          gender: gender,
+          placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
+          phone: phone,
+          picture: pictureFileName,
+          command: "createUser",
+          jsonpCallback: "afterCreateUser",
+          tz: timezone,
+          env: "prod"
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Create account API response:', data);
+        
+        if (data.error === 0) {
+          Alert.alert('Success', 'Account created successfully! Please sign in with your new credentials.', [
+            { text: 'OK', onPress: () => setIsRegistering(false) }
+          ]);
+          
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setFirstName('');
+          setLastName('');
+          setPhone('');
+          
+        } else {
+          Alert.alert('Error', 'Failed to create account. Please try again.');
+        }
+      } else {
+        Alert.alert('Error', 'Account creation service unavailable');
+      }
+      
+    } catch (error) {
+      console.log('Account creation error:', error.message);
+      Alert.alert('Error', 'Network error. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    setLoading(true);
+    
     try {
       console.log('Attempting login with your production API...');
       
@@ -74,15 +150,71 @@ export function LoginScreen({ onLogin }) {
       
       onLogin(mockUser);
       Alert.alert('Info', 'Using test login (production API unavailable)');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuth = () => {
+    if (isRegistering) {
+      handleCreateAccount();
+    } else {
+      handleLogin();
     }
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>PrayOverUs</Text>
       <Text style={styles.subtitle}>
         {isRegistering ? 'Create Account' : 'Sign In'}
       </Text>
+      
+      {isRegistering && (
+        <>
+          
+          <View style={styles.nameRow}>
+            <TextInput
+              style={[styles.input, styles.halfInput]}
+              placeholder="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={[styles.input, styles.halfInput]}
+              placeholder="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+            />
+          </View>
+          
+          <View style={styles.genderContainer}>
+            <Text style={styles.genderLabel}>Gender:</Text>
+            <TouchableOpacity 
+              style={[styles.genderButton, gender === 'male' && styles.genderButtonSelected]}
+              onPress={() => setGender('male')}
+            >
+              <Text style={[styles.genderButtonText, gender === 'male' && styles.genderButtonTextSelected]}>Male</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.genderButton, gender === 'female' && styles.genderButtonSelected]}
+              onPress={() => setGender('female')}
+            >
+              <Text style={[styles.genderButtonText, gender === 'female' && styles.genderButtonTextSelected]}>Female</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Phone Number"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+          />
+        </>
+      )}
       
       <TextInput
         style={styles.input}
@@ -101,9 +233,13 @@ export function LoginScreen({ onLogin }) {
         secureTextEntry
       />
       
-      <TouchableOpacity style={styles.button} onPress={handleAuth}>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleAuth}
+        disabled={loading}
+      >
         <Text style={styles.buttonText}>
-          {isRegistering ? 'Create Account' : 'Sign In'}
+          {loading ? 'Please wait...' : (isRegistering ? 'Create Account' : 'Sign In')}
         </Text>
       </TouchableOpacity>
       
@@ -117,13 +253,13 @@ export function LoginScreen({ onLogin }) {
             : 'Need an account? Sign Up'}
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f5f5f5',
@@ -168,5 +304,76 @@ const styles = StyleSheet.create({
   switchText: {
     color: '#8B5CF6',
     fontSize: 14,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  imagePickerButton: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+  },
+  imagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfInput: {
+    flex: 1,
+    marginRight: 10,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  genderLabel: {
+    fontSize: 16,
+    color: '#333',
+    marginRight: 15,
+  },
+  genderButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    marginRight: 10,
+  },
+  genderButtonSelected: {
+    backgroundColor: '#8B5CF6',
+  },
+  genderButtonText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  genderButtonTextSelected: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });

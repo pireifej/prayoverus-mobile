@@ -22,13 +22,23 @@ function App() {
   const loadCommunityPrayers = async () => {
     try {
       console.log('Loading community prayers from your API...');
-      const response = await fetch('https://www.prayoverus.com:3000/getAllPrayers', {
+      
+      // Use logged in user's ID or default for testing
+      const userId = currentUser?.id || 353;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      console.log('Making API call with userId:', userId, 'timezone:', timezone);
+      
+      const response = await fetch('https://www.prayoverus.com:3000/getMyRequestFeed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        // React Native/Expo fetch options for SSL
+        body: JSON.stringify({
+          userId: userId,
+          tz: timezone
+        }),
         timeout: 10000,
       });
       
@@ -38,16 +48,22 @@ function App() {
         
         // Handle your API response format: { error: 0, result: [...] }
         if (data.error === 0 && data.result) {
-          setCommunityPrayers(data.result.map(prayer => ({
-            id: prayer.prayer_id,
-            title: prayer.prayer_title,
-            content: prayer.tags, // Using tags as content/description
-            author: 'Community', // Default since no author in API response
+          setCommunityPrayers(data.result.map(request => ({
+            id: request.request_id,
+            title: request.request_title || request.prayer_title,
+            content: request.request_text,
+            author: request.real_name || request.user_name || 'Anonymous',
             isPublic: true,
             prayedFor: false,
-            prayer_pic: prayer.prayer_pic,
-            active: prayer.active
+            timestamp: request.timestamp,
+            category: request.category_name,
+            prayer_title: request.prayer_title,
+            other_person: request.other_person,
+            picture: request.picture,
+            user_id: request.user_id,
+            fk_prayer_id: request.fk_prayer_id
           })));
+          console.log('Loaded', data.result.length, 'prayer requests from API');
         } else {
           console.log('API returned error:', data.error);
           throw new Error('API returned error response');
@@ -303,7 +319,17 @@ Through Christ our Lord. Amen.`;
             <View key={prayer.id} style={styles.prayerCard}>
               <Text style={styles.prayerTitle}>{prayer.title}</Text>
               <Text style={styles.prayerContent}>{prayer.content}</Text>
-              <Text style={styles.prayerAuthor}>by {prayer.author}</Text>
+              <View style={styles.prayerMeta}>
+                <Text style={styles.prayerAuthor}>by {prayer.author}</Text>
+                {prayer.category && (
+                  <Text style={styles.prayerCategory}>• {prayer.category}</Text>
+                )}
+              </View>
+              {prayer.timestamp && (
+                <Text style={styles.prayerTime}>
+                  {new Date(prayer.timestamp).toLocaleDateString()}
+                </Text>
+              )}
               <TouchableOpacity 
                 style={[styles.prayButton, prayer.prayedFor && styles.prayButtonPrayed]}
                 onPress={() => generatePrayer(prayer)}
@@ -631,13 +657,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   prayerMeta: {
-    fontSize: 12,
-    color: '#9ca3af',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   prayerAuthor: {
     fontSize: 14,
     color: '#6366f1',
     fontWeight: '600',
+  },
+  prayerCategory: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginLeft: 5,
+  },
+  prayerTime: {
+    fontSize: 12,
+    color: '#9ca3af',
     marginBottom: 10,
   },
   prayButton: {

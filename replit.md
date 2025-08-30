@@ -15,6 +15,7 @@ PrayOverUs is a full-stack prayer community platform available as both a web app
 - ✅ **Authentication API**: Login endpoint integration with real user authentication and profile data
 - ✅ **Prayer Feed API**: Community wall loads real prayer requests from production database
 - ✅ **Prayer Creation API**: Add New Prayer functionality saves directly to production database
+- ✅ **Prayer Action Tracking**: "Amen" button records prayer actions in production database via prayFor API
 - ✅ **Real User Sessions**: App uses authenticated user IDs for all API calls and data operations
 
 # User Preferences

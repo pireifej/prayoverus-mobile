@@ -257,13 +257,47 @@ Through Christ our Lord. Amen.`;
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   };
 
-  const markAsPrayed = () => {
-    // Mark as prayed for when user clicks Amen
+  const markAsPrayed = async () => {
+    const prayer = prayerModal.prayer;
+    if (!prayer) return;
+
+    try {
+      console.log('Recording prayer action in production database...');
+      
+      const response = await fetch('https://www.prayoverus.com:3000/prayFor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser?.id,
+          requestId: prayer.id  // Using the request_id from the prayer feed
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('PrayFor API response:', data);
+        
+        if (data.error === 0) {
+          console.log('Prayer action recorded successfully in database');
+        } else {
+          console.log('API returned error (possibly already recorded):', data.result);
+        }
+      } else {
+        console.log('PrayFor API request failed:', response.status);
+      }
+    } catch (error) {
+      console.log('Failed to record prayer action:', error.message);
+    }
+
+    // Always update local state regardless of API result
     setCommunityPrayers(prevPrayers =>
-      prevPrayers.map(prayer =>
-        prayer.id === prayerModal.prayer?.id
-          ? { ...prayer, prayedFor: true }
-          : prayer
+      prevPrayers.map(p =>
+        p.id === prayer.id
+          ? { ...p, prayedFor: true }
+          : p
       )
     );
     

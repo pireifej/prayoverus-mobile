@@ -22,7 +22,15 @@ function App() {
   const loadCommunityPrayers = async () => {
     try {
       console.log('Loading community prayers from your API...');
-      const response = await fetch('https://www.prayoverus.com:3000/getAllPrayers');
+      const response = await fetch('https://www.prayoverus.com:3000/getAllPrayers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        // React Native/Expo fetch options for SSL
+        timeout: 10000,
+      });
       
       if (response.ok) {
         const data = await response.json();

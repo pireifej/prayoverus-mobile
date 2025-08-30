@@ -36,16 +36,22 @@ function App() {
         const data = await response.json();
         console.log('API Response:', data);
         
-        // Transform your API data to match app structure
-        // Will update this mapping once we see your actual data format
-        setCommunityPrayers(data.map(prayer => ({
-          id: prayer.id,
-          title: prayer.title || prayer.name || 'Prayer Request',
-          content: prayer.content || prayer.description || prayer.message,
-          author: prayer.author || prayer.user || prayer.userName || 'Anonymous',
-          isPublic: true,
-          prayedFor: false
-        })));
+        // Handle your API response format: { error: 0, result: [...] }
+        if (data.error === 0 && data.result) {
+          setCommunityPrayers(data.result.map(prayer => ({
+            id: prayer.prayer_id,
+            title: prayer.prayer_title,
+            content: prayer.tags, // Using tags as content/description
+            author: 'Community', // Default since no author in API response
+            isPublic: true,
+            prayedFor: false,
+            prayer_pic: prayer.prayer_pic,
+            active: prayer.active
+          })));
+        } else {
+          console.log('API returned error:', data.error);
+          throw new Error('API returned error response');
+        }
       } else {
         console.log('API response error:', response.status);
         throw new Error(`API returned ${response.status}`);

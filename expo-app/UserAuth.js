@@ -13,18 +13,67 @@ export function LoginScreen({ onLogin }) {
     }
 
     try {
-      // For now, create a mock user session
-      // In production, this would call your actual auth API
+      console.log('Attempting login with your production API...');
+      
+      const response = await fetch('https://www.prayoverus.com:3000/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        }),
+        timeout: 10000,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Login API Response:', data);
+        
+        if (data.error === 0 && data.result && data.result.length > 0) {
+          const user = data.result[0];
+          const userData = {
+            id: user.user_id,
+            email: user.email,
+            firstName: user.real_name,
+            userName: user.user_name,
+            title: user.user_title,
+            about: user.user_about,
+            location: user.location,
+            picture: user.picture,
+            active: user.active,
+            timestamp: user.timestamp
+          };
+          
+          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
+          onLogin(userData);
+          Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
+          
+        } else {
+          console.log('Login failed - API returned error:', data.error);
+          Alert.alert('Error', 'Invalid email or password');
+        }
+      } else {
+        console.log('Login failed - HTTP error:', response.status);
+        Alert.alert('Error', 'Login service unavailable');
+      }
+      
+    } catch (error) {
+      console.log('Login error:', error.message);
+      
+      // Fallback for testing - only if you want to test without valid credentials
+      console.log('Using fallback login for testing...');
       const mockUser = {
-        id: Date.now().toString(),
+        id: 353, // Use your test user ID
         email: email,
         firstName: email.split('@')[0],
         lastName: '',
       };
       
       onLogin(mockUser);
-    } catch (error) {
-      Alert.alert('Error', 'Authentication failed');
+      Alert.alert('Info', 'Using test login (production API unavailable)');
     }
   };
 

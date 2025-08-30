@@ -23,8 +23,8 @@ function App() {
     try {
       console.log('Loading community prayers from your API...');
       
-      // Use logged in user's ID or default for testing
-      const userId = currentUser?.id || 353;
+      // Use the actual logged in user's ID from production API
+      const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
       console.log('Making API call with userId:', userId, 'timezone:', timezone);

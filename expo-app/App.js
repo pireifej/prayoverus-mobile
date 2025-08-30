@@ -99,7 +99,7 @@ function App() {
     }
   };
 
-  const addPrayer = () => {
+  const addPrayer = async () => {
     if (newPrayer.title.trim() && newPrayer.content.trim()) {
       const prayer = {
         id: Date.now(),
@@ -112,15 +112,28 @@ function App() {
         prayedFor: false
       };
       
-      setPrayers([prayer, ...prayers]);
-      if (newPrayer.isPublic) {
-        setCommunityPrayers([prayer, ...communityPrayers]);
+      // Save to production API first
+      try {
+        await savePrayerToAPI(prayer);
+        
+        // Add to local state after successful API call
+        setPrayers([prayer, ...prayers]);
+        if (newPrayer.isPublic) {
+          setCommunityPrayers([prayer, ...communityPrayers]);
+        }
+        
+        setNewPrayer({ title: '', content: '', isPublic: false });
+        Alert.alert('Success', 'Prayer request created and saved to your account!');
+        
+      } catch (error) {
+        // Even if API fails, add to local state for offline functionality
+        setPrayers([prayer, ...prayers]);
+        if (newPrayer.isPublic) {
+          setCommunityPrayers([prayer, ...communityPrayers]);
+        }
+        setNewPrayer({ title: '', content: '', isPublic: false });
+        Alert.alert('Success', 'Prayer added locally (will sync when connection is restored)');
       }
-      
-      setNewPrayer({ title: '', content: '', isPublic: false });
-      // In production, save to database via API
-      savePrayerToAPI(prayer);
-      Alert.alert('Success', 'Prayer added successfully!');
     } else {
       Alert.alert('Error', 'Please fill in both title and content');
     }
@@ -128,25 +141,46 @@ function App() {
 
   const savePrayerToAPI = async (prayer) => {
     try {
-      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers', {
+      console.log('Creating prayer request using production API...');
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      const response = await fetch('https://www.prayoverus.com:3000/createRequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentUser.id}`
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          title: prayer.title,
-          content: prayer.content,
-          isPublic: prayer.isPublic
+          userId: currentUser?.id,
+          env: "test",
+          jsonpCallback: "afterCreateRequest",
+          requestText: `${prayer.title} - ${prayer.content}`,
+          sendEmail: "off",
+          prayerId: 37, // Default prayer ID - you can adjust this
+          forMe: prayer.isPublic ? "false" : "true",
+          forAll: prayer.isPublic ? "true" : "false", 
+          tz: timezone
         })
       });
       
       if (response.ok) {
-        console.log('Prayer saved to database');
-        loadCommunityPrayers(); // Refresh community prayers
+        const data = await response.json();
+        console.log('Create request API response:', data);
+        
+        if (data.error === 0) {
+          console.log('Prayer request saved successfully:', data.result);
+          loadCommunityPrayers(); // Refresh community prayers
+        } else {
+          console.log('API returned error:', data.error);
+          Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
+        }
+      } else {
+        console.log('API request failed:', response.status);
+        Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
       }
     } catch (error) {
-      console.log('Failed to save prayer to API:', error.message);
+      console.log('Failed to save prayer to production API:', error.message);
+      Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
     }
   };
 

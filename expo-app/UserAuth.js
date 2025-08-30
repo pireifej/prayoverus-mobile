@@ -89,7 +89,15 @@ export function LoginScreen({ onLogin }) {
     setLoading(true);
     
     try {
-      console.log('Attempting login with your production API...');
+      console.log('Attempting login with production API...');
+      console.log('Login credentials:', { email: email, passwordLength: password.length });
+      
+      const loginPayload = {
+        email: email,
+        password: password
+      };
+      
+      console.log('Sending login request with payload:', JSON.stringify(loginPayload));
       
       const response = await fetch('https://www.prayoverus.com:3000/login', {
         method: 'POST',
@@ -97,16 +105,13 @@ export function LoginScreen({ onLogin }) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          email: email,
-          password: password
-        }),
+        body: JSON.stringify(loginPayload),
         timeout: 10000,
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Login API Response:', data);
+        console.log('Login API Response:', JSON.stringify(data, null, 2));
         
         if (data.error === 0 && data.result && data.result.length > 0) {
           const user = data.result[0];
@@ -128,7 +133,7 @@ export function LoginScreen({ onLogin }) {
           Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
           
         } else {
-          console.log('Login failed - API returned error:', data.error);
+          console.log('Login failed - API returned error:', data.error, 'Response:', JSON.stringify(data));
           Alert.alert('Error', 'Invalid email or password');
         }
       } else {

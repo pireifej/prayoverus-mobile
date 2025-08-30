@@ -21,18 +21,31 @@ function App() {
 
   const loadCommunityPrayers = async () => {
     try {
-      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers/community');
+      console.log('Loading community prayers from your API...');
+      const response = await fetch('https://www.prayoverus.com:3000/getAllPrayers');
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('API Response:', data);
+        
+        // Transform your API data to match app structure
+        // Will update this mapping once we see your actual data format
         setCommunityPrayers(data.map(prayer => ({
-          ...prayer,
-          author: prayer.user?.firstName || 'Anonymous',
-          prayedFor: false // Initialize prayer support status
+          id: prayer.id,
+          title: prayer.title || prayer.name || 'Prayer Request',
+          content: prayer.content || prayer.description || prayer.message,
+          author: prayer.author || prayer.user || prayer.userName || 'Anonymous',
+          isPublic: true,
+          prayedFor: false
         })));
+      } else {
+        console.log('API response error:', response.status);
+        throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
-      console.log('Failed to load community prayers:', error.message);
-      // Keep sample data if API fails
+      console.log('Failed to load community prayers from API:', error.message);
+      
+      // Fallback to sample data for testing
       setCommunityPrayers([
         { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false },
         { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false },

@@ -173,7 +173,7 @@ export function LoginScreen({ onLogin }) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Image 
-        source={require('../attached_assets/hope1_1756676980276.png')}
+        source={require('./assets/logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />

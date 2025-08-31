@@ -84,18 +84,65 @@ function App() {
   };
 
   const loadUserPrayers = async () => {
+    if (!currentUser?.id) {
+      console.log('No user ID available for loading prayers');
+      return;
+    }
+
     try {
-      const response = await fetch('https://53c1b6ae-5a8b-4c90-b8ff-6cee45b5c7ac-00-2rlv72l3v4sla.riker.replit.dev/api/prayers/mine', {
+      console.log('Loading user prayers from production API...');
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      const response = await fetch('https://www.prayoverus.com:3000/getMyRequestFeed', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${currentUser.id}` // In production, use proper JWT tokens
-        }
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          tz: timezone,
+          userId: currentUser.id.toString()
+        })
       });
+      
       if (response.ok) {
         const data = await response.json();
-        setPrayers(data);
+        console.log('User prayers API response:', data);
+        
+        if (data.error === 0 && data.result) {
+          const userPrayers = data.result.map(request => ({
+            id: request.request_id,
+            title: request.request_title || 'Prayer Request',
+            content: request.request_text,
+            author: request.real_name || request.user_name || 'You',
+            date: new Date(request.timestamp).toLocaleDateString(),
+            isPublic: request.fk_user_id === null, // If fk_user_id is null, it's public
+            prayedFor: false,
+            timestamp: request.timestamp,
+            category: request.category_name,
+            prayer_title: request.prayer_title,
+            other_person: request.other_person,
+            picture: request.picture,
+            user_id: request.user_id,
+            fk_prayer_id: request.fk_prayer_id,
+            allow_comments: request.allow_comments,
+            use_alias: request.use_alias
+          }));
+          
+          setPrayers(userPrayers);
+          console.log('Loaded', userPrayers.length, 'user prayers from production API');
+        } else {
+          console.log('API returned error:', data.error);
+          setPrayers([]); // Set empty array if no prayers found
+        }
+      } else {
+        console.log('User prayers API response error:', response.status);
+        throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
-      console.log('Failed to load user prayers:', error.message);
+      console.log('Failed to load user prayers from API:', error.message);
+      // Set empty prayers array on error instead of fallback data
+      setPrayers([]);
     }
   };
 
@@ -116,10 +163,10 @@ function App() {
       try {
         await savePrayerToAPI(prayer);
         
-        // Add to local state after successful API call
-        setPrayers([prayer, ...prayers]);
+        // Refresh user prayers from API to get the latest data including request_id
+        await loadUserPrayers();
         if (newPrayer.isPublic) {
-          setCommunityPrayers([prayer, ...communityPrayers]);
+          await loadCommunityPrayers();
         }
         
         setNewPrayer({ title: '', content: '', isPublic: false });
@@ -311,6 +358,13 @@ Through Christ our Lord. Amen.`;
   }
 
   if (currentScreen === 'personal') {
+    // Refresh user prayers when entering this screen
+    useEffect(() => {
+      if (currentUser?.id) {
+        loadUserPrayers();
+      }
+    }, [currentScreen]);
+
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />

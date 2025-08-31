@@ -41,6 +41,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
           userId: userId,
@@ -105,6 +106,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
           tz: timezone,
@@ -203,6 +205,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
           userId: currentUser?.id,
@@ -258,6 +261,7 @@ function App() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + btoa('admin:password123'),
           },
           body: JSON.stringify({
             request: prompt
@@ -323,6 +327,7 @@ Through Christ our Lord. Amen.`;
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
           userId: currentUser?.id,

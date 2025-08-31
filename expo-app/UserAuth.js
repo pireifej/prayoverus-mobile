@@ -33,6 +33,7 @@ export function LoginScreen({ onLogin }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
           email: email,
@@ -104,6 +105,7 @@ export function LoginScreen({ onLogin }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify(loginPayload),
         timeout: 10000,

@@ -36,7 +36,7 @@ function App() {
       
       console.log('Making API call with userId:', userId, 'timezone:', timezone);
       
-      const response = await fetch('https://www.prayoverus.com:3000/getMyRequestFeed', {
+      const response = await fetch('https://www.prayoverus.com:3000/getRequestFeed', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

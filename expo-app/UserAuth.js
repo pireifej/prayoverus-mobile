@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 
 export function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -172,7 +172,11 @@ export function LoginScreen({ onLogin }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>PrayOverUs</Text>
+      <Image 
+        source={require('../attached_assets/hope1_1756676980276.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.subtitle}>
         {isRegistering ? 'Create Account' : 'Sign In'}
       </Text>
@@ -270,6 +274,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#f5f5f5',
+  },
+  logo: {
+    width: 200,
+    height: 120,
+    marginBottom: 20,
+    alignSelf: 'center',
   },
   title: {
     fontSize: 32,

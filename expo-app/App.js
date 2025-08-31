@@ -19,6 +19,13 @@ function App() {
     }
   }, [currentUser]);
 
+  // Refresh user prayers when entering personal screen
+  useEffect(() => {
+    if (currentUser?.id && currentScreen === 'personal') {
+      loadUserPrayers();
+    }
+  }, [currentScreen, currentUser?.id]);
+
   const loadCommunityPrayers = async () => {
     try {
       console.log('Loading community prayers from your API...');
@@ -358,13 +365,6 @@ Through Christ our Lord. Amen.`;
   }
 
   if (currentScreen === 'personal') {
-    // Refresh user prayers when entering this screen
-    useEffect(() => {
-      if (currentUser?.id) {
-        loadUserPrayers();
-      }
-    }, [currentScreen]);
-
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />

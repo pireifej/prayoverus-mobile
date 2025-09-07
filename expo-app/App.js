@@ -324,21 +324,19 @@ function App() {
         loading: true
       });
 
-      // Call your existing ChatGPT API service
+      // Get prayer text from database by request ID
       try {
-        const requestText = `${prayerRequest.title} - ${prayerRequest.content}`;
-        const prompt = `Give me a Catholic prayers for this request: ${requestText}. The person who made this request is named ${prayerRequest.author}. Please include their name in the prayer and refer to them in third-person.`;
+        console.log(`Getting prayer text for request ID: ${prayerRequest.id}`);
         
-        console.log(`Calling ChatGPT API for: "${prayerRequest.title}" by ${prayerRequest.author}`);
-        
-        const response = await fetch('https://www.prayoverus.com:3000/chatGPT', {
+        const response = await fetch('https://www.prayoverus.com:3000/getPrayerByRequestId', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'Authorization': 'Basic ' + btoa('admin:password123'),
           },
           body: JSON.stringify({
-            request: prompt
+            requestId: prayerRequest.id
           }),
         });
 
@@ -359,7 +357,7 @@ function App() {
           console.log('API response error:', response.status);
         }
       } catch (error) {
-        console.log('ChatGPT API call failed:', error.message);
+        console.log('Get prayer API call failed:', error.message);
       }
 
       // Fallback prayer if API fails

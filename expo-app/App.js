@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SecureStore from 'expo-secure-store';
 import { LoginScreen } from './UserAuth';
 
 function App() {
@@ -11,6 +12,12 @@ function App() {
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check for stored user session on app start
+  useEffect(() => {
+    checkStoredAuth();
+  }, []);
 
   // Load community prayers from the API when user logs in
   useEffect(() => {
@@ -109,6 +116,57 @@ function App() {
 
   const onRefreshCommunity = async () => {
     await loadCommunityPrayers(true);
+  };
+
+  // Check for stored user authentication on app start
+  const checkStoredAuth = async () => {
+    try {
+      const storedUser = await SecureStore.getItemAsync('currentUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        console.log('Found stored user session:', userData.firstName, 'ID:', userData.id);
+        setCurrentUser(userData);
+      } else {
+        console.log('No stored user session found');
+      }
+    } catch (error) {
+      console.log('Error checking stored auth:', error.message);
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
+
+  // Save user data to secure storage after login
+  const saveUserToStorage = async (userData) => {
+    try {
+      await SecureStore.setItemAsync('currentUser', JSON.stringify(userData));
+      console.log('User session saved to secure storage');
+    } catch (error) {
+      console.log('Error saving user to storage:', error.message);
+    }
+  };
+
+  // Clear user data from storage on logout
+  const clearUserFromStorage = async () => {
+    try {
+      await SecureStore.deleteItemAsync('currentUser');
+      console.log('User session cleared from storage');
+    } catch (error) {
+      console.log('Error clearing user from storage:', error.message);
+    }
+  };
+
+  // Handle user login and save to storage
+  const handleLogin = async (userData) => {
+    setCurrentUser(userData);
+    await saveUserToStorage(userData);
+  };
+
+  // Handle user logout and clear storage
+  const handleLogout = async () => {
+    await clearUserFromStorage();
+    setCurrentUser(null);
+    setCurrentScreen('home');
   };
 
   const loadUserPrayers = async () => {
@@ -385,9 +443,19 @@ Through Christ our Lord. Amen.`;
     closePrayerModal();
   };
 
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text style={{ marginTop: 10, color: '#6366f1' }}>Loading...</Text>
+      </View>
+    );
+  }
+
   // Show login screen if no current user
   if (!currentUser) {
-    return <LoginScreen onLogin={setCurrentUser} />;
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   if (currentScreen === 'personal') {
@@ -577,7 +645,7 @@ Through Christ our Lord. Amen.`;
       {/* User Header */}
       <View style={styles.userHeader}>
         <Text style={styles.welcomeText}>Welcome, {currentUser.firstName}!</Text>
-        <TouchableOpacity onPress={() => setCurrentUser(null)} style={styles.logoutButton}>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import * as SecureStore from 'expo-secure-store';
 import { LoginScreen } from './UserAuth';
+
+// Simple persistent storage using global variable (simulates localStorage)
+let storedUserData = null;
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -121,11 +123,9 @@ function App() {
   // Check for stored user authentication on app start
   const checkStoredAuth = async () => {
     try {
-      const storedUser = await SecureStore.getItemAsync('currentUser');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        console.log('Found stored user session:', userData.firstName, 'ID:', userData.id);
-        setCurrentUser(userData);
+      if (storedUserData) {
+        console.log('Found stored user session:', storedUserData.firstName, 'ID:', storedUserData.id);
+        setCurrentUser(storedUserData);
       } else {
         console.log('No stored user session found');
       }
@@ -136,11 +136,11 @@ function App() {
     }
   };
 
-  // Save user data to secure storage after login
+  // Save user data to storage after login
   const saveUserToStorage = async (userData) => {
     try {
-      await SecureStore.setItemAsync('currentUser', JSON.stringify(userData));
-      console.log('User session saved to secure storage');
+      storedUserData = userData;
+      console.log('User session saved to storage');
     } catch (error) {
       console.log('Error saving user to storage:', error.message);
     }
@@ -149,7 +149,7 @@ function App() {
   // Clear user data from storage on logout
   const clearUserFromStorage = async () => {
     try {
-      await SecureStore.deleteItemAsync('currentUser');
+      storedUserData = null;
       console.log('User session cleared from storage');
     } catch (error) {
       console.log('Error clearing user from storage:', error.message);

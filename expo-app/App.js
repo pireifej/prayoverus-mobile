@@ -8,7 +8,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [prayers, setPrayers] = useState([]);
   const [communityPrayers, setCommunityPrayers] = useState([]);
-  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: false });
+  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
 
@@ -220,7 +220,7 @@ function App() {
       console.log('Creating prayer request using production API...');
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const response = await fetch('https://www.prayoverus.com:3000/createRequest', {
+      const response = await fetch('https://www.prayoverus.com:3000/createRequestApp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,9 +231,10 @@ function App() {
           userId: currentUser?.id,
           env: "test",
           jsonpCallback: "afterCreateRequest",
-          requestText: `${prayer.title} - ${prayer.content}`,
+          requestTitle: prayer.title,
+          requestText: prayer.content,
           sendEmail: "off",
-          prayerId: 37, // Default prayer ID - you can adjust this
+          prayerId: 37,
           forMe: prayer.isPublic ? "false" : "true",
           forAll: prayer.isPublic ? "true" : "false", 
           tz: timezone

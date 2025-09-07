@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform } from 'react-native';
 
 export function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -171,8 +171,16 @@ export function LoginScreen({ onLogin }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Image 
+    <KeyboardAvoidingView 
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Image 
         source={require('./assets/logo.png')}
         style={styles.logo}
         resizeMode="contain"
@@ -264,16 +272,21 @@ export function LoginScreen({ onLogin }) {
             : 'Need an account? Sign Up'}
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    paddingBottom: 40,
   },
   logo: {
     width: 200,

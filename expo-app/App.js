@@ -608,6 +608,7 @@ Through Christ our Lord. Amen.`;
           <Text style={styles.tapHint}>Tap to explore →</Text>
         </TouchableOpacity>
 
+{/* Prayer Groups section - temporarily hidden until backend implementation is ready
         <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('groups')}>
           <Text style={styles.cardTitle}>Prayer Groups</Text>
           <Text style={styles.cardText}>
@@ -615,6 +616,7 @@ Through Christ our Lord. Amen.`;
           </Text>
           <Text style={styles.tapHint}>Tap to explore →</Text>
         </TouchableOpacity>
+        */}
       </ScrollView>
     </View>
   );

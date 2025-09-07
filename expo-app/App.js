@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen } from './UserAuth';
 
@@ -10,6 +10,7 @@ function App() {
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: false });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+  const [refreshingCommunity, setRefreshingCommunity] = useState(false);
 
   // Load community prayers from the API when user logs in
   useEffect(() => {
@@ -26,8 +27,19 @@ function App() {
     }
   }, [currentScreen, currentUser?.id]);
 
-  const loadCommunityPrayers = async () => {
+  // Load community prayers when entering community screen
+  useEffect(() => {
+    if (currentUser && currentScreen === 'community') {
+      loadCommunityPrayers();
+    }
+  }, [currentScreen, currentUser]);
+
+  const loadCommunityPrayers = async (showRefreshIndicator = false) => {
     try {
+      if (showRefreshIndicator) {
+        setRefreshingCommunity(true);
+      }
+      
       console.log('Loading community prayers from your API...');
       
       // Use the actual logged in user's ID from production API
@@ -88,7 +100,15 @@ function App() {
         { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false },
         { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false },
       ]);
+    } finally {
+      if (showRefreshIndicator) {
+        setRefreshingCommunity(false);
+      }
     }
+  };
+
+  const onRefreshCommunity = async () => {
+    await loadCommunityPrayers(true);
   };
 
   const loadUserPrayers = async () => {
@@ -440,7 +460,18 @@ Through Christ our Lord. Amen.`;
           <Text style={styles.headerTitle}>Community Wall</Text>
         </View>
         
-        <ScrollView style={styles.screenContent}>
+        <ScrollView 
+          style={styles.screenContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshingCommunity}
+              onRefresh={onRefreshCommunity}
+              tintColor="#6366f1"
+              title="Loading prayers..."
+              titleColor="#6366f1"
+            />
+          }
+        >
           <Text style={styles.sectionTitle}>Community Prayers</Text>
           {communityPrayers.map(prayer => (
             <View key={prayer.id} style={styles.prayerCard}>

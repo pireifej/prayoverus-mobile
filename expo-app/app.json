@@ -31,6 +31,12 @@
         "projectId": "91bdb01b-1012-49e1-abb4-fc8fae904ec8"
       }
     },
-    "owner": "pireifej"
+    "owner": "pireifej",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/91bdb01b-1012-49e1-abb4-fc8fae904ec8"
+    }
   }
 }

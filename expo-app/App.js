@@ -278,7 +278,7 @@ function App() {
       console.log('Creating prayer request using production API...');
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const response = await fetch('https://www.prayoverus.com:3000/createRequestApp', {
+      const response = await fetch('https://www.prayoverus.com:3000/createRequestAndPrayer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,16 +286,11 @@ function App() {
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
         body: JSON.stringify({
-          userId: currentUser?.id,
-          env: "test",
-          jsonpCallback: "afterCreateRequest",
-          requestTitle: prayer.title,
           requestText: prayer.content,
-          sendEmail: "off",
-          prayerId: 37,
-          forMe: prayer.isPublic ? "false" : "true",
-          forAll: prayer.isPublic ? "true" : "false", 
-          tz: timezone
+          requestTitle: prayer.title,
+          tz: timezone,
+          userId: currentUser?.id,
+          sendEmail: "true"
         })
       });
       

@@ -37,6 +37,7 @@ export function LoginScreen({ onLogin }) {
         },
         body: JSON.stringify({
           email: email,
+          password: password,
           firstName: firstName,
           lastName: lastName,
           gender: gender,

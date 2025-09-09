@@ -342,8 +342,13 @@ function App() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Full API response:', JSON.stringify(data, null, 2));
+          console.log('data.error:', data.error);
+          console.log('data.result exists:', !!data.result);
+          console.log('data.result length:', data.result?.length);
           
           if (data.error === 0 && data.result) {
+            console.log('SUCCESS: Using database prayer text');
             setPrayerModal(prev => ({
               ...prev,
               generatedPrayer: data.result,
@@ -351,10 +356,11 @@ function App() {
             }));
             return;
           } else {
+            console.log('FALLBACK TRIGGERED: API error or no result');
             console.log('API error:', data.result || 'Unknown error');
           }
         } else {
-          console.log('API response error:', response.status);
+          console.log('FALLBACK TRIGGERED: API response error:', response.status);
         }
       } catch (error) {
         console.log('Get prayer API call failed:', error.message);

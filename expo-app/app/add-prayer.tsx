@@ -23,11 +23,14 @@ export default function AddPrayerScreen() {
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isProcessingRef = useRef(false);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
 
   const handleSubmit = () => {
-    // IMMEDIATE blocking - prevent any duplicate submissions
-    if (isSubmitting || isProcessingRef.current) {
+    const now = Date.now();
+    
+    // ALTERNATIVE 1: Time-based blocking (prevent submissions within 3 seconds)
+    if (now - lastSubmitTime < 3000) {
+      console.log('Blocked: Too soon since last submission');
       return;
     }
 
@@ -41,31 +44,24 @@ export default function AddPrayerScreen() {
       return;
     }
 
-    // IMMEDIATELY disable button and block future clicks
-    isProcessingRef.current = true;
+    // IMMEDIATELY set timestamp and hide button
+    setLastSubmitTime(now);
     setIsSubmitting(true);
     
     // Start API call (don't wait for it)
     // In real implementation, this would be your actual API call
     // fetch('/api/prayers', { method: 'POST', ... })
     
-    // Show success immediately (don't clear form yet)
-    Alert.alert(
-      'Prayer Submitted! 🙏',
-      'Your prayer has been sent.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Clear form and go back when user taps OK
-            setTitle('');
-            setContent('');
-            setIsPublic(false);
-            router.back();
-          },
-        },
-      ]
-    );
+    // ALTERNATIVE 2: Navigate away immediately 
+    router.back();
+    
+    // Show success toast after navigation
+    setTimeout(() => {
+      Alert.alert(
+        'Prayer Submitted! 🙏',
+        'Your prayer has been sent.'
+      );
+    }, 500);
   };
 
   const contentLength = content?.length || 0;
@@ -171,20 +167,24 @@ export default function AddPrayerScreen() {
             <Button
               mode="outlined"
               onPress={() => router.back()}
-              disabled={isSubmitting}
               style={styles.cancelButton}
             >
               Cancel
             </Button>
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-              style={styles.submitButton}
-              icon={isSubmitting ? "loading" : "send"}
-            >
-              {isSubmitting ? 'Submitting...' : 'Add Prayer'}
-            </Button>
+            {!isSubmitting ? (
+              <Button
+                mode="contained"
+                onPress={handleSubmit}
+                style={styles.submitButton}
+                icon="send"
+              >
+                Add Prayer
+              </Button>
+            ) : (
+              <Surface style={[styles.submitButton, { backgroundColor: '#6366f1', padding: 12, borderRadius: 8 }]}>
+                <Text style={{ color: 'white', textAlign: 'center' }}>Prayer Submitted! 🙏</Text>
+              </Surface>
+            )}
           </View>
 
           {/* Inspirational Quote */}

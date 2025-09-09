@@ -47,18 +47,25 @@ export default function AddPrayerScreen() {
     // Generate unique one-time key (UUID)
     const idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
+    console.log('Generated idempotency key:', idempotencyKey);
+    
     // IMMEDIATELY set timestamp and hide button
     setLastSubmitTime(now);
     setIsSubmitting(true);
+    
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': idempotencyKey,
+      'User-Agent': 'PrayOverUs-Mobile-App'
+    };
+    
+    console.log('Request headers being sent:', requestHeaders);
     
     try {
       // Make actual API call with idempotency key
       const response = await fetch('https://api.prayoverus.com/api/createRequestAndPrayer', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Idempotency-Key': idempotencyKey, // Unique key to prevent duplicates
-        },
+        headers: requestHeaders,
         body: JSON.stringify({
           requestText: content.trim(),
           requestTitle: title.trim(),

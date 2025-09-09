@@ -25,6 +25,12 @@ export default function AddPrayerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = () => {
+    // IMMEDIATE guard clause - prevents any multiple submissions
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring additional clicks');
+      return;
+    }
+
     if (!title.trim()) {
       Alert.alert('Missing Title', 'Please enter a title for your prayer.');
       return;
@@ -37,31 +43,30 @@ export default function AddPrayerScreen() {
 
     // Immediately disable button and change text
     setIsSubmitting(true);
+    console.log('Button should now be disabled and showing "Submitting..."');
     
-    // Force re-render to show button state change immediately
+    // Simulate API call
     setTimeout(() => {
-      // Simulate API call
-      setTimeout(() => {
-        // Re-enable button
-        setIsSubmitting(false);
-        
-        Alert.alert(
-          'Prayer Added! 🙏',
-          'Your prayer has been added successfully.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setTitle('');
-                setContent('');
-                setIsPublic(false);
-                router.back();
-              },
+      // Re-enable button
+      setIsSubmitting(false);
+      console.log('Button should now be re-enabled');
+      
+      Alert.alert(
+        'Prayer Added! 🙏',
+        'Your prayer has been added successfully.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setTitle('');
+              setContent('');
+              setIsPublic(false);
+              router.back();
             },
-          ]
-        );
-      }, 1500);
-    }, 0);
+          },
+        ]
+      );
+    }, 1500);
   };
 
   const contentLength = content?.length || 0;

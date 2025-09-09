@@ -24,7 +24,7 @@ export default function AddPrayerScreen() {
   const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!title.trim()) {
       Alert.alert('Missing Title', 'Please enter a title for your prayer.');
       return;
@@ -38,32 +38,30 @@ export default function AddPrayerScreen() {
     // Immediately disable button and change text
     setIsSubmitting(true);
     
-    try {
+    // Force re-render to show button state change immediately
+    setTimeout(() => {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Re-enable button
-      setIsSubmitting(false);
-      
-      Alert.alert(
-        'Prayer Added! 🙏',
-        'Your prayer has been added successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setTitle('');
-              setContent('');
-              setIsPublic(false);
-              router.back();
+      setTimeout(() => {
+        // Re-enable button
+        setIsSubmitting(false);
+        
+        Alert.alert(
+          'Prayer Added! 🙏',
+          'Your prayer has been added successfully.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setTitle('');
+                setContent('');
+                setIsPublic(false);
+                router.back();
+              },
             },
-          },
-        ]
-      );
-    } catch (error) {
-      // Re-enable button on error
-      setIsSubmitting(false);
-    }
+          ]
+        );
+      }, 1500);
+    }, 0);
   };
 
   const contentLength = content?.length || 0;
@@ -177,10 +175,9 @@ export default function AddPrayerScreen() {
             <Button
               mode="contained"
               onPress={handleSubmit}
-              loading={isSubmitting}
               disabled={isSubmitting || !title.trim() || !content.trim()}
               style={styles.submitButton}
-              icon="send"
+              icon={isSubmitting ? "loading" : "send"}
             >
               {isSubmitting ? 'Submitting...' : 'Add Prayer'}
             </Button>

@@ -3,8 +3,54 @@ import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, Text
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen } from './UserAuth';
 
-// Simple persistent storage using AsyncStorage (built into React Native)
-let persistentUserData = null;
+// Use localStorage-like persistence for web and in-memory for mobile  
+import { Platform } from 'react-native';
+
+class SimpleStorage {
+  constructor() {
+    this.data = {};
+    if (Platform.OS === 'web') {
+      // For web, use localStorage
+      this.isWeb = true;
+    } else {
+      // For mobile, use in-memory (you can extend this with AsyncStorage later)
+      this.isWeb = false;
+    }
+  }
+
+  async setItem(key, value) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } else {
+      this.data[key] = value;
+    }
+  }
+
+  async getItem(key) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(key);
+      }
+    } else {
+      return this.data[key] || null;
+    }
+    return null;
+  }
+
+  async removeItem(key) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key);
+      }
+    } else {
+      delete this.data[key];
+    }
+  }
+}
+
+const storage = new SimpleStorage();
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -123,9 +169,11 @@ function App() {
   // Check for stored user authentication on app start
   const checkStoredAuth = async () => {
     try {
-      if (persistentUserData) {
-        console.log('Found stored user session:', persistentUserData.firstName, 'ID:', persistentUserData.id);
-        setCurrentUser(persistentUserData);
+      const userData = await storage.getItem('userSession');
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
+        console.log('Found stored user session:', parsedUserData.firstName, 'ID:', parsedUserData.id);
+        setCurrentUser(parsedUserData);
       } else {
         console.log('No stored user session found');
       }
@@ -139,10 +187,8 @@ function App() {
   // Save user data to storage after login
   const saveUserToStorage = async (userData) => {
     try {
-      persistentUserData = userData;
-      // In a real app, this would be saved to AsyncStorage or SecureStore
-      // For now, it persists during the app session
-      console.log('User session saved to storage');
+      await storage.setItem('userSession', JSON.stringify(userData));
+      console.log('User session saved to persistent storage');
     } catch (error) {
       console.log('Error saving user to storage:', error.message);
     }
@@ -151,8 +197,8 @@ function App() {
   // Clear user data from storage on logout
   const clearUserFromStorage = async () => {
     try {
-      persistentUserData = null;
-      console.log('User session cleared from storage');
+      await storage.removeItem('userSession');
+      console.log('User session cleared from persistent storage');
     } catch (error) {
       console.log('Error clearing user from storage:', error.message);
     }

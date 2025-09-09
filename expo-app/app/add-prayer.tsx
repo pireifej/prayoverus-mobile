@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   ScrollView,
@@ -23,6 +23,7 @@ export default function AddPrayerScreen() {
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -36,26 +37,85 @@ export default function AddPrayerScreen() {
     }
 
     setIsSubmitting(true);
+    setLoadingMessage('Creating prayer request...');
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // For now, use a default user ID (in real app, get from context/auth)
+      // This should be replaced with proper authentication context when AsyncStorage is fixed
+      const currentUser = { id: 1216 }; // Using a test user ID from your system
+      
+      if (!currentUser?.id) {
+        Alert.alert('Error', 'Please log in to create a prayer request.');
+        setIsSubmitting(false);
+        setLoadingMessage('');
+        return;
+      }
+
+      console.log('Creating prayer request using production API...');
+      setLoadingMessage('Saving to your account...');
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      const response = await fetch('https://www.prayoverus.com:3000/createRequestAndPrayer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('admin:password123'),
+        },
+        body: JSON.stringify({
+          requestText: content,
+          requestTitle: title,
+          tz: timezone,
+          userId: currentUser.id,
+          sendEmail: "true"
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Create request API response:', data);
+        
+        if (data.error === 0) {
+          console.log('Prayer request saved successfully:', data.result);
+          setLoadingMessage('Publishing to community...');
+          // Small delay to show the publishing message
+          setTimeout(() => {
+            setIsSubmitting(false);
+            setLoadingMessage('');
+            Alert.alert(
+            'Prayer Added! 🙏',
+            isPublic ? 'Your prayer has been shared with the community and saved to your account!' : 'Your prayer has been saved to your account!',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setTitle('');
+                  setContent('');
+                  setIsPublic(false);
+                  router.back();
+                },
+              },
+            ]
+          );
+          }, 800);
+        } else {
+          console.log('API returned error:', data.error);
+          setIsSubmitting(false);
+          setLoadingMessage('');
+          Alert.alert('Error', 'Failed to create prayer request. Please try again.');
+        }
+      } else {
+        console.log('API request failed:', response.status);
+        setIsSubmitting(false);
+        setLoadingMessage('');
+        Alert.alert('Error', 'Failed to create prayer request. Please check your connection and try again.');
+      }
+    } catch (error) {
+      console.log('Failed to save prayer to production API:', error.message);
       setIsSubmitting(false);
-      Alert.alert(
-        'Prayer Added! 🙏',
-        'Your prayer has been added successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setTitle('');
-              setContent('');
-              setIsPublic(false);
-              router.back();
-            },
-          },
-        ]
-      );
-    }, 1500);
+      setLoadingMessage('');
+      Alert.alert('Error', 'Failed to create prayer request. Please check your connection and try again.');
+    }
   };
 
   const contentLength = content?.length || 0;
@@ -174,7 +234,7 @@ export default function AddPrayerScreen() {
               style={styles.submitButton}
               icon="send"
             >
-              {isSubmitting ? 'Adding Prayer...' : 'Add Prayer'}
+              {isSubmitting ? (loadingMessage || 'Adding Prayer...') : 'Add Prayer'}
             </Button>
           </View>
 

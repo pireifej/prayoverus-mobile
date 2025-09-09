@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -23,11 +23,12 @@ export default function AddPrayerScreen() {
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isProcessingRef = useRef(false);
 
   const handleSubmit = () => {
-    // IMMEDIATE guard clause - prevents any multiple submissions
-    if (isSubmitting) {
-      console.log('Already submitting, ignoring additional clicks');
+    // IMMEDIATE blocking using ref - this happens instantly, no React re-render needed
+    if (isProcessingRef.current) {
+      console.log('Blocked: Already processing');
       return;
     }
 
@@ -41,15 +42,17 @@ export default function AddPrayerScreen() {
       return;
     }
 
-    // Immediately disable button and change text
+    // Immediately set flag and state
+    isProcessingRef.current = true;
     setIsSubmitting(true);
-    console.log('Button should now be disabled and showing "Submitting..."');
+    console.log('Processing started - button should be disabled');
     
     // Simulate API call
     setTimeout(() => {
       // Re-enable button
+      isProcessingRef.current = false;
       setIsSubmitting(false);
-      console.log('Button should now be re-enabled');
+      console.log('Processing finished - button should be re-enabled');
       
       Alert.alert(
         'Prayer Added! 🙏',

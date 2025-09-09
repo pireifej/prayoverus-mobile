@@ -45,7 +45,7 @@ export default function AddPrayerScreen() {
     }
 
     // Generate unique one-time key (UUID)
-    const idempotencyKey = 'prayer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     
     // IMMEDIATELY set timestamp and hide button
     setLastSubmitTime(now);

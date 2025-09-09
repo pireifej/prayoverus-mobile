@@ -119,7 +119,6 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('API Response:', data);
         
         // Handle your API response format: { error: 0, result: [...] }
         if (data.error === 0 && data.result) {
@@ -138,17 +137,14 @@ function App() {
             user_id: request.user_id,
             fk_prayer_id: request.fk_prayer_id
           })));
-          console.log('Loaded', data.result.length, 'prayer requests from API');
         } else {
-          console.log('API returned error:', data.error);
+
           throw new Error('API returned error response');
         }
       } else {
-        console.log('API response error:', response.status);
         throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
-      console.log('Failed to load community prayers from API:', error.message);
       
       // Fallback to sample data for testing
       setCommunityPrayers([
@@ -242,7 +238,6 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('User prayers API response:', data);
         
         if (data.error === 0 && data.result) {
           const userPrayers = data.result.map(request => ({
@@ -265,17 +260,14 @@ function App() {
           }));
           
           setPrayers(userPrayers);
-          console.log('Loaded', userPrayers.length, 'user prayers from production API');
         } else {
-          console.log('API returned error:', data.error);
+
           setPrayers([]); // Set empty array if no prayers found
         }
       } else {
-        console.log('User prayers API response error:', response.status);
         throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
-      console.log('Failed to load user prayers from API:', error.message);
       // Set empty prayers array on error instead of fallback data
       setPrayers([]);
     }
@@ -344,21 +336,18 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Create request API response:', data);
         
         if (data.error === 0) {
           console.log('Prayer request saved successfully:', data.result);
           loadCommunityPrayers(); // Refresh community prayers
         } else {
-          console.log('API returned error:', data.error);
+
           Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
         }
       } else {
-        console.log('API request failed:', response.status);
         Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
       }
     } catch (error) {
-      console.log('Failed to save prayer to production API:', error.message);
       Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
     }
   };
@@ -390,7 +379,6 @@ function App() {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Full API response:', JSON.stringify(data, null, 2));
           console.log('data.error:', data.error);
           console.log('data.prayerText exists:', !!data.prayerText);
           console.log('data.prayerText length:', data.prayerText?.length);
@@ -404,15 +392,12 @@ function App() {
             }));
             return;
           } else {
-            console.log('FALLBACK TRIGGERED: API error or no prayerText');
             console.log('data.error:', data.error);
             console.log('Available fields:', Object.keys(data));
           }
         } else {
-          console.log('FALLBACK TRIGGERED: API response error:', response.status);
         }
       } catch (error) {
-        console.log('Get prayer API call failed:', error.message);
       }
 
       // Fallback prayer if API fails
@@ -464,15 +449,12 @@ Through Christ our Lord. Amen.`;
       
       if (response.ok) {
         const data = await response.json();
-        console.log('PrayFor API response:', data);
         
         if (data.error === 0) {
           console.log('Prayer action recorded successfully in database');
         } else {
-          console.log('API returned error (possibly already recorded):', data.result);
         }
       } else {
-        console.log('PrayFor API request failed:', response.status);
       }
     } catch (error) {
       console.log('Failed to record prayer action:', error.message);

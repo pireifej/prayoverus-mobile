@@ -53,7 +53,6 @@ export function LoginScreen({ onLogin }) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Create account API response:', data);
         
         if (data.error === 0) {
           Alert.alert('Success', 'Account created successfully! Please sign in with your new credentials.', [
@@ -75,7 +74,6 @@ export function LoginScreen({ onLogin }) {
       }
       
     } catch (error) {
-      console.log('Account creation error:', error.message);
       Alert.alert('Error', 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
@@ -114,7 +112,6 @@ export function LoginScreen({ onLogin }) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Login API Response:', JSON.stringify(data, null, 2));
         
         if (data.error === 0 && data.result && data.result.length > 0) {
           const user = data.result[0];
@@ -136,19 +133,15 @@ export function LoginScreen({ onLogin }) {
           Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
           
         } else {
-          console.log('Login failed - API returned error:', data.error, 'Response:', JSON.stringify(data));
           Alert.alert('Error', 'Invalid email or password');
         }
       } else {
-        console.log('Login failed - HTTP error:', response.status);
         Alert.alert('Error', 'Login service unavailable');
       }
       
     } catch (error) {
-      console.log('Login error:', error.message);
       
       // Fallback for testing - only if you want to test without valid credentials
-      console.log('Using fallback login for testing...');
       const mockUser = {
         id: 353, // Use your test user ID
         email: email,

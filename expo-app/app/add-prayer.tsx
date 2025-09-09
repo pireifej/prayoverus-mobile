@@ -71,7 +71,8 @@ export default function AddPrayerScreen() {
           requestTitle: title.trim(),
           tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
           userId: 'anonymous-user', // Replace with actual user ID when available
-          sendEmail: false
+          sendEmail: false,
+          idempotencyKey: idempotencyKey // Include in payload as backup
         })
       });
 

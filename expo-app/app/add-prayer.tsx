@@ -25,10 +25,10 @@ export default function AddPrayerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const now = Date.now();
     
-    // ALTERNATIVE 1: Time-based blocking (prevent submissions within 3 seconds)
+    // Time-based blocking as backup
     if (now - lastSubmitTime < 3000) {
       console.log('Blocked: Too soon since last submission');
       return;
@@ -44,24 +44,51 @@ export default function AddPrayerScreen() {
       return;
     }
 
+    // Generate unique one-time key (UUID)
+    const idempotencyKey = 'prayer-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    
     // IMMEDIATELY set timestamp and hide button
     setLastSubmitTime(now);
     setIsSubmitting(true);
     
-    // Start API call (don't wait for it)
-    // In real implementation, this would be your actual API call
-    // fetch('/api/prayers', { method: 'POST', ... })
-    
-    // ALTERNATIVE 2: Navigate away immediately 
-    router.back();
-    
-    // Show success toast after navigation
-    setTimeout(() => {
-      Alert.alert(
-        'Prayer Submitted! 🙏',
-        'Your prayer has been sent.'
-      );
-    }, 500);
+    try {
+      // Make actual API call with idempotency key
+      const response = await fetch('https://api.prayoverus.com/api/createRequestAndPrayer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': idempotencyKey, // Unique key to prevent duplicates
+        },
+        body: JSON.stringify({
+          requestText: content.trim(),
+          requestTitle: title.trim(),
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          userId: 'anonymous-user', // Replace with actual user ID when available
+          sendEmail: false
+        })
+      });
+
+      if (response.ok) {
+        // Success - navigate away immediately 
+        router.back();
+        
+        // Show success after navigation
+        setTimeout(() => {
+          Alert.alert(
+            'Prayer Submitted! 🙏',
+            'Your prayer has been sent.'
+          );
+        }, 500);
+      } else {
+        // Handle error
+        setIsSubmitting(false);
+        Alert.alert('Error', 'Failed to submit prayer. Please try again.');
+      }
+    } catch (error) {
+      // Handle network error
+      setIsSubmitting(false);
+      Alert.alert('Error', 'Network error. Please check your connection and try again.');
+    }
   };
 
   const contentLength = content?.length || 0;

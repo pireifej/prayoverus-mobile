@@ -26,9 +26,8 @@ export default function AddPrayerScreen() {
   const isProcessingRef = useRef(false);
 
   const handleSubmit = () => {
-    // IMMEDIATE blocking using ref - this happens instantly, no React re-render needed
+    // IMMEDIATE blocking - prevent any duplicate submissions
     if (isProcessingRef.current) {
-      console.log('Blocked: Already processing');
       return;
     }
 
@@ -42,34 +41,29 @@ export default function AddPrayerScreen() {
       return;
     }
 
-    // Immediately set flag and state
+    // IMMEDIATELY disable button and block future clicks
     isProcessingRef.current = true;
     setIsSubmitting(true);
-    console.log('Processing started - button should be disabled');
     
-    // Simulate API call
-    setTimeout(() => {
-      // Re-enable button
-      isProcessingRef.current = false;
-      setIsSubmitting(false);
-      console.log('Processing finished - button should be re-enabled');
-      
-      Alert.alert(
-        'Prayer Added! 🙏',
-        'Your prayer has been added successfully.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setTitle('');
-              setContent('');
-              setIsPublic(false);
-              router.back();
-            },
-          },
-        ]
-      );
-    }, 1500);
+    // Start API call (don't wait for it)
+    // In real implementation, this would be your actual API call
+    // fetch('/api/prayers', { method: 'POST', ... })
+    
+    // IMMEDIATELY clear form and show success
+    setTitle('');
+    setContent('');
+    setIsPublic(false);
+    
+    Alert.alert(
+      'Prayer Submitted! 🙏',
+      'Your prayer has been sent.',
+      [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]
+    );
   };
 
   const contentLength = content?.length || 0;

@@ -343,19 +343,21 @@ function App() {
         if (response.ok) {
           const data = await response.json();
           console.log('Full API response:', JSON.stringify(data, null, 2));
-          console.log('data.prayer_text exists:', !!data.prayer_text);
-          console.log('data.prayer_text length:', data.prayer_text?.length);
+          console.log('data.error:', data.error);
+          console.log('data.prayerText exists:', !!data.prayerText);
+          console.log('data.prayerText length:', data.prayerText?.length);
           
-          if (data.prayer_text) {
+          if (data.error === 0 && data.prayerText) {
             console.log('SUCCESS: Using database prayer text');
             setPrayerModal(prev => ({
               ...prev,
-              generatedPrayer: data.prayer_text,
+              generatedPrayer: data.prayerText,
               loading: false
             }));
             return;
           } else {
-            console.log('FALLBACK TRIGGERED: No prayer_text in response');
+            console.log('FALLBACK TRIGGERED: API error or no prayerText');
+            console.log('data.error:', data.error);
             console.log('Available fields:', Object.keys(data));
           }
         } else {

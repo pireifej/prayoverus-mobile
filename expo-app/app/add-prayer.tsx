@@ -59,21 +59,31 @@ export default function AddPrayerScreen() {
       'User-Agent': 'PrayOverUs-Mobile-App'
     };
     
-    console.log('Request headers being sent:', requestHeaders);
+    const requestPayload = {
+      requestText: content.trim(),
+      requestTitle: title.trim(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      userId: 'anonymous-user', // Replace with actual user ID when available
+      sendEmail: false,
+      idempotencyKey: idempotencyKey // Include in payload as backup
+    };
+    
+    const endpoint = 'https://api.prayoverus.com/api/createRequestAndPrayer';
+    
+    console.log('🔥 API CALL DEBUG 🔥');
+    console.log('Endpoint:', endpoint);
+    console.log('Method: POST');
+    console.log('Headers:', JSON.stringify(requestHeaders, null, 2));
+    console.log('JSON Payload:');
+    console.log(JSON.stringify(requestPayload, null, 2));
+    console.log('🔥 END DEBUG 🔥');
     
     try {
       // Make actual API call with idempotency key
-      const response = await fetch('https://api.prayoverus.com/api/createRequestAndPrayer', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: requestHeaders,
-        body: JSON.stringify({
-          requestText: content.trim(),
-          requestTitle: title.trim(),
-          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          userId: 'anonymous-user', // Replace with actual user ID when available
-          sendEmail: false,
-          idempotencyKey: idempotencyKey // Include in payload as backup
-        })
+        body: JSON.stringify(requestPayload)
       });
 
       if (response.ok) {

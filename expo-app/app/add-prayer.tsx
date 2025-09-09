@@ -25,6 +25,9 @@ export default function AddPrayerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
 
+  // Verify the latest code is running
+  console.warn('🔥 ADD PRAYER SCREEN LOADED - LATEST VERSION WITH UUID LOGGING 🔥');
+
   const handleSubmit = async () => {
     const now = Date.now();
     
@@ -68,10 +71,15 @@ export default function AddPrayerScreen() {
     
     const endpoint = 'https://api.prayoverus.com/api/createRequestAndPrayer';
     
-    // Clean debug output - endpoint and payload only
+    // Clean debug output - endpoint and payload only  
     console.log('📱 MOBILE APP API CALL:');
-    console.log('POST', endpoint);
+    console.log('POST ' + endpoint);
     console.log(JSON.stringify(requestPayload, null, 2));
+    
+    // Also log to ensure it shows up in Metro bundler
+    console.warn('📱 MOBILE APP API CALL:');
+    console.warn('POST ' + endpoint); 
+    console.warn(JSON.stringify(requestPayload, null, 2));
     
     try {
       // Make actual API call with idempotency key

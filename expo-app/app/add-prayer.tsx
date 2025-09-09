@@ -27,7 +27,7 @@ export default function AddPrayerScreen() {
 
   const handleSubmit = () => {
     // IMMEDIATE blocking - prevent any duplicate submissions
-    if (isProcessingRef.current) {
+    if (isSubmitting || isProcessingRef.current) {
       return;
     }
 
@@ -49,18 +49,20 @@ export default function AddPrayerScreen() {
     // In real implementation, this would be your actual API call
     // fetch('/api/prayers', { method: 'POST', ... })
     
-    // IMMEDIATELY clear form and show success
-    setTitle('');
-    setContent('');
-    setIsPublic(false);
-    
+    // Show success immediately (don't clear form yet)
     Alert.alert(
       'Prayer Submitted! 🙏',
       'Your prayer has been sent.',
       [
         {
           text: 'OK',
-          onPress: () => router.back(),
+          onPress: () => {
+            // Clear form and go back when user taps OK
+            setTitle('');
+            setContent('');
+            setIsPublic(false);
+            router.back();
+          },
         },
       ]
     );
@@ -177,7 +179,7 @@ export default function AddPrayerScreen() {
             <Button
               mode="contained"
               onPress={handleSubmit}
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting}
               style={styles.submitButton}
               icon={isSubmitting ? "loading" : "send"}
             >

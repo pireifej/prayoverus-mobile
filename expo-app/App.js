@@ -61,6 +61,7 @@ function App() {
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -95,25 +96,29 @@ function App() {
         setRefreshingCommunity(true);
       }
       
-      console.log('Loading community prayers from your API...');
-      
       // Use the actual logged in user's ID from production API
       const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      console.log('Making API call with userId:', userId, 'timezone:', timezone);
+      const endpoint = 'https://www.prayoverus.com:3000/getRequestFeed';
+      const requestPayload = {
+        userId: userId,
+        tz: timezone
+      };
       
-      const response = await fetch('https://www.prayoverus.com:3000/getRequestFeed', {
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
-        body: JSON.stringify({
-          userId: userId,
-          tz: timezone
-        }),
+        body: JSON.stringify(requestPayload),
         timeout: 10000,
       });
       
@@ -220,20 +225,27 @@ function App() {
     }
 
     try {
-      console.log('Loading user prayers from production API...');
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const response = await fetch('https://www.prayoverus.com:3000/getMyRequestFeed', {
+      const endpoint = 'https://www.prayoverus.com:3000/getMyRequestFeed';
+      const requestPayload = {
+        tz: timezone,
+        userId: currentUser.id.toString()
+      };
+      
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
-        body: JSON.stringify({
-          tz: timezone,
-          userId: currentUser.id.toString()
-        })
+        body: JSON.stringify(requestPayload)
       });
       
       if (response.ok) {
@@ -315,8 +327,13 @@ function App() {
 
   const savePrayerToAPI = async (prayer) => {
     try {
-      // Generate unique idempotency key
-      const idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      // Generate unique idempotency key ONLY if we don't have one (for retries)
+      let idempotencyKey = currentIdempotencyKey;
+      if (!idempotencyKey) {
+        idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        setCurrentIdempotencyKey(idempotencyKey);
+      }
+      
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
       const endpoint = 'https://www.prayoverus.com:3000/createRequestAndPrayer';
@@ -350,6 +367,8 @@ function App() {
         
         if (data.error === 0) {
           console.log('Prayer request saved successfully:', data.result);
+          // Clear the idempotency key on successful completion
+          setCurrentIdempotencyKey(null);
           loadCommunityPrayers(); // Refresh community prayers
         } else {
 
@@ -374,18 +393,24 @@ function App() {
 
       // Get prayer text from database by request ID
       try {
-        console.log(`Getting prayer text for request ID: ${prayerRequest.id}`);
+        const endpoint = 'https://www.prayoverus.com:3000/getPrayerByRequestId';
+        const requestPayload = {
+          requestId: prayerRequest.id
+        };
         
-        const response = await fetch('https://www.prayoverus.com:3000/getPrayerByRequestId', {
+        // Clean debug output - endpoint and payload ONLY
+        console.log('📱 MOBILE APP API CALL:');
+        console.log('POST ' + endpoint);
+        console.log(JSON.stringify(requestPayload, null, 2));
+        
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': 'Basic ' + btoa('admin:password123'),
           },
-          body: JSON.stringify({
-            requestId: prayerRequest.id
-          }),
+          body: JSON.stringify(requestPayload),
         });
 
         if (response.ok) {
@@ -443,19 +468,25 @@ Through Christ our Lord. Amen.`;
     if (!prayer) return;
 
     try {
-      console.log('Recording prayer action in production database...');
+      const endpoint = 'https://www.prayoverus.com:3000/prayFor';
+      const requestPayload = {
+        userId: currentUser?.id,
+        requestId: prayer.id  // Using the request_id from the prayer feed
+      };
       
-      const response = await fetch('https://www.prayoverus.com:3000/prayFor', {
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
-        body: JSON.stringify({
-          userId: currentUser?.id,
-          requestId: prayer.id  // Using the request_id from the prayer feed
-        })
+        body: JSON.stringify(requestPayload)
       });
       
       if (response.ok) {

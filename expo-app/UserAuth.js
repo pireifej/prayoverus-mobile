@@ -22,33 +22,40 @@ export function LoginScreen({ onLogin }) {
     setLoading(true);
     
     try {
-      console.log('Creating new account with production API...');
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
       // Use default picture for now - image upload can be added later
       const pictureFileName = 'defaultUser.png';
       
-      const response = await fetch('https://www.prayoverus.com:3000/createUser', {
+      const endpoint = 'https://www.prayoverus.com:3000/createUser';
+      const requestPayload = {
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+        gender: gender,
+        placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
+        phone: phone,
+        picture: pictureFileName,
+        command: "createUser",
+        jsonpCallback: "afterCreateUser",
+        tz: timezone,
+        env: "prod"
+      };
+      
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          firstName: firstName,
-          lastName: lastName,
-          gender: gender,
-          placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
-          phone: phone,
-          picture: pictureFileName,
-          command: "createUser",
-          jsonpCallback: "afterCreateUser",
-          tz: timezone,
-          env: "prod"
-        })
+        body: JSON.stringify(requestPayload)
       });
       
       if (response.ok) {
@@ -89,24 +96,25 @@ export function LoginScreen({ onLogin }) {
     setLoading(true);
     
     try {
-      console.log('Attempting login with production API...');
-      console.log('Login credentials:', { email: email, passwordLength: password.length });
-      
-      const loginPayload = {
+      const endpoint = 'https://www.prayoverus.com:3000/login';
+      const requestPayload = {
         email: email,
         password: password
       };
       
-      console.log('Sending login request with payload:', JSON.stringify(loginPayload));
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
       
-      const response = await fetch('https://www.prayoverus.com:3000/login', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
         },
-        body: JSON.stringify(loginPayload),
+        body: JSON.stringify(requestPayload),
         timeout: 10000,
       });
       

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -6,22 +6,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-} from 'react-native';
-import {
   Text,
   TextInput,
-  Button,
-  Switch,
-  Card,
-  Surface,
-} from 'react-native-paper';
-import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+  TouchableOpacity,
+} from 'react-native';
 
 export default function AddPrayerScreen() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
 
@@ -64,7 +56,7 @@ export default function AddPrayerScreen() {
       requestText: content.trim(),
       requestTitle: title.trim(),
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      userId: 'anonymous-user', // Replace with actual user ID when available
+      userId: '353', // Use actual logged-in user ID
       sendEmail: false,
       idempotencyKey: idempotencyKey // Include in payload as backup
     };
@@ -85,8 +77,10 @@ export default function AddPrayerScreen() {
       });
 
       if (response.ok) {
-        // Success - navigate away immediately 
-        router.back();
+        // Success - clear form and show message
+        setTitle('');
+        setContent('');
+        setIsSubmitting(false);
         
         // Show success after navigation
         setTimeout(() => {
@@ -110,165 +104,76 @@ export default function AddPrayerScreen() {
   const contentLength = content?.length || 0;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
+    <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <Surface style={styles.header} elevation={2}>
-          <MaterialIcons name="favorite" size={32} color="#6366f1" />
-          <Text variant="headlineSmall" style={styles.headerTitle}>
-            Add New Prayer
-          </Text>
-          <Text variant="bodyMedium" style={styles.headerSubtitle}>
-            Share your heart with God and optionally with the community
-          </Text>
-        </Surface>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Title Input */}
-          <View style={styles.inputGroup}>
-            <Text variant="titleMedium" style={styles.label}>
-              Prayer Title *
-            </Text>
-            <TextInput
-              mode="outlined"
-              placeholder="What are you praying for?"
-              value={title}
-              onChangeText={setTitle}
-              disabled={isSubmitting}
-              style={styles.input}
-              maxLength={100}
-            />
-            <Text variant="bodySmall" style={styles.helpText}>
-              Give your prayer a meaningful title (max 100 characters)
-            </Text>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Add New Prayer Request</Text>
+            <Text style={styles.subtitle}>Share your prayer with our community</Text>
           </View>
 
-          {/* Content Input */}
-          <View style={styles.inputGroup}>
-            <Text variant="titleMedium" style={styles.label}>
-              Prayer Content *
-            </Text>
+          {/* Prayer Title Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Prayer Title *</Text>
             <TextInput
-              mode="outlined"
-              placeholder="Share the details of your prayer request..."
-              multiline
+              placeholder="What would you like us to pray for?"
+              value={title}
+              onChangeText={setTitle}
+              editable={!isSubmitting}
+              style={styles.titleInput}
+              maxLength={100}
+            />
+            <Text style={styles.hint}>Keep it brief but descriptive</Text>
+          </View>
+
+          {/* Prayer Content Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Prayer Details *</Text>
+            <TextInput
+              placeholder="Share more details about your prayer request..."
+              multiline={true}
               numberOfLines={6}
               value={content}
               onChangeText={setContent}
-              disabled={isSubmitting}
-              style={styles.textArea}
-              maxLength={1000}
+              editable={!isSubmitting}
+              style={styles.contentInput}
+              maxLength={2000}
+              textAlignVertical="top"
             />
-            <View style={styles.contentFooter}>
-              <Text variant="bodySmall" style={styles.helpText}>
-                Share your heart with God. Be as specific or general as you'd like.
-              </Text>
-              <Text variant="bodySmall" style={styles.characterCount}>
-                {contentLength}/1000 characters
-              </Text>
-            </View>
+            <Text style={styles.hint}>
+              {contentLength < 10 ? 'Please write at least 10 characters' : `${contentLength}/2000 characters`}
+            </Text>
           </View>
 
-          {/* Public Toggle */}
-          <Card style={styles.toggleCard}>
-            <Card.Content>
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleInfo}>
-                  <Text variant="titleMedium" style={styles.toggleTitle}>
-                    Share with Community
-                  </Text>
-                  <Text variant="bodySmall" style={styles.toggleDescription}>
-                    Allow others to see and pray for this request
-                  </Text>
-                </View>
-                <Switch
-                  value={isPublic}
-                  onValueChange={setIsPublic}
-                  disabled={isSubmitting}
-                />
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Privacy Notice */}
-          {isPublic && (
-            <Surface style={styles.privacyNotice} elevation={1}>
-              <MaterialIcons name="info" size={20} color="#6366f1" />
-              <Text variant="bodySmall" style={styles.privacyText}>
-                When you share with the community, others can see your prayer request, 
-                offer support, and pray for you. Your full name will not be displayed.
-              </Text>
-            </Surface>
-          )}
-
-          {/* Action Buttons */}
+          {/* Submit Button */}
           <View style={styles.actions}>
-            <Button
-              mode="outlined"
-              onPress={() => router.back()}
-              style={styles.cancelButton}
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
             >
-              Cancel
-            </Button>
-            {!isSubmitting ? (
-              <Button
-                mode="contained"
-                onPress={handleSubmit}
-                style={styles.submitButton}
-                icon="send"
-              >
-                Add Prayer
-              </Button>
-            ) : (
-              <Surface style={[styles.submitButton, { backgroundColor: '#6366f1', padding: 12, borderRadius: 8 }]}>
-                <Text style={{ color: 'white', textAlign: 'center' }}>Prayer Submitted! 🙏</Text>
-              </Surface>
-            )}
+              <Text style={styles.submitButtonText}>
+                {isSubmitting ? 'Prayer Submitted! 🙏' : 'Add Prayer'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Inspirational Quote */}
-          <Surface style={styles.inspirationCard} elevation={1}>
-            <Text variant="bodyMedium" style={styles.inspirationText}>
+          <View style={styles.inspirationCard}>
+            <Text style={styles.inspirationText}>
               "Do not be anxious about anything, but in every situation, by prayer 
               and petition, with thanksgiving, present your requests to God."
             </Text>
-            <Text variant="bodySmall" style={styles.inspirationSource}>
+            <Text style={styles.inspirationSource}>
               Philippians 4:6
             </Text>
-          </Surface>
+          </View>
 
-          {/* Prayer Categories (Future Feature) */}
-          <Card style={styles.featuresCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.featuresTitle}>
-                Coming Soon
-              </Text>
-              <View style={styles.featuresList}>
-                <View style={styles.feature}>
-                  <MaterialIcons name="category" size={20} color="#6366f1" />
-                  <Text variant="bodySmall" style={styles.featureText}>
-                    Prayer categories and tags
-                  </Text>
-                </View>
-                <View style={styles.feature}>
-                  <MaterialIcons name="schedule" size={20} color="#6366f1" />
-                  <Text variant="bodySmall" style={styles.featureText}>
-                    Prayer reminders and scheduling
-                  </Text>
-                </View>
-                <View style={styles.feature}>
-                  <MaterialIcons name="photo-camera" size={20} color="#6366f1" />
-                  <Text variant="bodySmall" style={styles.featureText}>
-                    Attach photos to prayers
-                  </Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -283,135 +188,95 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  header: {
-    padding: 24,
-    margin: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+  content: {
+    padding: 20,
   },
-  headerTitle: {
+  header: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 12,
     marginBottom: 8,
     textAlign: 'center',
+    color: '#1e293b',
   },
-  headerSubtitle: {
+  subtitle: {
     textAlign: 'center',
     color: '#64748b',
+    fontSize: 16,
   },
-  form: {
-    padding: 16,
-  },
-  inputGroup: {
+  inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontWeight: 'bold',
     marginBottom: 8,
+    color: '#374151',
+    fontSize: 16,
   },
-  input: {
+  titleInput: {
     backgroundColor: '#ffffff',
-    marginBottom: 4,
-  },
-  textArea: {
-    backgroundColor: '#ffffff',
-    minHeight: 120,
-    marginBottom: 4,
-  },
-  contentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  helpText: {
-    color: '#64748b',
-    fontStyle: 'italic',
-  },
-  characterCount: {
-    color: '#64748b',
-    fontSize: 12,
-  },
-  toggleCard: {
-    marginBottom: 16,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  toggleInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  toggleTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  toggleDescription: {
-    color: '#64748b',
-  },
-  privacyNotice: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    marginBottom: 20,
-    borderRadius: 8,
-    backgroundColor: '#eff6ff',
-  },
-  privacyText: {
-    flex: 1,
-    marginLeft: 8,
-    color: '#1e40af',
-    lineHeight: 18,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  submitButton: {
-    flex: 1,
-    backgroundColor: '#6366f1',
-  },
-  inspirationCard: {
+    marginBottom: 8,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#fefce8',
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    fontSize: 16,
+  },
+  contentInput: {
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    fontSize: 16,
+    minHeight: 120,
+  },
+  hint: {
+    color: '#64748b',
+    fontStyle: 'italic',
+    fontSize: 14,
+  },
+  actions: {
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  submitButton: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  inspirationCard: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginTop: 20,
   },
   inspirationText: {
     fontStyle: 'italic',
     textAlign: 'center',
-    marginBottom: 8,
-    color: '#92400e',
+    marginBottom: 12,
+    color: '#374151',
+    lineHeight: 22,
   },
   inspirationSource: {
     textAlign: 'center',
-    color: '#92400e',
-    fontWeight: 'bold',
-  },
-  featuresCard: {
-    marginBottom: 20,
-  },
-  featuresTitle: {
-    fontWeight: 'bold',
-    marginBottom: 12,
     color: '#6366f1',
-  },
-  featuresList: {
-    gap: 8,
-  },
-  feature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  featureText: {
-    marginLeft: 12,
-    color: '#64748b',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

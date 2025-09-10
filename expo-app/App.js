@@ -315,23 +315,34 @@ function App() {
 
   const savePrayerToAPI = async (prayer) => {
     try {
-      console.log('Creating prayer request using production API...');
+      // Generate unique idempotency key
+      const idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const response = await fetch('https://www.prayoverus.com:3000/createRequestAndPrayer', {
+      const endpoint = 'https://www.prayoverus.com:3000/createRequestAndPrayer';
+      const requestPayload = {
+        requestText: prayer.content,
+        requestTitle: prayer.title,
+        tz: timezone,
+        userId: currentUser?.id,
+        sendEmail: "true",
+        idempotencyKey: idempotencyKey
+      };
+      
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('admin:password123'),
+          'X-Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({
-          requestText: prayer.content,
-          requestTitle: prayer.title,
-          tz: timezone,
-          userId: currentUser?.id,
-          sendEmail: "true"
-        })
+        body: JSON.stringify(requestPayload)
       });
       
       if (response.ok) {

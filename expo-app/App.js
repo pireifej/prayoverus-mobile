@@ -372,13 +372,13 @@ function App() {
           loadCommunityPrayers(); // Refresh community prayers
         } else {
 
-          Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
+          console.log('Warning: Prayer saved locally but may not be synced to server');
         }
       } else {
-        Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
+        console.log('Warning: Prayer saved locally but may not be synced to server');
       }
     } catch (error) {
-      Alert.alert('Warning', 'Prayer saved locally but may not be synced to server');
+      console.log('Warning: Prayer saved locally but may not be synced to server');
     }
   };
 

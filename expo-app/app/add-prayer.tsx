@@ -69,16 +69,11 @@ export default function AddPrayerScreen() {
       idempotencyKey: idempotencyKey // Include in payload as backup
     };
     
-    const endpoint = 'https://api.prayoverus.com/api/createRequestAndPrayer';
+    const endpoint = 'https://www.prayoverus.com:3000/createRequestAndPrayer';
     
-    // Clean debug output - endpoint and payload only  
+    // Clean debug output - endpoint and payload ONLY  
     console.log('📱 MOBILE APP API CALL:');
     console.log('POST ' + endpoint);
-    console.log(JSON.stringify(requestPayload, null, 2));
-    
-    // Also log to ensure it shows up in Metro bundler
-    console.log('📱 MOBILE APP API CALL:');
-    console.log('POST ' + endpoint); 
     console.log(JSON.stringify(requestPayload, null, 2));
     
     try {

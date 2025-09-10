@@ -62,6 +62,7 @@ function App() {
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
+  const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -309,7 +310,7 @@ function App() {
         }
         
         setNewPrayer({ title: '', content: '', isPublic: false });
-        Alert.alert('Success', 'Prayer request created and saved to your account!');
+        // Success message now handled in savePrayerToAPI to prevent duplicates
         
       } catch (error) {
         // Even if API fails, add to local state for offline functionality
@@ -332,6 +333,7 @@ function App() {
       if (!idempotencyKey) {
         idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         setCurrentIdempotencyKey(idempotencyKey);
+        setHasShownSuccessForCurrentKey(false); // Reset success flag for new key
       }
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -367,8 +369,14 @@ function App() {
         
         if (data.error === 0) {
           console.log('Prayer request saved successfully:', data.result);
+          // Show success message only once per idempotency key
+          if (!hasShownSuccessForCurrentKey) {
+            Alert.alert('Success', 'Prayer request created and saved to your account!');
+            setHasShownSuccessForCurrentKey(true);
+          }
           // Clear the idempotency key on successful completion
           setCurrentIdempotencyKey(null);
+          setHasShownSuccessForCurrentKey(false);
           loadCommunityPrayers(); // Refresh community prayers
         } else {
 

@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@expo/cli": "^0.24.20",
-    "expo": "~53.0.0",
-    "expo-status-bar": "~2.0.0",
+    "expo": "53.0.22",
+    "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "expo-updates": "~0.28.17"

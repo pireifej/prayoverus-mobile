@@ -101,7 +101,7 @@ function App() {
       const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://www.prayoverus.com:3000/getRequestFeed';
+      const endpoint = 'https://prayer-api.replit.app/getRequestFeed';
       const requestPayload = {
         userId: userId,
         tz: timezone
@@ -228,7 +228,7 @@ function App() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://www.prayoverus.com:3000/getMyRequestFeed';
+      const endpoint = 'https://prayer-api.replit.app/getMyRequestFeed';
       const requestPayload = {
         tz: timezone,
         userId: currentUser.id.toString()
@@ -338,7 +338,7 @@ function App() {
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://www.prayoverus.com:3000/createRequestAndPrayer';
+      const endpoint = 'https://prayer-api.replit.app/createRequestAndPrayer';
       const requestPayload = {
         requestText: prayer.content,
         requestTitle: prayer.title,
@@ -401,7 +401,7 @@ function App() {
 
       // Get prayer text from database by request ID
       try {
-        const endpoint = 'https://www.prayoverus.com:3000/getPrayerByRequestId';
+        const endpoint = 'https://prayer-api.replit.app/getPrayerByRequestId';
         const requestPayload = {
           requestId: prayerRequest.id
         };
@@ -476,7 +476,7 @@ Through Christ our Lord. Amen.`;
     if (!prayer) return;
 
     try {
-      const endpoint = 'https://www.prayoverus.com:3000/prayFor';
+      const endpoint = 'https://prayer-api.replit.app/prayFor';
       const requestPayload = {
         userId: currentUser?.id,
         requestId: prayer.id  // Using the request_id from the prayer feed

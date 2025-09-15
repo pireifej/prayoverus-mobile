@@ -27,7 +27,7 @@ export function LoginScreen({ onLogin }) {
       // Use default picture for now - image upload can be added later
       const pictureFileName = 'defaultUser.png';
       
-      const endpoint = 'https://www.prayoverus.com:3000/createUser';
+      const endpoint = 'https://prayer-api.replit.app/createUser';
       const requestPayload = {
         email: email,
         password: password,
@@ -96,7 +96,7 @@ export function LoginScreen({ onLogin }) {
     setLoading(true);
     
     try {
-      const endpoint = 'https://www.prayoverus.com:3000/login';
+      const endpoint = 'https://prayer-api.replit.app/login';
       const requestPayload = {
         email: email,
         password: password

@@ -61,7 +61,7 @@ export default function AddPrayerScreen() {
       idempotencyKey: idempotencyKey // Include in payload as backup
     };
     
-    const endpoint = 'https://www.prayoverus.com:3000/createRequestAndPrayer';
+    const endpoint = 'https://prayer-api.replit.app/createRequestAndPrayer';
     
     // Clean debug output - endpoint and payload ONLY  
     console.log('📱 MOBILE APP API CALL:');

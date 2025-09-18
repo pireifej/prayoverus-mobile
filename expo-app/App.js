@@ -101,7 +101,7 @@ function App() {
       const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://prayer-api.replit.app/getRequestFeed';
+      const endpoint = 'https://shouldcallpaul.replit.app/getRequestFeed';
       const requestPayload = {
         userId: userId,
         tz: timezone
@@ -117,7 +117,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload),
         timeout: 10000,
@@ -228,7 +228,7 @@ function App() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://prayer-api.replit.app/getMyRequestFeed';
+      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequestFeed';
       const requestPayload = {
         tz: timezone,
         userId: currentUser.id.toString()
@@ -244,7 +244,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -338,7 +338,7 @@ function App() {
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://prayer-api.replit.app/createRequestAndPrayer';
+      const endpoint = 'https://shouldcallpaul.replit.app/createRequestAndPrayer';
       const requestPayload = {
         requestText: prayer.content,
         requestTitle: prayer.title,
@@ -358,7 +358,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
           'X-Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify(requestPayload)
@@ -401,7 +401,7 @@ function App() {
 
       // Get prayer text from database by request ID
       try {
-        const endpoint = 'https://prayer-api.replit.app/getPrayerByRequestId';
+        const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
         const requestPayload = {
           requestId: prayerRequest.id
         };
@@ -416,7 +416,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': 'Basic ' + btoa('admin:password123'),
+            'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
           },
           body: JSON.stringify(requestPayload),
         });
@@ -476,7 +476,7 @@ Through Christ our Lord. Amen.`;
     if (!prayer) return;
 
     try {
-      const endpoint = 'https://prayer-api.replit.app/prayFor';
+      const endpoint = 'https://shouldcallpaul.replit.app/prayFor';
       const requestPayload = {
         userId: currentUser?.id,
         requestId: prayer.id  // Using the request_id from the prayer feed
@@ -492,7 +492,7 @@ Through Christ our Lord. Amen.`;
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });

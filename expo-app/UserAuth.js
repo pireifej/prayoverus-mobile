@@ -27,7 +27,7 @@ export function LoginScreen({ onLogin }) {
       // Use default picture for now - image upload can be added later
       const pictureFileName = 'defaultUser.png';
       
-      const endpoint = 'https://prayer-api.replit.app/createUser';
+      const endpoint = 'https://shouldcallpaul.replit.app/createUser';
       const requestPayload = {
         email: email,
         password: password,
@@ -53,7 +53,7 @@ export function LoginScreen({ onLogin }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -96,7 +96,7 @@ export function LoginScreen({ onLogin }) {
     setLoading(true);
     
     try {
-      const endpoint = 'https://prayer-api.replit.app/login';
+      const endpoint = 'https://shouldcallpaul.replit.app/login';
       const requestPayload = {
         email: email,
         password: password
@@ -112,7 +112,7 @@ export function LoginScreen({ onLogin }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:password123'),
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload),
         timeout: 10000,

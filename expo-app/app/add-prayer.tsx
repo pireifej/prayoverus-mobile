@@ -61,7 +61,7 @@ export default function AddPrayerScreen() {
       idempotencyKey: idempotencyKey // Include in payload as backup
     };
     
-    const endpoint = 'https://prayer-api.replit.app/createRequestAndPrayer';
+    const endpoint = 'https://shouldcallpaul.replit.app/createRequestAndPrayer';
     
     // Clean debug output - endpoint and payload ONLY  
     console.log('📱 MOBILE APP API CALL:');

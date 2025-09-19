@@ -101,9 +101,9 @@ function App() {
       const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/getRequestFeed';
+      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequestFeed';
       const requestPayload = {
-        userId: userId,
+        userId: userId.toString(),
         tz: timezone
       };
       
@@ -125,27 +125,36 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📱 Community API Response:', JSON.stringify(data, null, 2));
         
-        // Handle your API response format: { error: 0, result: [...] }
-        if (data.error === 0 && data.result) {
-          setCommunityPrayers(data.result.map(request => ({
+        // Handle direct array response from getMyRequestFeed
+        const prayersArray = Array.isArray(data) ? data : [];
+        
+        if (prayersArray.length > 0) {
+          const communityPrayers = prayersArray.map(request => ({
             id: request.request_id,
-            title: request.request_title || request.prayer_title,
+            title: request.request_title || request.prayer_title || 'Prayer Request',
             content: request.request_text,
             author: request.real_name || request.user_name || 'Anonymous',
             isPublic: true,
             prayedFor: false,
             timestamp: request.timestamp,
+            date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
             category: request.category_name,
             prayer_title: request.prayer_title,
             other_person: request.other_person,
             picture: request.picture,
             user_id: request.user_id,
-            fk_prayer_id: request.fk_prayer_id
-          })));
+            fk_prayer_id: request.fk_prayer_id,
+            allow_comments: request.allow_comments,
+            use_alias: request.use_alias
+          }));
+          
+          console.log('📱 Parsed community prayers:', communityPrayers.length, 'items');
+          setCommunityPrayers(communityPrayers);
         } else {
-
-          throw new Error('API returned error response');
+          console.log('📱 No community prayers found in response');
+          setCommunityPrayers([]);
         }
       } else {
         throw new Error(`API returned ${response.status}`);

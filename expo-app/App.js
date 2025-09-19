@@ -101,7 +101,7 @@ function App() {
       const userId = currentUser?.id;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequestFeed';
+      const endpoint = 'https://shouldcallpaul.replit.app/getCommunityWall';
       const requestPayload = {
         userId: userId.toString(),
         tz: timezone
@@ -127,7 +127,7 @@ function App() {
         const data = await response.json();
         console.log('📱 Community API Response:', JSON.stringify(data, null, 2));
         
-        // Handle direct array response from getMyRequestFeed
+        // Handle direct array response from getCommunityWall
         const prayersArray = Array.isArray(data) ? data : [];
         
         if (prayersArray.length > 0) {
@@ -237,7 +237,7 @@ function App() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequestFeed';
+      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequests';
       const requestPayload = {
         tz: timezone,
         userId: currentUser.id.toString()

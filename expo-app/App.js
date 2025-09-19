@@ -251,14 +251,18 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📱 API Response:', JSON.stringify(data, null, 2));
         
-        if (data.error === 0 && data.result) {
-          const userPrayers = data.result.map(request => ({
+        // Handle direct array response or wrapped response
+        const prayersArray = Array.isArray(data) ? data : (data.result || []);
+        
+        if (prayersArray.length > 0) {
+          const userPrayers = prayersArray.map(request => ({
             id: request.request_id,
             title: request.request_title || 'Prayer Request',
             content: request.request_text,
             author: request.real_name || request.user_name || 'You',
-            date: new Date(request.timestamp).toLocaleDateString(),
+            date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
             isPublic: request.fk_user_id === null, // If fk_user_id is null, it's public
             prayedFor: false,
             timestamp: request.timestamp,
@@ -272,9 +276,10 @@ function App() {
             use_alias: request.use_alias
           }));
           
+          console.log('📱 Parsed prayers:', userPrayers.length, 'items');
           setPrayers(userPrayers);
         } else {
-
+          console.log('📱 No prayers found in response');
           setPrayers([]); // Set empty array if no prayers found
         }
       } else {

@@ -60,6 +60,12 @@ function App() {
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
+  const [helpForm, setHelpForm] = useState({
+    message: '',
+    name: '',
+    email: '',
+    phone: ''
+  });
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
@@ -485,6 +491,57 @@ Through Christ our Lord. Amen.`;
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   };
 
+  const submitHelpForm = async () => {
+    if (!helpForm.message.trim() || !helpForm.name.trim() || !helpForm.email.trim()) {
+      Alert.alert('Error', 'Please fill in message, name, and email fields');
+      return;
+    }
+
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/contact';
+      const content = `Message: ${helpForm.message}
+
+Contact Details:
+Name: ${helpForm.name}
+Email: ${helpForm.email}
+Phone: ${helpForm.phone || 'Not provided'}
+
+User ID: ${currentUser?.id || 'Not logged in'}`;
+
+      const requestPayload = {
+        subject: "Pray Over Us Contact Form Submission",
+        to: "prayoverus@gmail.com",
+        content: content
+      };
+      
+      // Clean debug output - endpoint and payload ONLY
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload)
+      });
+      
+      if (response.ok) {
+        Alert.alert('Success', 'Your message has been sent successfully!');
+        setHelpForm({ message: '', name: '', email: '', phone: '' });
+        setCurrentScreen('home');
+      } else {
+        throw new Error(`API returned ${response.status}`);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send message. Please try again later.');
+      console.log('Contact form error:', error.message);
+    }
+  };
+
   const markAsPrayed = async () => {
     const prayer = prayerModal.prayer;
     if (!prayer) return;
@@ -732,6 +789,69 @@ Through Christ our Lord. Amen.`;
     );
   }
 
+  if (currentScreen === 'help') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Help & Support</Text>
+        </View>
+        
+        <ScrollView style={styles.screenContent}>
+          <View style={styles.addPrayerForm}>
+            <Text style={styles.formTitle}>Contact Us</Text>
+            <Text style={styles.formSubtitle}>
+              Have questions or need support? Send us a message and we'll get back to you as soon as possible.
+            </Text>
+            
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Your message..."
+              multiline
+              numberOfLines={4}
+              value={helpForm.message}
+              onChangeText={(text) => setHelpForm({...helpForm, message: text})}
+              data-testid="input-help-message"
+            />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Your name"
+              value={helpForm.name}
+              onChangeText={(text) => setHelpForm({...helpForm, name: text})}
+              data-testid="input-help-name"
+            />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Your email"
+              keyboardType="email-address"
+              value={helpForm.email}
+              onChangeText={(text) => setHelpForm({...helpForm, email: text})}
+              data-testid="input-help-email"
+            />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Your phone (optional)"
+              keyboardType="phone-pad"
+              value={helpForm.phone}
+              onChangeText={(text) => setHelpForm({...helpForm, phone: text})}
+              data-testid="input-help-phone"
+            />
+            
+            <TouchableOpacity style={styles.addButton} onPress={submitHelpForm} data-testid="button-submit-help">
+              <Text style={styles.addButtonText}>Send Message</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -767,6 +887,14 @@ Through Christ our Lord. Amen.`;
           <Text style={styles.cardTitle}>Community Wall</Text>
           <Text style={styles.cardText}>
             Share prayers and support others in their faith journey.
+          </Text>
+          <Text style={styles.tapHint}>Tap to explore →</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('help')} data-testid="card-help">
+          <Text style={styles.cardTitle}>Help & Support</Text>
+          <Text style={styles.cardText}>
+            Get help or send us feedback about the app.
           </Text>
           <Text style={styles.tapHint}>Tap to explore →</Text>
         </TouchableOpacity>
@@ -906,6 +1034,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#1e293b',
+  },
+  formSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    lineHeight: 24,
   },
   input: {
     borderWidth: 1,

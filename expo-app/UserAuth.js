@@ -9,12 +9,12 @@ export function LoginScreen({ onLogin }) {
   // Registration form fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [gender, setGender] = useState('male');
-  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState(null);
+  const [phone, setPhone] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleCreateAccount = async () => {
-    if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim() || !phone.trim()) {
+    if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -71,7 +71,8 @@ export function LoginScreen({ onLogin }) {
           setPassword('');
           setFirstName('');
           setLastName('');
-          setPhone('');
+          setPhone(null);
+          setGender(null);
           
         } else {
           Alert.alert('Error', 'Failed to create account. Please try again.');
@@ -211,29 +212,31 @@ export function LoginScreen({ onLogin }) {
             />
           </View>
           
-          <View style={styles.genderContainer}>
-            <Text style={styles.genderLabel}>Gender:</Text>
-            <TouchableOpacity 
-              style={[styles.genderButton, gender === 'male' && styles.genderButtonSelected]}
-              onPress={() => setGender('male')}
-            >
-              <Text style={[styles.genderButtonText, gender === 'male' && styles.genderButtonTextSelected]}>Male</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.genderButton, gender === 'female' && styles.genderButtonSelected]}
-              onPress={() => setGender('female')}
-            >
-              <Text style={[styles.genderButtonText, gender === 'female' && styles.genderButtonTextSelected]}>Female</Text>
-            </TouchableOpacity>
+          <View style={{ display: 'none' }}>
+            <View style={styles.genderContainer}>
+              <Text style={styles.genderLabel}>Gender:</Text>
+              <TouchableOpacity 
+                style={[styles.genderButton, gender === 'male' && styles.genderButtonSelected]}
+                onPress={() => setGender('male')}
+              >
+                <Text style={[styles.genderButtonText, gender === 'male' && styles.genderButtonTextSelected]}>Male</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.genderButton, gender === 'female' && styles.genderButtonSelected]}
+                onPress={() => setGender('female')}
+              >
+                <Text style={[styles.genderButtonText, gender === 'female' && styles.genderButtonTextSelected]}>Female</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
           </View>
-          
-          <TextInput
-            style={styles.input}
-            placeholder="Phone Number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
         </>
       )}
       

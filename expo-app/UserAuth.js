@@ -75,10 +75,19 @@ export function LoginScreen({ onLogin }) {
           setGender(null);
           
         } else {
-          Alert.alert('Error', 'Failed to create account. Please try again.');
+          // Show actual error message from API
+          const errorMessage = data.result || data.message || 'Failed to create account. Please try again.';
+          Alert.alert('Error', errorMessage);
         }
       } else {
-        Alert.alert('Error', 'Account creation service unavailable');
+        // Try to get error message from response body
+        try {
+          const errorData = await response.json();
+          const errorMessage = errorData.result || errorData.message || 'Account creation service unavailable';
+          Alert.alert('Error', errorMessage);
+        } catch {
+          Alert.alert('Error', 'Account creation service unavailable');
+        }
       }
       
     } catch (error) {

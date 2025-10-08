@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PrayOverUs", 
+    "name": "PrayOverUs",
     "slug": "pray-over-us",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -22,10 +22,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF"
-      }
-    },
-    "web": {
-      "bundler": "metro"
+      },
+      "package": "com.pireifej.prayoverus"
     },
     "extra": {
       "eas": {

@@ -918,8 +918,50 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: () => {
-              Alert.alert('Account Deletion', 'Account deletion will be implemented soon. Please contact support for assistance.');
+            onPress: async () => {
+              try {
+                const endpoint = 'https://shouldcallpaul.replit.app/deleteUser';
+                const requestPayload = {
+                  userId: currentUser?.id.toString()
+                };
+                
+                console.log('📱 MOBILE APP API CALL:');
+                console.log('POST ' + endpoint);
+                console.log(JSON.stringify(requestPayload, null, 2));
+                
+                const response = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+                  },
+                  body: JSON.stringify(requestPayload)
+                });
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  
+                  if (data.error === 0) {
+                    const message = data.result || 'User deleted successfully';
+                    Alert.alert('Success', message, [
+                      { 
+                        text: 'OK', 
+                        onPress: async () => {
+                          await handleLogout();
+                        }
+                      }
+                    ]);
+                  } else {
+                    const errorMessage = data.result || data.message || 'Failed to delete account';
+                    Alert.alert('Error', errorMessage);
+                  }
+                } else {
+                  Alert.alert('Error', 'Account deletion service unavailable');
+                }
+              } catch (error) {
+                Alert.alert('Error', 'Network error. Please try again.');
+              }
             }
           }
         ]

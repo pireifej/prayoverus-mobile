@@ -852,6 +852,146 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  if (currentScreen === 'profile') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <TouchableOpacity 
+            onPress={() => setCurrentScreen('settings')} 
+            style={styles.settingsButton}
+            data-testid="button-settings"
+          >
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={styles.screenContent}>
+          <View style={styles.profileCard}>
+            <View style={styles.profileImageContainer}>
+              <View style={styles.profileImagePlaceholder}>
+                <Text style={styles.profileInitials}>
+                  {currentUser.firstName?.[0]}{currentUser.lastName?.[0] || ''}
+                </Text>
+              </View>
+            </View>
+            
+            <Text style={styles.profileName}>
+              {currentUser.firstName} {currentUser.lastName || ''}
+            </Text>
+            <Text style={styles.profileEmail}>{currentUser.email}</Text>
+            
+            <View style={styles.profileInfoSection}>
+              <Text style={styles.profileInfoLabel}>Username</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.userName || 'Not set'}</Text>
+            </View>
+            
+            <View style={styles.profileInfoSection}>
+              <Text style={styles.profileInfoLabel}>Title</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.title || 'Not set'}</Text>
+            </View>
+            
+            <View style={styles.profileInfoSection}>
+              <Text style={styles.profileInfoLabel}>About</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (currentScreen === 'settings') {
+    const handleDeleteAccount = () => {
+      Alert.alert(
+        'Delete Account',
+        'This will permanently delete your account and all associated data. This action cannot be undone. Are you absolutely sure?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert('Account Deletion', 'Account deletion will be implemented soon. Please contact support for assistance.');
+            }
+          }
+        ]
+      );
+    };
+
+    return (
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.backButton}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+        </View>
+        
+        <ScrollView style={styles.screenContent}>
+          {/* Hidden sections - to be implemented later */}
+          <View style={{ display: 'none' }}>
+            {/* General Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>General</Text>
+              <TextInput style={styles.input} placeholder="First Name" />
+              <TextInput style={styles.input} placeholder="Last Name" />
+              <TextInput style={styles.input} placeholder="Email" />
+              <TextInput style={styles.input} placeholder="Username" />
+              <TextInput style={styles.input} placeholder="Title" />
+              <TextInput style={[styles.input, styles.textArea]} placeholder="About" multiline />
+            </View>
+
+            {/* Security Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Security</Text>
+              <TouchableOpacity style={styles.settingsButton}>
+                <Text style={styles.settingsButtonText}>Change Password</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Privacy Section */}
+            <View style={styles.settingsSection}>
+              <Text style={styles.settingsSectionTitle}>Privacy</Text>
+              <Text style={styles.settingsDescription}>Privacy settings will be available soon.</Text>
+            </View>
+          </View>
+
+          {/* Account Section - VISIBLE */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>Account</Text>
+            <Text style={styles.settingsDescription}>
+              Manage your account settings and data.
+            </Text>
+            
+            {/* Hidden profile picture change - to be implemented */}
+            <View style={{ display: 'none' }}>
+              <TouchableOpacity style={styles.changePhotoButton}>
+                <Text style={styles.changePhotoText}>Change Profile Picture</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={handleDeleteAccount}
+              data-testid="button-delete-account"
+            >
+              <Text style={styles.deleteButtonText}>Delete Account</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -887,6 +1027,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={styles.cardTitle}>Community Wall</Text>
           <Text style={styles.cardText}>
             Share prayers and support others in their faith journey.
+          </Text>
+          <Text style={styles.tapHint}>Tap to explore →</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('profile')} data-testid="card-profile">
+          <Text style={styles.cardTitle}>My Profile</Text>
+          <Text style={styles.cardText}>
+            View and manage your profile and account settings.
           </Text>
           <Text style={styles.tapHint}>Tap to explore →</Text>
         </TouchableOpacity>
@@ -1260,6 +1408,125 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Profile and Settings styles
+  settingsButton: {
+    position: 'absolute',
+    right: 20,
+    top: 60,
+    padding: 10,
+  },
+  settingsIcon: {
+    fontSize: 24,
+  },
+  profileCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  profileImageContainer: {
+    marginBottom: 20,
+  },
+  profileImagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+  },
+  profileInfoSection: {
+    width: '100%',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  profileInfoLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  profileInfoValue: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontWeight: '500',
+  },
+  settingsSection: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  settingsSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  settingsDescription: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  settingsButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  changePhotoButton: {
+    backgroundColor: '#f0f9ff',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#6366f1',
+  },
+  changePhotoText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    backgroundColor: '#fee2e2',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  deleteButtonText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

@@ -151,7 +151,9 @@ export function LoginScreen({ onLogin }) {
           Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
           
         } else {
-          Alert.alert('Error', 'Invalid email or password');
+          // Show actual error message from API
+          const errorMessage = data.result || data.message || 'Invalid email or password';
+          Alert.alert('Error', errorMessage);
         }
       } else {
         Alert.alert('Error', 'Login service unavailable');

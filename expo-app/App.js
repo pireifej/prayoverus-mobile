@@ -99,6 +99,7 @@ function App() {
   }, [currentScreen, currentUser]);
 
   const loadCommunityPrayers = async (showRefreshIndicator = false) => {
+    console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id);
     try {
       if (showRefreshIndicator) {
         setRefreshingCommunity(true);
@@ -106,6 +107,12 @@ function App() {
       
       // Use the actual logged in user's ID from production API
       const userId = currentUser?.id;
+      
+      if (!userId) {
+        console.log('⚠️ No user ID available, skipping community load');
+        return;
+      }
+      
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
       const endpoint = 'https://shouldcallpaul.replit.app/getCommunityWall';
@@ -167,11 +174,13 @@ function App() {
         throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
+      console.error('❌ Failed to load community prayers:', error.message);
+      Alert.alert('Load Error', `Could not load community prayers: ${error.message}`);
       
       // Fallback to sample data for testing
       setCommunityPrayers([
-        { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false },
-        { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false },
+        { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false, date: 'Today' },
+        { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false, date: 'Today' },
       ]);
     } finally {
       if (showRefreshIndicator) {

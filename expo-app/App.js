@@ -624,66 +624,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  if (currentScreen === 'help') {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Personal Prayers</Text>
-        </View>
-        
-        <ScrollView style={styles.screenContent}>
-          <View style={styles.addPrayerForm}>
-            <Text style={styles.formTitle}>Add New Prayer</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Prayer title"
-              value={newPrayer.title}
-              onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
-            />
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Your prayer request..."
-              multiline
-              numberOfLines={4}
-              value={newPrayer.content}
-              onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
-            />
-            <TouchableOpacity 
-              style={[styles.checkbox, newPrayer.isPublic && styles.checkboxChecked]}
-              onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
-            >
-              <Text style={styles.checkboxText}>
-                {newPrayer.isPublic ? '☑' : '☐'} Share with community
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addButton} onPress={addPrayer}>
-              <Text style={styles.addButtonText}>Add Prayer</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.sectionTitle}>Your Prayers</Text>
-          {prayers.length === 0 ? (
-            <Text style={styles.emptyText}>No prayers yet. Add your first prayer above!</Text>
-          ) : (
-            prayers.map(prayer => (
-              <View key={prayer.id} style={styles.prayerCard}>
-                <Text style={styles.prayerTitle}>{prayer.title}</Text>
-                <Text style={styles.prayerContent}>{prayer.content}</Text>
-                <Text style={styles.prayerMeta}>
-                  {prayer.date} • {prayer.isPublic ? 'Public' : 'Private'}
-                </Text>
-              </View>
-            ))
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
-
   if (currentScreen === 'community') {
     return (
       <View style={styles.container}>

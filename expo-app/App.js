@@ -60,6 +60,7 @@ function App() {
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
+  const [showTitleInput, setShowTitleInput] = useState(false);
   const [helpForm, setHelpForm] = useState({
     message: '',
     name: '',
@@ -307,10 +308,13 @@ function App() {
   };
 
   const addPrayer = async () => {
-    if (newPrayer.title.trim() && newPrayer.content.trim()) {
+    if (newPrayer.content.trim()) {
+      // Use default title if not provided
+      const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
+      
       const prayer = {
         id: Date.now(),
-        title: newPrayer.title,
+        title: prayerTitle,
         content: newPrayer.content,
         isPublic: newPrayer.isPublic,
         author: currentUser?.firstName || 'You',
@@ -329,7 +333,8 @@ function App() {
           await loadCommunityPrayers();
         }
         
-        setNewPrayer({ title: '', content: '', isPublic: false });
+        setNewPrayer({ title: '', content: '', isPublic: true });
+        setShowTitleInput(false);
         // Success message now handled in savePrayerToAPI to prevent duplicates
         
       } catch (error) {
@@ -338,11 +343,12 @@ function App() {
         if (newPrayer.isPublic) {
           setCommunityPrayers([prayer, ...communityPrayers]);
         }
-        setNewPrayer({ title: '', content: '', isPublic: false });
+        setNewPrayer({ title: '', content: '', isPublic: true });
+        setShowTitleInput(false);
         Alert.alert('Success', 'Prayer added locally (will sync when connection is restored)');
       }
     } else {
-      Alert.alert('Error', 'Please fill in both title and content');
+      Alert.alert('Error', 'Please enter your prayer request');
     }
   };
 
@@ -609,7 +615,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  if (currentScreen === 'personal') {
+  if (currentScreen === 'help') {
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />
@@ -871,6 +877,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
         
         <ScrollView style={styles.screenContent}>
+          {/* User Profile Info */}
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImagePlaceholder}>
@@ -899,6 +906,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.profileInfoLabel}>About</Text>
               <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
             </View>
+          </View>
+
+          {/* Personal Requests Section */}
+          <View style={styles.personalRequestsSection}>
+            <Text style={styles.sectionTitle}>Personal Requests</Text>
+            {prayers.length === 0 ? (
+              <Text style={styles.emptyText}>No prayer requests yet. Share one on the home feed!</Text>
+            ) : (
+              prayers.map((prayer) => (
+                <View key={prayer.id} style={styles.prayerCard}>
+                  <Text style={styles.prayerTitle}>{prayer.title}</Text>
+                  <Text style={styles.prayerContent}>{prayer.content}</Text>
+                  <Text style={styles.prayerTime}>
+                    {prayer.date} • {prayer.isPublic ? 'Public' : 'Private'}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
       </View>
@@ -1046,59 +1071,136 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </TouchableOpacity>
       </View>
       
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>PrayOverUs</Text>
-        <Text style={styles.subtitle}>Prayer Community App</Text>
-        
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome to PrayOverUs</Text>
-          <Text style={styles.cardText}>
-            Connect with others through prayer and spiritual support.
-          </Text>
+      <ScrollView 
+        style={styles.feedContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshingCommunity}
+            onRefresh={onRefreshCommunity}
+            tintColor="#6366f1"
+          />
+        }
+      >
+        {/* Compact Post Prayer Widget */}
+        <View style={styles.compactPostWidget}>
+          <Text style={styles.widgetTitle}>Share a Prayer Request</Text>
+          
+          {showTitleInput && (
+            <TextInput
+              style={styles.input}
+              placeholder={`${currentUser?.firstName}'s Prayer Request`}
+              value={newPrayer.title}
+              onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+            />
+          )}
+          
+          <TextInput
+            style={[styles.input, styles.compactTextArea]}
+            placeholder="What would you like prayer for?"
+            multiline
+            numberOfLines={3}
+            value={newPrayer.content}
+            onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
+          />
+          
+          <View style={styles.postActions}>
+            <TouchableOpacity 
+              style={styles.linkButton}
+              onPress={() => setShowTitleInput(!showTitleInput)}
+            >
+              <Text style={styles.linkButtonText}>
+                {showTitleInput ? 'Hide' : 'Add'} custom title
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.checkbox, newPrayer.isPublic && styles.checkboxChecked]}
+              onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
+            >
+              <Text style={styles.checkboxText}>
+                {newPrayer.isPublic ? '☑' : '☐'} Share publicly
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity style={styles.postButton} onPress={addPrayer}>
+            <Text style={styles.postButtonText}>Post Prayer</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('personal')}>
-          <Text style={styles.cardTitle}>Personal Prayers</Text>
-          <Text style={styles.cardText}>
-            Create and track your personal prayer requests.
-          </Text>
-          <Text style={styles.tapHint}>Tap to explore →</Text>
-        </TouchableOpacity>
+        {/* Quick Links */}
+        <View style={styles.quickLinks}>
+          <TouchableOpacity style={styles.quickLink} onPress={() => setCurrentScreen('profile')}>
+            <Text style={styles.quickLinkText}>👤 My Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickLink} onPress={() => setCurrentScreen('help')}>
+            <Text style={styles.quickLinkText}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('community')}>
-          <Text style={styles.cardTitle}>Community Wall</Text>
-          <Text style={styles.cardText}>
-            Share prayers and support others in their faith journey.
-          </Text>
-          <Text style={styles.tapHint}>Tap to explore →</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('profile')} data-testid="card-profile">
-          <Text style={styles.cardTitle}>My Profile</Text>
-          <Text style={styles.cardText}>
-            View and manage your profile and account settings.
-          </Text>
-          <Text style={styles.tapHint}>Tap to explore →</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('help')} data-testid="card-help">
-          <Text style={styles.cardTitle}>Help & Support</Text>
-          <Text style={styles.cardText}>
-            Get help or send us feedback about the app.
-          </Text>
-          <Text style={styles.tapHint}>Tap to explore →</Text>
-        </TouchableOpacity>
-
-{/* Prayer Groups section - temporarily hidden until backend implementation is ready
-        <TouchableOpacity style={styles.card} onPress={() => setCurrentScreen('groups')}>
-          <Text style={styles.cardTitle}>Prayer Groups</Text>
-          <Text style={styles.cardText}>
-            Join prayer groups with friends and family.
-          </Text>
-          <Text style={styles.tapHint}>Tap to explore →</Text>
-        </TouchableOpacity>
-        */}
+        {/* Community Wall Feed */}
+        <Text style={styles.feedTitle}>Community Prayers</Text>
+        {communityPrayers.length === 0 ? (
+          <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>
+        ) : (
+          communityPrayers.map((prayer) => (
+            <View key={prayer.id} style={styles.prayerCard}>
+              <Text style={styles.prayerTitle}>{prayer.title}</Text>
+              <Text style={styles.prayerContent}>{prayer.content}</Text>
+              <View style={styles.prayerMeta}>
+                <Text style={styles.prayerAuthor}>{prayer.author}</Text>
+                {prayer.category && (
+                  <Text style={styles.prayerCategory}> · {prayer.category}</Text>
+                )}
+              </View>
+              <Text style={styles.prayerTime}>{prayer.date}</Text>
+              <TouchableOpacity 
+                style={[styles.prayButton, prayer.prayedFor && styles.prayButtonPrayed]} 
+                onPress={() => generatePrayer(prayer)}
+              >
+                <Text style={[styles.prayButtonText, prayer.prayedFor && styles.prayButtonTextPrayed]}>
+                  {prayer.prayedFor ? '✓ Prayed' : '🙏 Pray for this'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
       </ScrollView>
+
+      {/* Prayer Modal */}
+      <Modal
+        visible={prayerModal.visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closePrayerModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Prayer for {prayerModal.prayer?.author}</Text>
+              <TouchableOpacity onPress={closePrayerModal} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            {prayerModal.loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6366f1" />
+                <Text style={styles.loadingText}>Generating prayer...</Text>
+              </View>
+            ) : (
+              <>
+                <ScrollView style={styles.prayerTextContainer}>
+                  <Text style={styles.generatedPrayer}>{prayerModal.generatedPrayer}</Text>
+                </ScrollView>
+                <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
+                  <Text style={styles.closeModalButtonText}>Amen 🙏</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1569,6 +1671,91 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // New Facebook-style feed styles
+  feedContainer: {
+    flex: 1,
+  },
+  compactPostWidget: {
+    backgroundColor: 'white',
+    margin: 15,
+    marginTop: 10,
+    padding: 15,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  widgetTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  compactTextArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  postActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  linkButton: {
+    padding: 8,
+  },
+  linkButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  postButton: {
+    backgroundColor: '#6366f1',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  postButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  quickLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginHorizontal: 15,
+    marginBottom: 15,
+  },
+  quickLink: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 12,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  quickLinkText: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '600',
+  },
+  feedTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
+  personalRequestsSection: {
+    marginTop: 20,
   },
 });
 

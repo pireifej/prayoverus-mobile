@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen } from './UserAuth';
 
@@ -52,6 +52,76 @@ class SimpleStorage {
 
 const storage = new SimpleStorage();
 
+// Animated Prayer Hands Component
+function PrayerHandsLoader() {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+  
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '20deg'],
+  });
+  
+  return (
+    <Animated.Text style={[styles.prayerHandsAnimation, { transform: [{ rotate }] }]}>
+      🙏
+    </Animated.Text>
+  );
+}
+
+// Animated Button Component with bounce effect
+function AnimatedButton({ children, onPress, style, disabled, ...props }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      friction: 3,
+    }).start();
+  };
+  
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 3,
+      tension: 40,
+    }).start();
+  };
+  
+  return (
+    <TouchableOpacity
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.9}
+      {...props}
+    >
+      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -70,6 +140,8 @@ function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [postSuccess, setPostSuccess] = useState(false);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -318,6 +390,9 @@ function App() {
 
   const addPrayer = async () => {
     if (newPrayer.content.trim()) {
+      // Set loading state
+      setIsPosting(true);
+      
       // Use default title if not provided
       const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
       
@@ -342,9 +417,15 @@ function App() {
           await loadCommunityPrayers();
         }
         
-        setNewPrayer({ title: '', content: '', isPublic: true });
-        setShowTitleInput(false);
-        // Success message now handled in savePrayerToAPI to prevent duplicates
+        // Show success animation
+        setPostSuccess(true);
+        
+        // Clear form after short delay to show success state
+        setTimeout(() => {
+          setNewPrayer({ title: '', content: '', isPublic: true });
+          setShowTitleInput(false);
+          setPostSuccess(false);
+        }, 1200);
         
       } catch (error) {
         // Even if API fails, add to local state for offline functionality
@@ -355,6 +436,9 @@ function App() {
         setNewPrayer({ title: '', content: '', isPublic: true });
         setShowTitleInput(false);
         Alert.alert('Success', 'Prayer added locally (will sync when connection is restored)');
+      } finally {
+        // Reset loading state
+        setIsPosting(false);
       }
     } else {
       Alert.alert('Error', 'Please enter your prayer request');
@@ -1040,6 +1124,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               placeholder={`${currentUser?.firstName}'s Prayer Request`}
               value={newPrayer.title}
               onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+              editable={!isPosting}
             />
           )}
           
@@ -1050,14 +1135,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             numberOfLines={3}
             value={newPrayer.content}
             onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
+            editable={!isPosting}
           />
           
           <View style={styles.postActions}>
             <TouchableOpacity 
               style={styles.linkButton}
               onPress={() => setShowTitleInput(!showTitleInput)}
+              disabled={isPosting}
             >
-              <Text style={styles.linkButtonText}>
+              <Text style={[styles.linkButtonText, isPosting && { opacity: 0.5 }]}>
                 {showTitleInput ? 'Hide' : 'Add'} custom title
               </Text>
             </TouchableOpacity>
@@ -1065,26 +1152,48 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <TouchableOpacity 
               style={[styles.checkbox, newPrayer.isPublic && styles.checkboxChecked]}
               onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
+              disabled={isPosting}
             >
-              <Text style={styles.checkboxText}>
+              <Text style={[styles.checkboxText, isPosting && { opacity: 0.5 }]}>
                 {newPrayer.isPublic ? '☑' : '☐'} Share publicly
               </Text>
             </TouchableOpacity>
           </View>
           
-          <TouchableOpacity style={styles.postButton} onPress={addPrayer}>
-            <Text style={styles.postButtonText}>Post Prayer</Text>
+          <TouchableOpacity 
+            style={[
+              styles.postButton, 
+              isPosting && styles.postButtonDisabled,
+              postSuccess && styles.postButtonSuccess
+            ]} 
+            onPress={addPrayer}
+            disabled={isPosting}
+            activeOpacity={0.7}
+          >
+            {isPosting ? (
+              <View style={styles.postButtonLoading}>
+                <PrayerHandsLoader />
+                <Text style={styles.postButtonText}>Posting...</Text>
+              </View>
+            ) : postSuccess ? (
+              <View style={styles.postButtonLoading}>
+                <Text style={styles.successCheckmark}>✓</Text>
+                <Text style={styles.postButtonText}>Posted!</Text>
+              </View>
+            ) : (
+              <Text style={styles.postButtonText}>Post Prayer</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Quick Links */}
         <View style={styles.quickLinks}>
-          <TouchableOpacity style={styles.quickLink} onPress={() => setCurrentScreen('profile')}>
+          <AnimatedButton style={styles.quickLink} onPress={() => setCurrentScreen('profile')}>
             <Text style={styles.quickLinkText}>👤 My Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickLink} onPress={() => setCurrentScreen('help')}>
+          </AnimatedButton>
+          <AnimatedButton style={styles.quickLink} onPress={() => setCurrentScreen('help')}>
             <Text style={styles.quickLinkText}>❓ Help</Text>
-          </TouchableOpacity>
+          </AnimatedButton>
         </View>
 
         {/* Community Wall Feed */}
@@ -1103,14 +1212,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 )}
               </View>
               <Text style={styles.prayerTime}>{prayer.date}</Text>
-              <TouchableOpacity 
+              <AnimatedButton 
                 style={[styles.prayButton, prayer.prayedFor && styles.prayButtonPrayed]} 
                 onPress={() => generatePrayer(prayer)}
               >
                 <Text style={[styles.prayButtonText, prayer.prayedFor && styles.prayButtonTextPrayed]}>
                   {prayer.prayedFor ? '✓ Prayed' : '🙏 Pray for this'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedButton>
             </View>
           ))
         )}
@@ -1666,11 +1775,34 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    transition: 'all 0.3s ease',
+  },
+  postButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.7,
+  },
+  postButtonSuccess: {
+    backgroundColor: '#10b981',
   },
   postButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  postButtonLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  prayerHandsAnimation: {
+    fontSize: 20,
+    animation: 'pulse 1s infinite',
+  },
+  successCheckmark: {
+    fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
   },
   quickLinks: {
     flexDirection: 'row',

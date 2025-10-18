@@ -52,31 +52,68 @@ class SimpleStorage {
 
 const storage = new SimpleStorage();
 
-// Helper function to convert HTML to formatted text for display
-function parseHTMLToText(html) {
-  if (!html) return '';
+// Component to render HTML with proper formatting in React Native
+function HtmlText({ html, style }) {
+  if (!html) return null;
   
-  // Remove HTML tags but preserve line breaks
-  let text = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<p[^>]*>/gi, '')
-    .replace(/<[^>]*>/g, '');
+  // Split by HTML tags and process each part
+  const parts = [];
+  let currentIndex = 0;
+  const regex = /<(\/?)(\w+)([^>]*)>/g;
+  let match;
+  let key = 0;
+  
+  const tagStack = [];
+  let lastIndex = 0;
+  
+  // Parse HTML and create Text components with proper styling
+  const elements = [];
+  let tempHtml = html;
+  
+  // Replace <br> with newlines
+  tempHtml = tempHtml.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Split by strong tags and process
+  const strongRegex = /<strong>(.*?)<\/strong>/gi;
+  const splits = [];
+  let lastIdx = 0;
+  
+  tempHtml.replace(strongRegex, (match, content, offset) => {
+    // Add text before the tag
+    if (offset > lastIdx) {
+      splits.push({ text: tempHtml.substring(lastIdx, offset), bold: false });
+    }
+    // Add bold text
+    splits.push({ text: content, bold: true });
+    lastIdx = offset + match.length;
+  });
+  
+  // Add remaining text
+  if (lastIdx < tempHtml.length) {
+    splits.push({ text: tempHtml.substring(lastIdx), bold: false });
+  }
   
   // Decode HTML entities
-  text = text
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
+  const decodeHtml = (text) => {
+    return text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'");
+  };
   
-  // Clean up extra whitespace but preserve intentional line breaks
-  text = text.replace(/ +/g, ' ').trim();
-  
-  return text;
+  return (
+    <Text style={style}>
+      {splits.map((part, index) => (
+        <Text key={index} style={part.bold ? { fontWeight: 'bold' } : {}}>
+          {decodeHtml(part.text)}
+        </Text>
+      ))}
+    </Text>
+  );
 }
 
 // Animated Prayer Hands Component
@@ -604,9 +641,6 @@ function App() {
           console.log('data.prayerText length:', data.prayerText?.length);
           
           if (data.error === 0 && data.prayerText) {
-            console.log('SUCCESS: Using database prayer text');
-            console.log('Raw HTML from API:', data.prayerText.substring(0, 200));
-            console.log('Parsed text:', parseHTMLToText(data.prayerText).substring(0, 200));
             setPrayerModal(prev => ({
               ...prev,
               generatedPrayer: data.prayerText,
@@ -866,7 +900,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               ) : (
                 <ScrollView style={styles.prayerTextContainer}>
-                  <Text style={styles.generatedPrayer}>{parseHTMLToText(prayerModal.generatedPrayer)}</Text>
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.generatedPrayer} />
                 </ScrollView>
               )}
               
@@ -1333,7 +1367,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ) : (
               <>
                 <ScrollView style={styles.prayerTextContainer}>
-                  <Text style={styles.generatedPrayer}>{parseHTMLToText(prayerModal.generatedPrayer)}</Text>
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.generatedPrayer} />
                 </ScrollView>
                 <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
                   <Text style={styles.closeModalButtonText}>Amen 🙏</Text>

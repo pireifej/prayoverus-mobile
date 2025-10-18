@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 
@@ -1226,7 +1226,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* User Header */}
       <View style={styles.userHeader}>
         <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
-          <Text style={styles.profileLinkText}>👤 {currentUser.firstName}</Text>
+          <Image 
+            source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${currentUser.picture}` }}
+            style={styles.headerProfilePicture}
+          />
+          <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -1447,12 +1451,21 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   profileLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f8fafc',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    gap: 10,
+  },
+  headerProfilePicture: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e2e8f0',
   },
   profileLinkText: {
     fontSize: 18,

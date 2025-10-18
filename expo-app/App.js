@@ -605,6 +605,8 @@ function App() {
           
           if (data.error === 0 && data.prayerText) {
             console.log('SUCCESS: Using database prayer text');
+            console.log('Raw HTML from API:', data.prayerText.substring(0, 200));
+            console.log('Parsed text:', parseHTMLToText(data.prayerText).substring(0, 200));
             setPrayerModal(prev => ({
               ...prev,
               generatedPrayer: data.prayerText,

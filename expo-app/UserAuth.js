@@ -1,7 +1,263 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 
-export function LoginScreen({ onLogin }) {
+// Forgot Password Screen
+export function ForgotPasswordScreen({ onBack }) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleSendResetLink = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
+    setSuccessMessage('');
+
+    try {
+      const endpoint = 'https://prayoverus.com/requestPasswordReset';
+      const requestPayload = { email: email.trim() };
+
+      console.log('📱 PASSWORD RESET REQUEST:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0) {
+          setSuccessMessage(data.result);
+          setEmail('');
+        } else {
+          Alert.alert('Error', data.result || 'Failed to send reset link');
+        }
+      } else {
+        Alert.alert('Error', 'Service unavailable. Please try again later.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView 
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image 
+          source={require('./assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.subtitle}>Forgot Password?</Text>
+        <Text style={styles.helpText}>
+          Enter your email address and we'll send you a link to reset your password.
+        </Text>
+
+        {successMessage ? (
+          <View style={styles.successBox}>
+            <Text style={styles.successIcon}>✓</Text>
+            <Text style={styles.successText}>{successMessage}</Text>
+            <Text style={styles.successSubtext}>Check your email inbox and spam folder.</Text>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+
+            <TouchableOpacity 
+              style={[styles.button, loading && styles.buttonDisabled]} 
+              onPress={handleSendResetLink}
+              disabled={loading}
+            >
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="white" />
+                  <Text style={styles.buttonText}>Sending...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Send Reset Link</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.switchButton} onPress={onBack}>
+          <Text style={styles.switchText}>← Back to Sign In</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+// Reset Password Screen
+export function ResetPasswordScreen({ token, onSuccess }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleResetPassword = async () => {
+    // Validation
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const endpoint = 'https://prayoverus.com/resetPassword';
+      const requestPayload = {
+        token: token,
+        newPassword: newPassword
+      };
+
+      console.log('📱 PASSWORD RESET:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify({ token: token, newPassword: '***' }, null, 2));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0) {
+          Alert.alert(
+            'Success!', 
+            data.result || 'Password reset successful! You can now log in with your new password.',
+            [{ text: 'OK', onPress: onSuccess }]
+          );
+        } else {
+          Alert.alert('Error', data.result || 'Failed to reset password');
+        }
+      } else {
+        Alert.alert('Error', 'Service unavailable. Please try again later.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView 
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image 
+          source={require('./assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.subtitle}>Reset Password</Text>
+        <Text style={styles.helpText}>
+          Enter your new password below.
+        </Text>
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="New Password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry={!showPassword}
+            editable={!loading}
+          />
+          <TouchableOpacity 
+            style={styles.eyeButton}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            editable={!loading}
+          />
+          <TouchableOpacity 
+            style={styles.eyeButton}
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.passwordHint}>
+          Password must be at least 6 characters
+        </Text>
+
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleResetPassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="white" />
+              <Text style={styles.buttonText}>Resetting...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Reset Password</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+export function LoginScreen({ onLogin, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -268,6 +524,15 @@ export function LoginScreen({ onLogin }) {
         secureTextEntry
       />
       
+      {!isRegistering && onForgotPassword && (
+        <TouchableOpacity 
+          style={styles.forgotPasswordButton}
+          onPress={onForgotPassword}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
+      )}
+      
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleAuth}
@@ -421,5 +686,79 @@ const styles = StyleSheet.create({
   genderButtonTextSelected: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -10,
+  },
+  forgotPasswordText: {
+    color: '#8B5CF6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  successBox: {
+    backgroundColor: '#d4edda',
+    borderColor: '#c3e6cb',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  successIcon: {
+    fontSize: 48,
+    color: '#28a745',
+    marginBottom: 10,
+  },
+  successText: {
+    fontSize: 16,
+    color: '#155724',
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  successSubtext: {
+    fontSize: 14,
+    color: '#155724',
+    textAlign: 'center',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+  },
+  eyeButton: {
+    padding: 15,
+  },
+  eyeIcon: {
+    fontSize: 20,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 20,
+    marginTop: -10,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 });

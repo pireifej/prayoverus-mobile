@@ -2,7 +2,14 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (August 30, 2025)
+## Recent Changes (October 18, 2025)
+- ✅ **Password Reset Feature**: Complete forgot password and reset password flow with email integration
+- ✅ **Deep Linking Support**: App opens directly to password reset screen from email links
+- ✅ **Enhanced UI/UX**: Bouncy button animations, loading states with animated prayer hands, and success feedback
+- ✅ **Facebook-style Feed**: Compact prayer posting widget with community feed below
+- ✅ **Profile Enhancements**: Personal Requests section showing user's prayer history
+
+## Previous Changes (August 30, 2025)
 - ✅ **React Native Mobile App Created**: Full-featured mobile application with native components and navigation
 - ✅ **Cross-Platform Architecture**: Shared backend API serving both web and mobile clients
 - ✅ **Mobile-Optimized UX**: Bottom navigation, touch-friendly interfaces, and native mobile patterns

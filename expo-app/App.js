@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { LoginScreen } from './UserAuth';
+import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 
 // Use localStorage-like persistence for web and in-memory for mobile  
 import { Platform } from 'react-native';
@@ -142,10 +142,40 @@ function App() {
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
+  const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
+  const [resetToken, setResetToken] = useState(null);
 
   // Check for stored user session on app start
   useEffect(() => {
     checkStoredAuth();
+  }, []);
+
+  // Deep linking support for password reset
+  useEffect(() => {
+    const handleDeepLink = ({ url }) => {
+      const route = url.replace(/.*?:\/\//g, '');
+      const resetMatch = route.match(/reset-password\?token=([^&]+)/);
+      
+      if (resetMatch && resetMatch[1]) {
+        console.log('📱 Deep link detected: Password reset with token');
+        setResetToken(resetMatch[1]);
+        setAuthScreen('reset');
+      }
+    };
+
+    // Handle initial URL if app opened from link
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    // Listen for deep links while app is running
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   // Load community prayers from the API when user logs in
@@ -703,9 +733,34 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
-  // Show login screen if no current user
+  // Show auth screens if no current user
   if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} />;
+    if (authScreen === 'forgot') {
+      return (
+        <ForgotPasswordScreen 
+          onBack={() => setAuthScreen('login')}
+        />
+      );
+    }
+    
+    if (authScreen === 'reset' && resetToken) {
+      return (
+        <ResetPasswordScreen 
+          token={resetToken}
+          onSuccess={() => {
+            setAuthScreen('login');
+            setResetToken(null);
+          }}
+        />
+      );
+    }
+    
+    return (
+      <LoginScreen 
+        onLogin={handleLogin}
+        onForgotPassword={() => setAuthScreen('forgot')}
+      />
+    );
   }
 
   if (currentScreen === 'community') {

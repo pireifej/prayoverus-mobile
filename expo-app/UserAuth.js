@@ -1,6 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 
+// Helper function to strip HTML tags and decode HTML entities
+function stripHTML(html) {
+  if (!html) return '';
+  
+  // Remove HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  
+  // Decode common HTML entities
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+  
+  // Remove extra whitespace
+  text = text.trim().replace(/\s+/g, ' ');
+  
+  return text;
+}
+
 // Forgot Password Screen
 export function ForgotPasswordScreen({ onBack }) {
   const [email, setEmail] = useState('');

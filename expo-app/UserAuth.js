@@ -1,72 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
-
-// Helper function to convert HTML to formatted text for display
-function parseHTMLToText(html) {
-  if (!html) return '';
-  
-  // Remove HTML tags but preserve line breaks
-  let text = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<p[^>]*>/gi, '')
-    .replace(/<[^>]*>/g, '');
-  
-  // Decode HTML entities
-  text = text
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
-  
-  // Clean up extra whitespace but preserve intentional line breaks
-  text = text.replace(/ +/g, ' ').trim();
-  
-  return text;
-}
-
-// Custom Success Modal Component
-function SuccessModal({ visible, message, onClose }) {
-  return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalIcon}>✓</Text>
-            <Text style={styles.modalTitle}>Success</Text>
-          </View>
-          
-          <ScrollView style={styles.modalBody}>
-            <Text style={styles.modalMessage}>{parseHTMLToText(message)}</Text>
-          </ScrollView>
-          
-          <TouchableOpacity 
-            style={styles.modalButton}
-            onPress={onClose}
-            data-testid="button-modal-amen"
-          >
-            <Text style={styles.modalButtonText}>Amen 🙏</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 
 // Forgot Password Screen
 export function ForgotPasswordScreen({ onBack }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSendResetLink = async () => {
     if (!email.trim()) {
@@ -101,8 +39,7 @@ export function ForgotPasswordScreen({ onBack }) {
       
       // Check if error === 0 (success)
       if (data.error === 0) {
-        setSuccessMessage(data.result);
-        setShowSuccessModal(true);
+        Alert.alert('Success', data.result);
         setEmail('');
       } else {
         // error is not 0, show the error message
@@ -167,12 +104,6 @@ export function ForgotPasswordScreen({ onBack }) {
           <Text style={styles.switchText}>← Back to Sign In</Text>
         </TouchableOpacity>
       </ScrollView>
-      
-      <SuccessModal 
-        visible={showSuccessModal}
-        message={successMessage}
-        onClose={() => setShowSuccessModal(false)}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -876,69 +807,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 0,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalHeader: {
-    alignItems: 'center',
-    paddingTop: 30,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalIcon: {
-    fontSize: 60,
-    color: '#28a745',
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalBody: {
-    maxHeight: 300,
-    paddingHorizontal: 25,
-    paddingVertical: 20,
-  },
-  modalMessage: {
-    fontSize: 16,
-    color: '#555',
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  modalButton: {
-    backgroundColor: '#8B5CF6',
-    margin: 20,
-    marginTop: 10,
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });

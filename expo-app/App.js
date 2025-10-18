@@ -52,6 +52,33 @@ class SimpleStorage {
 
 const storage = new SimpleStorage();
 
+// Helper function to convert HTML to formatted text for display
+function parseHTMLToText(html) {
+  if (!html) return '';
+  
+  // Remove HTML tags but preserve line breaks
+  let text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+  
+  // Clean up extra whitespace but preserve intentional line breaks
+  text = text.replace(/ +/g, ' ').trim();
+  
+  return text;
+}
+
 // Animated Prayer Hands Component
 function PrayerHandsLoader() {
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -837,7 +864,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               ) : (
                 <ScrollView style={styles.prayerTextContainer}>
-                  <Text style={styles.generatedPrayer}>{prayerModal.generatedPrayer}</Text>
+                  <Text style={styles.generatedPrayer}>{parseHTMLToText(prayerModal.generatedPrayer)}</Text>
                 </ScrollView>
               )}
               
@@ -1304,7 +1331,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ) : (
               <>
                 <ScrollView style={styles.prayerTextContainer}>
-                  <Text style={styles.generatedPrayer}>{prayerModal.generatedPrayer}</Text>
+                  <Text style={styles.generatedPrayer}>{parseHTMLToText(prayerModal.generatedPrayer)}</Text>
                 </ScrollView>
                 <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
                   <Text style={styles.closeModalButtonText}>Amen 🙏</Text>

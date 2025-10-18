@@ -1076,6 +1076,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               ))
             )}
           </View>
+
+          {/* Help & Support Button */}
+          <TouchableOpacity 
+            style={styles.helpSupportButton} 
+            onPress={() => setCurrentScreen('help')}
+            data-testid="button-help-support"
+          >
+            <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -1216,7 +1225,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       {/* User Header */}
       <View style={styles.userHeader}>
-        <Text style={styles.welcomeText}>Welcome, {currentUser.firstName}!</Text>
+        <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
+          <Text style={styles.profileLinkText}>👤 {currentUser.firstName}</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
@@ -1304,15 +1315,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         </View>
 
-        {/* Quick Links */}
-        <View style={styles.quickLinks}>
-          <AnimatedButton style={styles.quickLink} onPress={() => setCurrentScreen('profile')}>
-            <Text style={styles.quickLinkText}>👤 My Profile</Text>
-          </AnimatedButton>
-          <AnimatedButton style={styles.quickLink} onPress={() => setCurrentScreen('help')}>
-            <Text style={styles.quickLinkText}>❓ Help</Text>
-          </AnimatedButton>
-        </View>
 
         {/* Community Wall Feed */}
         <Text style={styles.feedTitle}>Community Prayers</Text>
@@ -1444,10 +1446,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  welcomeText: {
+  profileLink: {
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  profileLinkText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#6366f1',
+    textDecorationLine: 'underline',
   },
   logoutButton: {
     backgroundColor: '#ef4444',
@@ -1922,29 +1933,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  quickLinks: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginHorizontal: 15,
-    marginBottom: 15,
-  },
-  quickLink: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 12,
-    marginHorizontal: 5,
-    borderRadius: 8,
+  helpSupportButton: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    marginHorizontal: 20,
+    marginVertical: 20,
+    borderRadius: 10,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  quickLinkText: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: '600',
+  helpSupportButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
   },
   feedTitle: {
     fontSize: 18,

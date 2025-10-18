@@ -1031,11 +1031,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {/* User Profile Info */}
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
-              <View style={styles.profileImagePlaceholder}>
-                <Text style={styles.profileInitials}>
-                  {currentUser.firstName?.[0]}{currentUser.lastName?.[0] || ''}
-                </Text>
-              </View>
+              <Image 
+                source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${currentUser.picture}` }}
+                style={styles.profileImage}
+              />
             </View>
             
             <Text style={styles.profileName}>
@@ -1776,6 +1775,12 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e2e8f0',
   },
   profileImagePlaceholder: {
     width: 100,

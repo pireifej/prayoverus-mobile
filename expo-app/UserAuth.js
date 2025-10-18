@@ -5,7 +5,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 export function ForgotPasswordScreen({ onBack }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSendResetLink = async () => {
     if (!email.trim()) {
@@ -14,7 +13,6 @@ export function ForgotPasswordScreen({ onBack }) {
     }
 
     setLoading(true);
-    setSuccessMessage('');
 
     try {
       const endpoint = 'https://prayoverus.com/requestPasswordReset';
@@ -32,19 +30,24 @@ export function ForgotPasswordScreen({ onBack }) {
         body: JSON.stringify(requestPayload)
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0) {
-          setSuccessMessage(data.result);
-          setEmail('');
-        } else {
-          Alert.alert('Error', data.result || 'Failed to send reset link');
-        }
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      // Try to parse JSON regardless of status code
+      const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
+      
+      // Check if error === 0 (success)
+      if (data.error === 0) {
+        Alert.alert('Success', data.result);
+        setEmail('');
       } else {
-        Alert.alert('Error', 'Service unavailable. Please try again later.');
+        // error is not 0, show the error message
+        Alert.alert('Error', data.result || 'Failed to send reset link');
       }
     } catch (error) {
+      console.log('Catch block error:', error);
+      console.log('Error message:', error.message);
       Alert.alert('Error', 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
@@ -70,40 +73,32 @@ export function ForgotPasswordScreen({ onBack }) {
           Enter your email address and we'll send you a link to reset your password.
         </Text>
 
-        {successMessage ? (
-          <View style={styles.successBox}>
-            <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successText}>{successMessage}</Text>
-            <Text style={styles.successSubtext}>Check your email inbox and spam folder.</Text>
-          </View>
-        ) : (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          editable={!loading}
+          data-testid="input-forgot-email"
+        />
 
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]} 
-              onPress={handleSendResetLink}
-              disabled={loading}
-            >
-              {loading ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator color="white" />
-                  <Text style={styles.buttonText}>Sending...</Text>
-                </View>
-              ) : (
-                <Text style={styles.buttonText}>Send Reset Link</Text>
-              )}
-            </TouchableOpacity>
-          </>
-        )}
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleSendResetLink}
+          disabled={loading}
+          data-testid="button-send-reset"
+        >
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="white" />
+              <Text style={styles.buttonText}>Sending...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Send Reset Link</Text>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.switchButton} onPress={onBack}>
           <Text style={styles.switchText}>← Back to Sign In</Text>

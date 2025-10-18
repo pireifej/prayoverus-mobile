@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 
 // Forgot Password Screen
@@ -268,6 +268,45 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [gender, setGender] = useState(null);
   const [phone, setPhone] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Password reveal logic - show last typed character
+  const [displayPassword, setDisplayPassword] = useState('');
+  const [lastRevealedIndex, setLastRevealedIndex] = useState(-1);
+  const revealTimerRef = useRef(null);
+  
+  useEffect(() => {
+    if (password.length === 0) {
+      setDisplayPassword('');
+      setLastRevealedIndex(-1);
+      return;
+    }
+    
+    // Show the last character temporarily
+    const lastIndex = password.length - 1;
+    setLastRevealedIndex(lastIndex);
+    
+    // Build display string: dots for all chars except last one
+    const dots = '•'.repeat(password.length - 1);
+    const lastChar = password[lastIndex];
+    setDisplayPassword(dots + lastChar);
+    
+    // Clear any existing timer
+    if (revealTimerRef.current) {
+      clearTimeout(revealTimerRef.current);
+    }
+    
+    // After 1 second, hide the last character too
+    revealTimerRef.current = setTimeout(() => {
+      setDisplayPassword('•'.repeat(password.length));
+      setLastRevealedIndex(-1);
+    }, 1000);
+    
+    return () => {
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+      }
+    };
+  }, [password]);
 
   const handleCreateAccount = async () => {
     if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
@@ -514,14 +553,27 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        data-testid="input-email"
       />
       
       <TextInput
         style={styles.input}
         placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
+        value={displayPassword}
+        onChangeText={(text) => {
+          // Calculate the actual password based on what changed
+          if (text.length > displayPassword.length) {
+            // User added a character - take the last char from text
+            const newChar = text[text.length - 1];
+            setPassword(password + newChar);
+          } else if (text.length < displayPassword.length) {
+            // User deleted a character
+            setPassword(password.slice(0, -1));
+          }
+        }}
+        autoCapitalize="none"
+        autoCorrect={false}
+        data-testid="input-password"
       />
       
       {!isRegistering && onForgotPassword && (

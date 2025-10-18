@@ -15,7 +15,7 @@ export function ForgotPasswordScreen({ onBack }) {
     setLoading(true);
 
     try {
-      const endpoint = 'https://prayoverus.com/requestPasswordReset';
+      const endpoint = 'https://shouldcallpaul.replit.app/requestPasswordReset';
       const requestPayload = { email: email.trim() };
 
       console.log('📱 PASSWORD RESET REQUEST:');
@@ -136,7 +136,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
     setLoading(true);
 
     try {
-      const endpoint = 'https://prayoverus.com/resetPassword';
+      const endpoint = 'https://shouldcallpaul.replit.app/resetPassword';
       const requestPayload = {
         token: token,
         newPassword: newPassword

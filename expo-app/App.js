@@ -209,6 +209,7 @@ function App() {
   const [postSuccess, setPostSuccess] = useState(false);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
   const [resetToken, setResetToken] = useState(null);
+  const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -784,11 +785,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       console.log('Failed to record prayer action:', error.message);
     }
 
-    // Always update local state regardless of API result
+    // Always update local state with immediate GUI feedback
     setCommunityPrayers(prevPrayers =>
       prevPrayers.map(p =>
         p.id === prayer.id
-          ? { ...p, prayedFor: true }
+          ? { 
+              ...p, 
+              prayedFor: true,
+              user_has_prayed: true,
+              prayer_count: (p.prayer_count || 0) + 1,
+              prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You']
+            }
           : p
       )
     );
@@ -1331,11 +1338,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
 
         {/* Community Wall Feed */}
-        <Text style={styles.feedTitle}>Community Prayers</Text>
+        <View style={styles.feedHeader}>
+          <Text style={styles.feedTitle}>Community Prayers</Text>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+            data-testid="button-filter-prayed"
+          >
+            <Text style={styles.filterButtonText}>
+              {hideAlreadyPrayed ? 'Show All' : 'Hide Prayed ✓'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {communityPrayers.length === 0 ? (
           <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>
         ) : (
-          communityPrayers.map((prayer) => (
+          communityPrayers
+            .filter(prayer => !hideAlreadyPrayed || !prayer.user_has_prayed)
+            .map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
               {/* Prayer Count Badge */}
               {prayer.prayer_count > 0 && (
@@ -2060,12 +2080,32 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  feedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
   feedTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginHorizontal: 15,
-    marginBottom: 10,
+    marginHorizontal: 0,
+    marginBottom: 0,
+  },
+  filterButton: {
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+  },
+  filterButtonText: {
+    fontSize: 12,
+    color: '#0369a1',
+    fontWeight: '600',
   },
   personalRequestsSection: {
     marginTop: 20,

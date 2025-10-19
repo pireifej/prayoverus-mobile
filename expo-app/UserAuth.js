@@ -1,6 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 
+// Simple storage for saving last username
+class SimpleStorage {
+  constructor() {
+    this.data = {};
+    if (Platform.OS === 'web') {
+      this.isWeb = true;
+    } else {
+      this.isWeb = false;
+    }
+  }
+
+  async setItem(key, value) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } else {
+      this.data[key] = value;
+    }
+  }
+
+  async getItem(key) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(key);
+      }
+    } else {
+      return this.data[key] || null;
+    }
+    return null;
+  }
+}
+
+const storage = new SimpleStorage();
+
 // Forgot Password Screen
 export function ForgotPasswordScreen({ onBack }) {
   const [email, setEmail] = useState('');
@@ -268,6 +303,21 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [displayPassword, setDisplayPassword] = useState('');
   const [lastRevealedIndex, setLastRevealedIndex] = useState(-1);
   const revealTimerRef = useRef(null);
+
+  // Load saved username on mount
+  useEffect(() => {
+    const loadSavedEmail = async () => {
+      try {
+        const savedEmail = await storage.getItem('lastUsername');
+        if (savedEmail) {
+          setEmail(savedEmail);
+        }
+      } catch (error) {
+        console.log('Error loading saved email:', error);
+      }
+    };
+    loadSavedEmail();
+  }, []);
   
   useEffect(() => {
     if (password.length === 0) {
@@ -437,6 +487,14 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           };
           
           console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
+          
+          // Save username for next time
+          try {
+            await storage.setItem('lastUsername', email);
+          } catch (error) {
+            console.log('Error saving username:', error);
+          }
+          
           onLogin(userData);
           Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
           

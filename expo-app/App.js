@@ -201,6 +201,7 @@ function App() {
     email: '',
     phone: ''
   });
+  const [expandedPrayers, setExpandedPrayers] = useState({});
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
@@ -681,6 +682,13 @@ Through Christ our Lord. Amen.`;
 
   const closePrayerModal = () => {
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+  };
+
+  const togglePrayerNames = (prayerId) => {
+    setExpandedPrayers(prev => ({
+      ...prev,
+      [prayerId]: !prev[prayerId]
+    }));
   };
 
   const submitHelpForm = async () => {
@@ -1325,24 +1333,58 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>
         ) : (
           communityPrayers.map((prayer) => (
-            <View key={prayer.id} style={styles.prayerCard}>
-              <Text style={styles.prayerTitle}>{prayer.title}</Text>
-              <Text style={styles.prayerContent}>{prayer.content}</Text>
-              <View style={styles.prayerMeta}>
-                <Text style={styles.prayerAuthor}>{prayer.author}</Text>
-                {prayer.category && (
-                  <Text style={styles.prayerCategory}> · {prayer.category}</Text>
-                )}
+            <View key={prayer.id} style={styles.prayerCardContainer}>
+              {/* Prayer Count Badge */}
+              {prayer.prayer_count > 0 && (
+                <TouchableOpacity 
+                  style={styles.prayerCountBadge}
+                  onPress={() => togglePrayerNames(prayer.id)}
+                  data-testid={`badge-prayer-count-${prayer.id}`}
+                >
+                  <Text style={styles.prayerCountText}>
+                    {prayer.prayer_count} {prayer.prayer_count === 1 ? 'person' : 'people'} prayed
+                  </Text>
+                  <Text style={styles.expandIcon}>
+                    {expandedPrayers[prayer.id] ? '▼' : '▶'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              {/* Expandable Names List */}
+              {expandedPrayers[prayer.id] && prayer.prayed_by_names && prayer.prayed_by_names.length > 0 && (
+                <View style={styles.prayerNamesList}>
+                  <Text style={styles.prayerNamesText}>
+                    {prayer.prayed_by_names.join(', ')}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.prayerCard}>
+                <Text style={styles.prayerTitle}>{prayer.title}</Text>
+                <Text style={styles.prayerContent}>{prayer.content}</Text>
+                <View style={styles.prayerMeta}>
+                  <Text style={styles.prayerAuthor}>{prayer.author}</Text>
+                  {prayer.category && (
+                    <Text style={styles.prayerCategory}> · {prayer.category}</Text>
+                  )}
+                </View>
+                <Text style={styles.prayerTime}>{prayer.date}</Text>
+                <AnimatedButton 
+                  style={[
+                    styles.prayButton, 
+                    prayer.user_has_prayed && styles.prayButtonUserPrayed
+                  ]} 
+                  onPress={() => generatePrayer(prayer)}
+                  data-testid={`button-pray-${prayer.id}`}
+                >
+                  <Text style={[
+                    styles.prayButtonText, 
+                    prayer.user_has_prayed && styles.prayButtonTextUserPrayed
+                  ]}>
+                    {prayer.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
+                  </Text>
+                </AnimatedButton>
               </View>
-              <Text style={styles.prayerTime}>{prayer.date}</Text>
-              <AnimatedButton 
-                style={[styles.prayButton, prayer.prayedFor && styles.prayButtonPrayed]} 
-                onPress={() => generatePrayer(prayer)}
-              >
-                <Text style={[styles.prayButtonText, prayer.prayedFor && styles.prayButtonTextPrayed]}>
-                  {prayer.prayedFor ? '✓ Prayed' : '🙏 Pray for this'}
-                </Text>
-              </AnimatedButton>
             </View>
           ))
         )}
@@ -1624,6 +1666,45 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginBottom: 10,
   },
+  prayerCardContainer: {
+    marginBottom: 15,
+  },
+  prayerCountBadge: {
+    backgroundColor: '#eff6ff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: '#dbeafe',
+  },
+  prayerCountText: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  expandIcon: {
+    fontSize: 10,
+    color: '#3b82f6',
+    marginLeft: 5,
+  },
+  prayerNamesList: {
+    backgroundColor: '#f0f9ff',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  prayerNamesText: {
+    fontSize: 13,
+    color: '#1e40af',
+    lineHeight: 18,
+  },
   prayButton: {
     backgroundColor: '#f0f9ff',
     padding: 8,
@@ -1632,10 +1713,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#6366f1',
   },
+  prayButtonUserPrayed: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#22c55e',
+  },
   prayButtonText: {
     color: '#6366f1',
     fontSize: 14,
     fontWeight: '600',
+  },
+  prayButtonTextUserPrayed: {
+    color: '#22c55e',
   },
   groupCard: {
     backgroundColor: 'white',

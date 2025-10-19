@@ -328,7 +328,10 @@ function App() {
             user_id: request.user_id,
             fk_prayer_id: request.fk_prayer_id,
             allow_comments: request.allow_comments,
-            use_alias: request.use_alias
+            use_alias: request.use_alias,
+            prayer_count: request.prayer_count || 0,
+            prayed_by_names: request.prayed_by_names || [],
+            user_has_prayed: request.user_has_prayed || false
           }));
           
           console.log('📱 Parsed community prayers:', communityPrayers.length, 'items');

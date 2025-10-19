@@ -1350,12 +1350,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </Text>
           </TouchableOpacity>
         </View>
-        {communityPrayers.length === 0 ? (
-          <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>
-        ) : (
-          communityPrayers
-            .filter(prayer => !hideAlreadyPrayed || !prayer.user_has_prayed)
-            .map((prayer) => (
+        {(() => {
+          const filteredPrayers = communityPrayers.filter(prayer => !hideAlreadyPrayed || !prayer.user_has_prayed);
+          
+          if (communityPrayers.length === 0) {
+            return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
+          }
+          
+          if (filteredPrayers.length === 0) {
+            return <Text style={styles.emptyText}>All caught up! 🙏 Tap 'Show All' to review prayed requests.</Text>;
+          }
+          
+          return filteredPrayers.map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
               {/* Prayer Count Badge */}
               {prayer.prayer_count > 0 && (
@@ -1409,8 +1415,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </AnimatedButton>
               </View>
             </View>
-          ))
-        )}
+          ));
+        })()}
       </ScrollView>
 
       {/* Prayer Modal */}

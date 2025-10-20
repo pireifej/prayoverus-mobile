@@ -210,6 +210,11 @@ function App() {
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
+  
+  // Rosary state
+  const [rosaryScreen, setRosaryScreen] = useState('lobby'); // 'lobby', 'session'
+  const [rosaryRole, setRosaryRole] = useState(null); // 'host' or 'participant'
+  const [rosarySession, setRosarySession] = useState(null);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -1236,6 +1241,244 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  // ROSARY SCREENS
+  if (currentScreen === 'rosary') {
+    // Mock data for development
+    const mockRosaryData = {
+      sessionId: 'ABC123',
+      hostUserId: currentUser?.id,
+      participants: [
+        { userId: currentUser?.id, name: currentUser?.firstName || 'You', picture: currentUser?.picture, readingOrder: 1, isHost: true },
+        { userId: 2, name: 'Sarah', picture: 'defaultUser.png', readingOrder: 2, isHost: false },
+        { userId: 3, name: 'Mike', picture: 'defaultUser.png', readingOrder: 3, isHost: false },
+        { userId: 4, name: 'Mary', picture: 'defaultUser.png', readingOrder: 4, isHost: false },
+        { userId: 5, name: 'John', picture: 'defaultUser.png', readingOrder: 5, isHost: false },
+      ],
+      currentBead: 12,
+      currentPrayer: 'Hail Mary (2nd decade)',
+      currentPrayerText: 'Hail Mary, full of grace, the Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen.',
+      currentReader: { userId: 2, name: 'Sarah' },
+      nextReader: { userId: 3, name: 'Mike' },
+      rosaryType: 'joyful',
+      mysteryName: 'The Annunciation'
+    };
+
+    // Rosary Lobby Screen (Create/Join)
+    if (rosaryScreen === 'lobby') {
+      return (
+        <View style={styles.container}>
+          <StatusBar style="auto" />
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+              <Text style={styles.backText}>← Back</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Live Rosary</Text>
+          </View>
+
+          <ScrollView style={styles.screenContent}>
+            <View style={styles.rosaryLobbyContainer}>
+              <Text style={styles.rosaryLobbyTitle}>📿 Pray Together</Text>
+              <Text style={styles.rosaryLobbySubtitle}>
+                Join others in praying the Rosary in real-time
+              </Text>
+
+              <View style={styles.rosaryOptionCard}>
+                <Text style={styles.rosaryOptionTitle}>Host a Session</Text>
+                <Text style={styles.rosaryOptionDescription}>
+                  Start a new Rosary session and invite others to join
+                </Text>
+                <TouchableOpacity 
+                  style={styles.rosaryPrimaryButton}
+                  onPress={() => {
+                    setRosaryRole('host');
+                    setRosarySession(mockRosaryData);
+                    setRosaryScreen('session');
+                  }}
+                  data-testid="button-host-rosary"
+                >
+                  <Text style={styles.rosaryPrimaryButtonText}>Host Session</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.rosaryOptionCard}>
+                <Text style={styles.rosaryOptionTitle}>Join a Session</Text>
+                <Text style={styles.rosaryOptionDescription}>
+                  Enter a session code to join an active Rosary
+                </Text>
+                <TextInput
+                  style={styles.rosaryInput}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  data-testid="input-join-code"
+                />
+                <TouchableOpacity 
+                  style={styles.rosarySecondaryButton}
+                  onPress={() => {
+                    setRosaryRole('participant');
+                    setRosarySession(mockRosaryData);
+                    setRosaryScreen('session');
+                  }}
+                  data-testid="button-join-rosary"
+                >
+                  <Text style={styles.rosarySecondaryButtonText}>Join Session</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      );
+    }
+
+    // Live Rosary Session Screen
+    if (rosaryScreen === 'session' && rosarySession) {
+      const session = rosarySession;
+      const isHost = rosaryRole === 'host';
+      
+      return (
+        <View style={styles.container}>
+          <StatusBar style="auto" />
+          <View style={styles.header}>
+            <TouchableOpacity 
+              onPress={() => {
+                Alert.alert(
+                  'Leave Session?',
+                  'Are you sure you want to leave this Rosary session?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Leave', 
+                      style: 'destructive',
+                      onPress: () => {
+                        setRosaryScreen('lobby');
+                        setRosarySession(null);
+                        setRosaryRole(null);
+                      }
+                    }
+                  ]
+                );
+              }} 
+              style={styles.backButton}
+            >
+              <Text style={styles.backText}>← Leave</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Live Rosary</Text>
+          </View>
+
+          <ScrollView style={styles.screenContent}>
+            {/* Session Info */}
+            <View style={styles.rosarySessionHeader}>
+              <Text style={styles.rosarySessionTitle}>
+                {isHost ? '⭐ Hosting' : '📿 Participating'} • {session.participants.length} people
+              </Text>
+              <Text style={styles.rosarySessionCode}>Code: {session.sessionId}</Text>
+            </View>
+
+            {/* Rosary Visual */}
+            <View style={styles.rosaryVisualContainer}>
+              <Text style={styles.rosaryMysteryTitle}>{session.mysteryName}</Text>
+              <View style={styles.rosaryBeadsRow}>
+                {[...Array(10)].map((_, i) => {
+                  const beadNumber = i + 10;
+                  const isCurrent = beadNumber === session.currentBead;
+                  const isCompleted = beadNumber < session.currentBead;
+                  
+                  return (
+                    <View 
+                      key={i} 
+                      style={[
+                        styles.rosaryBead,
+                        isCurrent && styles.rosaryBeadCurrent,
+                        isCompleted && styles.rosaryBeadCompleted
+                      ]}
+                    >
+                      {isCurrent && <View style={styles.rosaryBeadPulse} />}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Current Prayer */}
+            <View style={styles.rosaryPrayerSection}>
+              <Text style={styles.rosaryPrayerTitle}>{session.currentPrayer}</Text>
+              <Text style={styles.rosaryPrayerText}>{session.currentPrayerText}</Text>
+            </View>
+
+            {/* Reader Info */}
+            <View style={styles.rosaryReaderSection}>
+              <View style={styles.rosaryCurrentReader}>
+                <Text style={styles.rosaryReaderLabel}>READING NOW</Text>
+                <Text style={styles.rosaryReaderName}>
+                  {session.currentReader.name} {session.currentReader.userId === currentUser?.id && '(You)'}
+                </Text>
+              </View>
+              <View style={styles.rosaryNextReader}>
+                <Text style={styles.rosaryReaderLabel}>NEXT</Text>
+                <Text style={styles.rosaryNextReaderName}>{session.nextReader.name}</Text>
+              </View>
+            </View>
+
+            {/* Participants List */}
+            <View style={styles.rosaryParticipantsSection}>
+              <Text style={styles.rosaryParticipantsTitle}>Participants ({session.participants.length})</Text>
+              {session.participants.map((p) => (
+                <View key={p.userId} style={styles.rosaryParticipantItem}>
+                  <Image 
+                    source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${p.picture}` }}
+                    style={styles.rosaryParticipantPicture}
+                  />
+                  <Text style={styles.rosaryParticipantName}>
+                    {p.name} {p.isHost && '⭐'} {p.userId === session.currentReader.userId && '🟢'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Host Controls */}
+            {isHost && (
+              <View style={styles.rosaryHostControls}>
+                <TouchableOpacity 
+                  style={styles.rosaryNextPrayerButton}
+                  onPress={() => {
+                    Alert.alert('Next Prayer', 'In production, this would advance to the next bead and update all participants in real-time via WebSocket.');
+                  }}
+                  data-testid="button-next-prayer"
+                >
+                  <Text style={styles.rosaryNextPrayerButtonText}>Next Prayer →</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.rosaryEndSessionButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'End Session?',
+                      'This will end the Rosary session for all participants.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'End Session', 
+                          style: 'destructive',
+                          onPress: () => {
+                            setRosaryScreen('lobby');
+                            setRosarySession(null);
+                            setRosaryRole(null);
+                            Alert.alert('Session Ended', 'Thank you for praying!');
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                  data-testid="button-end-session"
+                >
+                  <Text style={styles.rosaryEndSessionButtonText}>End Session</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      );
+    }
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -1336,6 +1579,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         </View>
 
+        {/* Live Rosary Button */}
+        <TouchableOpacity 
+          style={styles.rosaryButton}
+          onPress={() => setCurrentScreen('rosary')}
+          data-testid="button-live-rosary"
+        >
+          <Text style={styles.rosaryButtonIcon}>📿</Text>
+          <Text style={styles.rosaryButtonText}>Join Live Rosary</Text>
+        </TouchableOpacity>
 
         {/* Community Wall Feed */}
         <View style={styles.feedHeader}>
@@ -2115,6 +2367,280 @@ const styles = StyleSheet.create({
   },
   personalRequestsSection: {
     marginTop: 20,
+  },
+  // Rosary Styles
+  rosaryButton: {
+    backgroundColor: '#8b5cf6',
+    marginHorizontal: 15,
+    marginVertical: 15,
+    padding: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  rosaryButtonIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  rosaryButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  rosaryLobbyContainer: {
+    padding: 15,
+  },
+  rosaryLobbyTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  rosaryLobbySubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  rosaryOptionCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  rosaryOptionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  rosaryOptionDescription: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 15,
+  },
+  rosaryInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: '#f8fafc',
+  },
+  rosaryPrimaryButton: {
+    backgroundColor: '#8b5cf6',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  rosaryPrimaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rosarySecondaryButton: {
+    backgroundColor: '#6366f1',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  rosarySecondaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rosarySessionHeader: {
+    backgroundColor: 'white',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  rosarySessionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 5,
+  },
+  rosarySessionCode: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  rosaryVisualContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginBottom: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  rosaryMysteryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8b5cf6',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  rosaryBeadsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  rosaryBead: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e2e8f0',
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rosaryBeadCurrent: {
+    backgroundColor: '#10b981',
+    borderColor: '#059669',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  rosaryBeadCompleted: {
+    backgroundColor: '#94a3b8',
+    borderColor: '#64748b',
+  },
+  rosaryBeadPulse: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#10b981',
+    opacity: 0.3,
+  },
+  rosaryPrayerSection: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginBottom: 15,
+    borderRadius: 12,
+  },
+  rosaryPrayerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  rosaryPrayerText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#475569',
+  },
+  rosaryReaderSection: {
+    backgroundColor: 'white',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  rosaryCurrentReader: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  rosaryNextReader: {
+    flex: 1,
+    paddingLeft: 10,
+    borderLeftWidth: 1,
+    borderLeftColor: '#e2e8f0',
+  },
+  rosaryReaderLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 5,
+  },
+  rosaryReaderName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  rosaryNextReaderName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  rosaryParticipantsSection: {
+    backgroundColor: 'white',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 12,
+  },
+  rosaryParticipantsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  rosaryParticipantItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  rosaryParticipantPicture: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e2e8f0',
+    marginRight: 10,
+  },
+  rosaryParticipantName: {
+    fontSize: 14,
+    color: '#475569',
+  },
+  rosaryHostControls: {
+    backgroundColor: 'white',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 12,
+  },
+  rosaryNextPrayerButton: {
+    backgroundColor: '#8b5cf6',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  rosaryNextPrayerButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rosaryEndSessionButton: {
+    backgroundColor: '#ef4444',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  rosaryEndSessionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

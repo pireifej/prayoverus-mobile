@@ -2,7 +2,19 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (October 18, 2025)
+## Recent Changes (October 20, 2025)
+- ✅ **Live Rosary Feature**: Complete UI implementation for multi-user synchronized Rosary prayer sessions
+  - Rosary lobby with host/join session options
+  - Visual rosary bead progress indicator with current prayer highlighting
+  - Real-time prayer text display with rotating reader assignments
+  - Participant list showing all users in the session
+  - Host controls for advancing prayers and ending sessions
+  - Ready for backend WebSocket integration (APIs documented separately)
+- ✅ **Prayer Count Badges**: Shows "X people prayed" above prayer cards with expandable names list
+- ✅ **Instant Prayer Feedback**: Green "✓ You Prayed" button indicator updates immediately
+- ✅ **Prayer Filter**: "Hide Prayed ✓" button to filter already-prayed requests with empty state messaging
+
+## Previous Changes (October 18, 2025)
 - ✅ **Password Reset Feature**: Complete forgot password and reset password flow with email integration
 - ✅ **Deep Linking Support**: App opens directly to password reset screen from email links
 - ✅ **Enhanced UI/UX**: Bouncy button animations, loading states with animated prayer hands, and success feedback

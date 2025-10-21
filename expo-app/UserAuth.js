@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 // Simple storage for saving last username
 class SimpleStorage {
@@ -304,6 +308,34 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [lastRevealedIndex, setLastRevealedIndex] = useState(-1);
   const revealTimerRef = useRef(null);
 
+  // Facebook OAuth configuration
+  const discovery = {
+    authorizationEndpoint: 'https://www.facebook.com/v18.0/dialog/oauth',
+    tokenEndpoint: 'https://graph.facebook.com/v18.0/oauth/access_token',
+  };
+
+  const [facebookRequest, facebookResponse, promptFacebookAsync] = useAuthRequest(
+    {
+      clientId: '31893875030227026',
+      scopes: ['public_profile', 'email'],
+      redirectUri: makeRedirectUri({
+        scheme: 'prayoverus',
+        path: 'redirect'
+      }),
+    },
+    discovery
+  );
+
+  // Handle Facebook OAuth response
+  useEffect(() => {
+    if (facebookResponse?.type === 'success') {
+      const { access_token } = facebookResponse.params;
+      handleFacebookLogin(access_token);
+    } else if (facebookResponse?.type === 'error') {
+      Alert.alert('Facebook Login Error', facebookResponse.error?.message || 'Failed to login with Facebook');
+    }
+  }, [facebookResponse]);
+
   // Load saved username on mount
   useEffect(() => {
     const loadSavedEmail = async () => {
@@ -352,6 +384,143 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       }
     };
   }, [password]);
+
+  const handleFacebookLogin = async (accessToken) => {
+    setLoading(true);
+    
+    try {
+      // Get user info from Facebook Graph API
+      const graphResponse = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
+      );
+      const userData = await graphResponse.json();
+      
+      console.log('Facebook user data:', userData);
+      
+      if (!userData.email) {
+        Alert.alert('Error', 'Could not get email from Facebook. Please use email login instead.');
+        setLoading(false);
+        return;
+      }
+
+      // Try to login with Facebook email
+      const endpoint = 'https://shouldcallpaul.replit.app/login';
+      const requestPayload = {
+        email: userData.email,
+        password: `fb_${userData.id}` // Use Facebook ID as password
+      };
+      
+      console.log('📱 FACEBOOK LOGIN ATTEMPT:');
+      console.log('POST ' + endpoint);
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0 && data.result && data.result.length > 0) {
+          // User exists, log them in
+          const user = data.result[0];
+          const userDataFormatted = {
+            id: user.user_id,
+            email: user.email,
+            firstName: user.real_name,
+            userName: user.user_name,
+            title: user.user_title,
+            about: user.user_about,
+            location: user.location,
+            picture: user.picture,
+            active: user.active,
+            timestamp: user.timestamp
+          };
+          
+          console.log('Facebook login successful for user:', userDataFormatted.firstName);
+          onLogin(userDataFormatted);
+          Alert.alert('Success', `Welcome back, ${userDataFormatted.firstName}!`);
+          
+        } else {
+          // User doesn't exist, create account
+          await createFacebookAccount(userData, accessToken);
+        }
+      } else {
+        // User doesn't exist, create account
+        await createFacebookAccount(userData, accessToken);
+      }
+      
+    } catch (error) {
+      console.log('Facebook login error:', error);
+      Alert.alert('Error', 'Failed to login with Facebook. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createFacebookAccount = async (facebookData, accessToken) => {
+    try {
+      const nameParts = (facebookData.name || '').split(' ');
+      const firstName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+      
+      const endpoint = 'https://shouldcallpaul.replit.app/createUser';
+      const requestPayload = {
+        email: facebookData.email,
+        password: `fb_${facebookData.id}`,
+        firstName: firstName,
+        lastName: lastName,
+        gender: null,
+        placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q",
+        phone: null,
+        picture: 'defaultUser.png',
+        command: "createUser",
+        jsonpCallback: "afterCreateUser",
+        tz: timezone,
+        env: "prod"
+      };
+      
+      console.log('📱 CREATING FACEBOOK USER:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0) {
+          Alert.alert('Success', 'Account created! Logging you in...', [
+            { text: 'OK', onPress: () => handleFacebookLogin(accessToken) }
+          ]);
+        } else {
+          const errorMessage = data.result || data.message || 'Failed to create account';
+          Alert.alert('Error', errorMessage);
+        }
+      } else {
+        Alert.alert('Error', 'Failed to create Facebook account');
+      }
+      
+    } catch (error) {
+      console.log('Create Facebook account error:', error);
+      Alert.alert('Error', 'Failed to create account. Please try email signup instead.');
+    }
+  };
 
   const handleCreateAccount = async () => {
     if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
@@ -647,6 +816,25 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           {loading ? 'Please wait...' : (isRegistering ? 'Create Account' : 'Sign In')}
         </Text>
       </TouchableOpacity>
+
+      {!isRegistering && (
+        <>
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.divider} />
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.facebookButton, loading && styles.buttonDisabled]} 
+            onPress={() => promptFacebookAsync()}
+            disabled={loading || !facebookRequest}
+            data-testid="button-facebook-login"
+          >
+            <Text style={styles.facebookButtonText}>Continue with Facebook</Text>
+          </TouchableOpacity>
+        </>
+      )}
       
       <TouchableOpacity 
         style={styles.switchButton} 
@@ -723,6 +911,40 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d1d5db',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  facebookButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   imagePickerButton: {
     alignItems: 'center',

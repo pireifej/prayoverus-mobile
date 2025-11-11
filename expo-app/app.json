@@ -39,8 +39,25 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ]
+      ],
+      "useNextNotificationsApi": true
     },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#6366f1",
+      "androidMode": "default",
+      "androidCollapsedTitle": "PrayOverUs"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6366f1",
+          "sounds": []
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "91bdb01b-1012-49e1-abb4-fc8fae904ec8"

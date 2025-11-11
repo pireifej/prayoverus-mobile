@@ -62,7 +62,7 @@ class NotificationService {
 
       // Get Expo push token (works for both Android and iOS)
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: '8daab5cb-7f07-4bdc-a42f-b92c73f2d5d3', // Your Expo project ID
+        projectId: '91bdb01b-1012-49e1-abb4-fc8fae904ec8', // Your Expo project ID from app.json
       });
 
       console.log('📱 Push token:', tokenData.data);

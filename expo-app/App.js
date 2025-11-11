@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
+import NotificationService from './NotificationService';
 
 // Use localStorage-like persistence for web and in-memory for mobile  
 import { Platform } from 'react-native';
@@ -411,10 +412,31 @@ function App() {
   const handleLogin = async (userData) => {
     setCurrentUser(userData);
     await saveUserToStorage(userData);
+    
+    // Set up push notifications for the logged-in user
+    if (userData && userData.id) {
+      console.log('Setting up push notifications for user:', userData.id);
+      
+      // Set up notifications in the background (non-blocking)
+      NotificationService.setupNotifications(userData.id)
+        .then(success => {
+          if (success) {
+            console.log('✅ Push notifications configured successfully');
+          } else {
+            console.log('⚠️ Push notifications setup skipped or failed');
+          }
+        })
+        .catch(error => {
+          console.error('Error setting up push notifications:', error);
+        });
+    }
   };
 
   // Handle user logout and clear storage
   const handleLogout = async () => {
+    // Clean up notification listeners
+    NotificationService.cleanup();
+    
     await clearUserFromStorage();
     setCurrentUser(null);
     setCurrentScreen('home');

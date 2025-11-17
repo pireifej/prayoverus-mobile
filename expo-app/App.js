@@ -1121,6 +1121,26 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             )}
           </View>
 
+          {/* Test Notification Button */}
+          <TouchableOpacity 
+            style={styles.testNotificationButton} 
+            onPress={async () => {
+              try {
+                await NotificationService.scheduleLocalNotification(
+                  '🙏 New Prayer Request',
+                  'Someone in your community needs prayers',
+                  { type: 'test', prayerId: '123' }
+                );
+                Alert.alert('Success', 'Test notification sent! Check your notification tray.');
+              } catch (error) {
+                Alert.alert('Error', 'Failed to send test notification: ' + error.message);
+              }
+            }}
+            data-testid="button-test-notification"
+          >
+            <Text style={styles.testNotificationButtonText}>🔔 Test Notification</Text>
+          </TouchableOpacity>
+
           {/* Help & Support Button */}
           <TouchableOpacity 
             style={styles.helpSupportButton} 
@@ -2329,6 +2349,25 @@ const styles = StyleSheet.create({
   },
   successCheckmark: {
     fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  testNotificationButton: {
+    backgroundColor: '#10b981',
+    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  testNotificationButtonText: {
+    fontSize: 16,
     color: 'white',
     fontWeight: 'bold',
   },

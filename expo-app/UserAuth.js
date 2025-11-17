@@ -351,6 +351,9 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         if (savedEmail) {
           setEmail(savedEmail);
           setRememberMe(true);
+          console.log('✅ Loaded saved email:', savedEmail);
+        } else {
+          console.log('ℹ️ No saved email found');
         }
       } catch (error) {
         console.log('Error loading saved email:', error);
@@ -365,9 +368,11 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
     if (checked && email) {
       // Save email
       await storage.setItem('rememberedEmail', email);
+      console.log('💾 Saved email for Remember Me:', email);
     } else {
       // Clear saved email
       await storage.removeItem('rememberedEmail');
+      console.log('🗑️ Cleared saved email from Remember Me');
     }
   };
   
@@ -681,9 +686,12 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           if (rememberMe) {
             try {
               await storage.setItem('rememberedEmail', email);
+              console.log('💾 Email saved for Remember Me on login');
             } catch (error) {
               console.log('Error saving email:', error);
             }
+          } else {
+            console.log('ℹ️ Remember Me not checked - email not saved');
           }
           
           onLogin(userData);

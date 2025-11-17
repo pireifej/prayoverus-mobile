@@ -428,12 +428,16 @@ function App() {
 
   // Handle user logout and clear storage
   const handleLogout = async () => {
+    console.log('🚪 Logging out user:', currentUser?.firstName);
+    
     // Clean up notification listeners
     NotificationService.cleanup();
     
     await clearUserFromStorage();
     setCurrentUser(null);
     setCurrentScreen('home');
+    
+    console.log('✅ Logout complete - redirecting to Sign In');
   };
 
   const loadUserPrayers = async () => {

@@ -1678,21 +1678,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   )}
                 </View>
                 <Text style={styles.prayerTime}>{prayer.date}</Text>
-                <AnimatedButton 
-                  style={[
-                    styles.prayButton, 
-                    prayer.user_has_prayed && styles.prayButtonUserPrayed
-                  ]} 
-                  onPress={() => generatePrayer(prayer)}
-                  data-testid={`button-pray-${prayer.id}`}
-                >
-                  <Text style={[
-                    styles.prayButtonText, 
-                    prayer.user_has_prayed && styles.prayButtonTextUserPrayed
-                  ]}>
-                    {prayer.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
-                  </Text>
-                </AnimatedButton>
+                <View style={styles.prayButtonContainer}>
+                  <AnimatedButton 
+                    style={[
+                      styles.prayButton, 
+                      prayer.user_has_prayed && styles.prayButtonUserPrayed
+                    ]} 
+                    onPress={() => generatePrayer(prayer)}
+                    data-testid={`button-pray-${prayer.id}`}
+                  >
+                    <Text style={[
+                      styles.prayButtonText, 
+                      prayer.user_has_prayed && styles.prayButtonTextUserPrayed
+                    ]}>
+                      {prayer.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
+                    </Text>
+                  </AnimatedButton>
+                </View>
               </View>
             </View>
           ));
@@ -1858,7 +1860,9 @@ const styles = StyleSheet.create({
   },
   screenContent: {
     flex: 1,
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 0,
+    backgroundColor: '#f3f4f6',
   },
   addPrayerForm: {
     backgroundColor: 'white',
@@ -1945,7 +1949,7 @@ const styles = StyleSheet.create({
   },
   communityPrayerCard: {
     backgroundColor: 'white',
-    padding: 16,
+    padding: 20,
     borderRadius: 0,
   },
   prayerTitle: {
@@ -1981,24 +1985,29 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prayerCardContainer: {
-    marginBottom: 25,
-    borderRadius: 12,
+    marginBottom: 24,
+    marginHorizontal: 16,
+    borderRadius: 16,
     backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
     overflow: 'hidden',
   },
   prayerCountBadge: {
-    backgroundColor: '#eff6ff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    backgroundColor: '#f0f4ff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
     alignItems: 'center',
     borderWidth: 1,
     borderBottomWidth: 0,
@@ -2027,10 +2036,16 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     lineHeight: 18,
   },
+  prayButtonContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
   prayButton: {
     backgroundColor: '#f0f9ff',
-    padding: 8,
-    borderRadius: 6,
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#6366f1',
@@ -2041,7 +2056,7 @@ const styles = StyleSheet.create({
   },
   prayButtonText: {
     color: '#6366f1',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
   prayButtonTextUserPrayed: {

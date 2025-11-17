@@ -1601,16 +1601,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         </View>
 
-        {/* Live Rosary Button */}
-        <TouchableOpacity 
-          style={styles.rosaryButton}
-          onPress={() => setCurrentScreen('rosary')}
-          data-testid="button-live-rosary"
-        >
-          <Text style={styles.rosaryButtonIcon}>📿</Text>
-          <Text style={styles.rosaryButtonText}>Join Live Rosary</Text>
-        </TouchableOpacity>
-
         {/* Community Wall Feed */}
         <View style={styles.feedHeader}>
           <Text style={styles.feedTitle}>Community Prayers</Text>

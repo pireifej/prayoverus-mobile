@@ -816,25 +816,6 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           {loading ? 'Please wait...' : (isRegistering ? 'Create Account' : 'Sign In')}
         </Text>
       </TouchableOpacity>
-
-      {!isRegistering && (
-        <>
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.divider} />
-          </View>
-          
-          <TouchableOpacity 
-            style={[styles.facebookButton, loading && styles.buttonDisabled]} 
-            onPress={() => promptFacebookAsync()}
-            disabled={loading || !facebookRequest}
-            data-testid="button-facebook-login"
-          >
-            <Text style={styles.facebookButtonText}>Continue with Facebook</Text>
-          </TouchableOpacity>
-        </>
-      )}
       
       <TouchableOpacity 
         style={styles.switchButton} 

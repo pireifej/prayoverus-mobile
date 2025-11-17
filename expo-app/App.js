@@ -1103,6 +1103,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
 
+          {/* Help & Support Button */}
+          <TouchableOpacity 
+            style={styles.helpSupportButton} 
+            onPress={() => setCurrentScreen('help')}
+            data-testid="button-help-support"
+          >
+            <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
+          </TouchableOpacity>
+
           {/* Personal Requests Section */}
           <View style={styles.personalRequestsSection}>
             <Text style={styles.sectionTitle}>Personal Requests</Text>
@@ -1121,34 +1130,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             )}
           </View>
 
-          {/* Test Notification Button */}
-          <TouchableOpacity 
-            style={styles.testNotificationButton} 
-            onPress={async () => {
-              try {
-                await NotificationService.scheduleLocalNotification(
-                  '🙏 New Prayer Request',
-                  'Someone in your community needs prayers',
-                  { type: 'test', prayerId: '123' }
-                );
-                Alert.alert('Success', 'Test notification sent! Check your notification tray.');
-              } catch (error) {
-                Alert.alert('Error', 'Failed to send test notification: ' + error.message);
-              }
-            }}
-            data-testid="button-test-notification"
-          >
-            <Text style={styles.testNotificationButtonText}>🔔 Test Notification</Text>
-          </TouchableOpacity>
-
-          {/* Help & Support Button */}
-          <TouchableOpacity 
-            style={styles.helpSupportButton} 
-            onPress={() => setCurrentScreen('help')}
-            data-testid="button-help-support"
-          >
-            <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
-          </TouchableOpacity>
+          {/* Test Notification Button - Hidden for now */}
+          {false && (
+            <TouchableOpacity 
+              style={styles.testNotificationButton} 
+              onPress={async () => {
+                try {
+                  await NotificationService.scheduleLocalNotification(
+                    '🙏 New Prayer Request',
+                    'Someone in your community needs prayers',
+                    { type: 'test', prayerId: '123' }
+                  );
+                  Alert.alert('Success', 'Test notification sent! Check your notification tray.');
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to send test notification: ' + error.message);
+                }
+              }}
+              data-testid="button-test-notification"
+            >
+              <Text style={styles.testNotificationButtonText}>🔔 Test Notification</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
     );
@@ -1672,7 +1674,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               )}
 
-              <View style={styles.prayerCard}>
+              <View style={styles.communityPrayerCard}>
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
                 <Text style={styles.prayerContent}>{prayer.content}</Text>
                 <View style={styles.prayerMeta}>
@@ -1947,6 +1949,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
+  communityPrayerCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 0,
+  },
   prayerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -1980,7 +1987,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prayerCardContainer: {
-    marginBottom: 15,
+    marginBottom: 25,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
+    overflow: 'hidden',
   },
   prayerCountBadge: {
     backgroundColor: '#eff6ff',

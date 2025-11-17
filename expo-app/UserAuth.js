@@ -309,6 +309,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [phone, setPhone] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [churches, setChurches] = useState([]);
+  const [selectedChurch, setSelectedChurch] = useState(null);
   
   // Password reveal logic - show last typed character
   const [displayPassword, setDisplayPassword] = useState('');
@@ -361,6 +363,33 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
     };
     loadSavedEmail();
   }, []);
+
+  // Fetch churches when registration screen is shown
+  useEffect(() => {
+    const fetchChurches = async () => {
+      if (isRegistering && churches.length === 0) {
+        try {
+          const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.error === 0 && data.churches) {
+              setChurches(data.churches);
+              console.log('✅ Loaded', data.churches.length, 'churches');
+            }
+          }
+        } catch (error) {
+          console.log('Error loading churches:', error);
+        }
+      }
+    };
+    fetchChurches();
+  }, [isRegistering]);
 
   // Save or clear email when Remember Me changes
   const handleRememberMeChange = async (checked) => {
@@ -553,6 +582,11 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       return;
     }
 
+    if (!selectedChurch) {
+      Alert.alert('Error', 'Please select your church');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -571,6 +605,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
         phone: phone,
         picture: pictureFileName,
+        church_id: selectedChurch.church_id,
         command: "createUser",
         jsonpCallback: "afterCreateUser",
         tz: timezone,
@@ -607,6 +642,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           setLastName('');
           setPhone(null);
           setGender(null);
+          setSelectedChurch(null);
           
         } else {
           // Show actual error message from API
@@ -760,6 +796,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
               value={firstName}
               onChangeText={setFirstName}
               autoCapitalize="words"
+              data-testid="input-firstname"
             />
             <TextInput
               style={[styles.input, styles.halfInput]}
@@ -767,7 +804,39 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
               value={lastName}
               onChangeText={setLastName}
               autoCapitalize="words"
+              data-testid="input-lastname"
             />
+          </View>
+
+          {/* Church Selection Dropdown */}
+          <View style={styles.churchContainer}>
+            <Text style={styles.churchLabel}>Select Your Church:</Text>
+            <ScrollView 
+              style={styles.churchDropdown}
+              nestedScrollEnabled={true}
+            >
+              {churches.map((church) => (
+                <TouchableOpacity
+                  key={church.church_id}
+                  style={[
+                    styles.churchOption,
+                    selectedChurch?.church_id === church.church_id && styles.churchOptionSelected
+                  ]}
+                  onPress={() => setSelectedChurch(church)}
+                  data-testid={`church-option-${church.church_id}`}
+                >
+                  <Text style={[
+                    styles.churchOptionText,
+                    selectedChurch?.church_id === church.church_id && styles.churchOptionTextSelected
+                  ]}>
+                    {church.church_name}
+                  </Text>
+                  {selectedChurch?.church_id === church.church_id && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
           
           <View style={{ display: 'none' }}>
@@ -1144,5 +1213,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  churchContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  churchLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  churchDropdown: {
+    maxHeight: 180,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    backgroundColor: 'white',
+  },
+  churchOption: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  churchOptionSelected: {
+    backgroundColor: '#f0f4ff',
+  },
+  churchOptionText: {
+    fontSize: 15,
+    color: '#333',
+    flex: 1,
+  },
+  churchOptionTextSelected: {
+    color: '#8B5CF6',
+    fontWeight: '600',
   },
 });

@@ -1101,6 +1101,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.profileInfoLabel}>About</Text>
               <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
             </View>
+            
+            <View style={styles.profileInfoSection}>
+              <Text style={styles.profileInfoLabel}>Church</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.churchName || 'Not set'}</Text>
+            </View>
           </View>
 
           {/* Help & Support Button */}

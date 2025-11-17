@@ -493,7 +493,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             location: user.location,
             picture: user.picture,
             active: user.active,
-            timestamp: user.timestamp
+            timestamp: user.timestamp,
+            churchName: user.church_name
           };
           
           console.log('Facebook login successful for user:', userDataFormatted.firstName);
@@ -713,7 +714,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             location: user.location,
             picture: user.picture,
             active: user.active,
-            timestamp: user.timestamp
+            timestamp: user.timestamp,
+            churchName: user.church_name
           };
           
           console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);

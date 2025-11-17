@@ -4,19 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 
-// Use localStorage-like persistence for web and in-memory for mobile  
+// Use localStorage-like persistence for web and AsyncStorage for mobile  
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class SimpleStorage {
   constructor() {
-    this.data = {};
-    if (Platform.OS === 'web') {
-      // For web, use localStorage
-      this.isWeb = true;
-    } else {
-      // For mobile, use in-memory (you can extend this with AsyncStorage later)
-      this.isWeb = false;
-    }
+    this.isWeb = Platform.OS === 'web';
   }
 
   async setItem(key, value) {
@@ -25,7 +19,7 @@ class SimpleStorage {
         localStorage.setItem(key, value);
       }
     } else {
-      this.data[key] = value;
+      await AsyncStorage.setItem(key, value);
     }
   }
 
@@ -35,7 +29,7 @@ class SimpleStorage {
         return localStorage.getItem(key);
       }
     } else {
-      return this.data[key] || null;
+      return await AsyncStorage.getItem(key);
     }
     return null;
   }
@@ -46,7 +40,7 @@ class SimpleStorage {
         localStorage.removeItem(key);
       }
     } else {
-      delete this.data[key];
+      await AsyncStorage.removeItem(key);
     }
   }
 }

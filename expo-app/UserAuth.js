@@ -2,18 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
-// Simple storage for saving last username
+// Storage wrapper for web and mobile
 class SimpleStorage {
   constructor() {
-    this.data = {};
-    if (Platform.OS === 'web') {
-      this.isWeb = true;
-    } else {
-      this.isWeb = false;
-    }
+    this.isWeb = Platform.OS === 'web';
   }
 
   async setItem(key, value) {
@@ -22,7 +18,7 @@ class SimpleStorage {
         localStorage.setItem(key, value);
       }
     } else {
-      this.data[key] = value;
+      await AsyncStorage.setItem(key, value);
     }
   }
 
@@ -32,9 +28,19 @@ class SimpleStorage {
         return localStorage.getItem(key);
       }
     } else {
-      return this.data[key] || null;
+      return await AsyncStorage.getItem(key);
     }
     return null;
+  }
+
+  async removeItem(key) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key);
+      }
+    } else {
+      await AsyncStorage.removeItem(key);
+    }
   }
 }
 
@@ -302,6 +308,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [gender, setGender] = useState(null);
   const [phone, setPhone] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   // Password reveal logic - show last typed character
   const [displayPassword, setDisplayPassword] = useState('');
@@ -336,13 +343,14 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
     }
   }, [facebookResponse]);
 
-  // Load saved username on mount
+  // Load saved email on mount
   useEffect(() => {
     const loadSavedEmail = async () => {
       try {
-        const savedEmail = await storage.getItem('lastUsername');
+        const savedEmail = await storage.getItem('rememberedEmail');
         if (savedEmail) {
           setEmail(savedEmail);
+          setRememberMe(true);
         }
       } catch (error) {
         console.log('Error loading saved email:', error);
@@ -350,6 +358,18 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
     };
     loadSavedEmail();
   }, []);
+
+  // Save or clear email when Remember Me changes
+  const handleRememberMeChange = async (checked) => {
+    setRememberMe(checked);
+    if (checked && email) {
+      // Save email
+      await storage.setItem('rememberedEmail', email);
+    } else {
+      // Clear saved email
+      await storage.removeItem('rememberedEmail');
+    }
+  };
   
   useEffect(() => {
     if (password.length === 0) {
@@ -657,11 +677,13 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           
           console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
           
-          // Save username for next time
-          try {
-            await storage.setItem('lastUsername', email);
-          } catch (error) {
-            console.log('Error saving username:', error);
+          // Save email if Remember Me is checked
+          if (rememberMe) {
+            try {
+              await storage.setItem('rememberedEmail', email);
+            } catch (error) {
+              console.log('Error saving email:', error);
+            }
           }
           
           onLogin(userData);
@@ -798,13 +820,28 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         data-testid="input-password"
       />
       
-      {!isRegistering && onForgotPassword && (
-        <TouchableOpacity 
-          style={styles.forgotPasswordButton}
-          onPress={onForgotPassword}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity>
+      {!isRegistering && (
+        <View style={styles.rememberMeContainer}>
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => handleRememberMeChange(!rememberMe)}
+            data-testid="checkbox-remember-me"
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.rememberMeText}>Remember my email</Text>
+          </TouchableOpacity>
+          
+          {onForgotPassword && (
+            <TouchableOpacity 
+              style={styles.forgotPasswordButton}
+              onPress={onForgotPassword}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
       
       <TouchableOpacity 
@@ -995,10 +1032,41 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  forgotPasswordButton: {
-    alignSelf: 'flex-end',
+  rememberMeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
-    marginTop: -10,
+    marginTop: 5,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderRadius: 4,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#8B5CF6',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  rememberMeText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  forgotPasswordButton: {
+    marginLeft: 'auto',
   },
   forgotPasswordText: {
     color: '#8B5CF6',

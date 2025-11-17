@@ -841,6 +841,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // Show auth screens if no current user
   if (!currentUser) {
+    console.log('📱 No user - showing login screen. Current authScreen:', authScreen);
+    
     if (authScreen === 'forgot') {
       return (
         <ForgotPasswordScreen 
@@ -1534,7 +1536,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           />
           <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} data-testid="button-logout">
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>

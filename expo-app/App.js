@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 
@@ -223,6 +224,7 @@ function App() {
   const [churches, setChurches] = useState([]);
   const [showChurchPicker, setShowChurchPicker] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
   
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
@@ -1071,6 +1073,93 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
+  // Pick image from camera or library
+  const pickProfilePicture = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to upload a profile picture.');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        await uploadProfilePicture(imageUri);
+      }
+    } catch (error) {
+      console.log('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image');
+    }
+  };
+
+  // Upload profile picture to backend
+  const uploadProfilePicture = async (imageUri) => {
+    setIsUploadingPicture(true);
+    
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append('userId', currentUser.id);
+      
+      // Get file extension from uri
+      const uriParts = imageUri.split('.');
+      const fileExtension = uriParts[uriParts.length - 1];
+      
+      formData.append('image', {
+        uri: imageUri,
+        type: `image/${fileExtension}`,
+        name: `profile.${fileExtension}`,
+      });
+
+      console.log('📱 Uploading profile picture for user:', currentUser.id);
+
+      const response = await fetch('https://shouldcallpaul.replit.app/uploadProfilePicture', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0 && data.profile_picture_url) {
+          // Update current user with new profile picture
+          const updatedUser = {
+            ...currentUser,
+            picture: data.profile_picture_url,
+          };
+          
+          setCurrentUser(updatedUser);
+          await saveUserToStorage(updatedUser);
+          
+          console.log('✅ Profile picture uploaded:', data.profile_picture_url);
+          Alert.alert('Success', 'Profile picture updated!');
+        } else {
+          Alert.alert('Error', data.result || 'Failed to upload profile picture');
+        }
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.result || 'Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.log('Error uploading profile picture:', error);
+      Alert.alert('Error', 'Failed to upload profile picture. Please try again.');
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
   // Show loading while checking authentication
   if (isCheckingAuth) {
     return (
@@ -1330,9 +1419,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <Image 
-                source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${currentUser.picture}` }}
+                source={{ 
+                  uri: currentUser.picture || 'https://via.placeholder.com/150/6366f1/ffffff?text=📸'
+                }}
                 style={styles.profileImage}
               />
+              
+              {/* Camera button overlay */}
+              <TouchableOpacity 
+                style={styles.cameraButton}
+                onPress={pickProfilePicture}
+                disabled={isUploadingPicture}
+                data-testid="button-upload-picture"
+              >
+                {isUploadingPicture ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.cameraIcon}>📷</Text>
+                )}
+              </TouchableOpacity>
             </View>
             
             <Text style={styles.profileName}>
@@ -2998,6 +3103,27 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     backgroundColor: '#e2e8f0',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  cameraIcon: {
+    fontSize: 18,
   },
   profileImagePlaceholder: {
     width: 100,

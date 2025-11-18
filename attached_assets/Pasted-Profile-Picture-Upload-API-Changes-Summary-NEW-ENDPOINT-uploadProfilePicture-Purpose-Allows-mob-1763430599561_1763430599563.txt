@@ -1,0 +1,71 @@
+Profile Picture Upload - API Changes Summary
+NEW ENDPOINT: /uploadProfilePicture
+Purpose: Allows mobile app users to upload profile pictures
+
+Method: POST
+
+Authentication: Basic Auth (same credentials as other endpoints)
+
+Request Format:
+
+const formData = new FormData();
+formData.append('userId', currentUser.id);
+formData.append('image', {
+  uri: imageUri,
+  type: 'image/jpeg',
+  name: 'profile.jpg',
+});
+fetch('https://shouldcallpaul.replit.app/uploadProfilePicture', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+  },
+  body: formData
+});
+
+File Requirements:
+
+Formats: JPG, PNG, WEBP
+Max size: 5MB
+Field name: image
+Success Response:
+
+{
+  "error": 0,
+  "message": "Profile picture uploaded successfully",
+  "profile_picture_url": "https://shouldcallpaul.replit.app/profile-pictures/123_profile.jpg"
+}
+
+Error Responses:
+
+{ "error": 1, "result": "userId is required" }
+{ "error": 1, "result": "Invalid userId" }
+{ "error": 1, "result": "User not found" }
+{ "error": 1, "result": "Image file is required" }
+{ "error": 1, "result": "File size exceeds 5MB limit" }
+{ "error": 1, "result": "Only JPG, PNG, and WEBP formats are allowed" }
+UPDATED ENDPOINT: /getUser
+New Field: Now returns profile_picture_url alongside the existing picture field
+
+Example Response:
+
+[{
+  "user_id": 123,
+  "user_name": "john_doe",
+  "email": "john@example.com",
+  "real_name": "John",
+  "picture": "https://shouldcallpaul.replit.app/profile-pictures/123_profile.jpg",
+  "profile_picture_url": "https://shouldcallpaul.replit.app/profile-pictures/123_profile.jpg",
+  ...
+}]
+
+Note: Both picture and profile_picture_url return the same value for backward compatibility. Mobile app should use profile_picture_url going forward.
+
+BACKEND CHANGES:
+✅ New database column: user.profile_picture_url (TEXT)
+✅ Images stored in: /public/profile-pictures/ with naming pattern {userId}_profile.{ext}
+✅ Files are publicly accessible at: https://shouldcallpaul.replit.app/profile-pictures/
+✅ Security: Path traversal protection, file validation before disk writes
+✅ Automatic file overwrite on re-upload (one picture per user)
+
+Ready to integrate! 🎉

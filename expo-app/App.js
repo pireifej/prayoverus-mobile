@@ -359,9 +359,9 @@ function App() {
         
         if (prayersArray.length > 0) {
           const communityPrayers = prayersArray.map(request => {
-            // Debug picture field
-            if (request.picture) {
-              console.log('📸 Prayer has picture:', request.request_id, 'picture:', request.picture);
+            // Debug picture field - use request_picture for the prayer's image
+            if (request.request_picture) {
+              console.log('📸 Prayer has request_picture:', request.request_id, 'request_picture:', request.request_picture);
             }
             
             return {
@@ -376,7 +376,7 @@ function App() {
               category: request.category_name,
               prayer_title: request.prayer_title,
               other_person: request.other_person,
-              picture: request.picture,
+              picture: request.request_picture, // Use request_picture for the prayer's image
               user_id: request.user_id,
               fk_prayer_id: request.fk_prayer_id,
               allow_comments: request.allow_comments,
@@ -552,7 +552,7 @@ function App() {
             category: request.category_name,
             prayer_title: request.prayer_title,
             other_person: request.other_person,
-            picture: request.picture,
+            picture: request.request_picture, // Use request_picture for the prayer's image
             user_id: request.user_id,
             fk_prayer_id: request.fk_prayer_id,
             allow_comments: request.allow_comments,

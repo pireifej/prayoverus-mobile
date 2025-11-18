@@ -358,27 +358,35 @@ function App() {
         const prayersArray = Array.isArray(data) ? data : [];
         
         if (prayersArray.length > 0) {
-          const communityPrayers = prayersArray.map(request => ({
-            id: request.request_id,
-            title: request.request_title || request.prayer_title || 'Prayer Request',
-            content: request.request_text,
-            author: request.real_name || request.user_name || 'Anonymous',
-            isPublic: true,
-            prayedFor: false,
-            timestamp: request.timestamp,
-            date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
-            category: request.category_name,
-            prayer_title: request.prayer_title,
-            other_person: request.other_person,
-            picture: request.picture,
-            user_id: request.user_id,
-            fk_prayer_id: request.fk_prayer_id,
-            allow_comments: request.allow_comments,
-            use_alias: request.use_alias,
-            prayer_count: request.prayer_count || 0,
-            prayed_by_names: request.prayed_by_names || [],
-            user_has_prayed: request.user_has_prayed || false
-          }));
+          const communityPrayers = prayersArray.map(request => {
+            // Debug picture field
+            if (request.picture) {
+              console.log('📸 Prayer has picture:', request.request_id, 'picture:', request.picture);
+            }
+            
+            return {
+              id: request.request_id,
+              title: request.request_title || request.prayer_title || 'Prayer Request',
+              content: request.request_text,
+              author: request.real_name || request.user_name || 'Anonymous',
+              isPublic: true,
+              prayedFor: false,
+              timestamp: request.timestamp,
+              date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
+              category: request.category_name,
+              prayer_title: request.prayer_title,
+              other_person: request.other_person,
+              picture: request.picture,
+              user_id: request.user_id,
+              fk_prayer_id: request.fk_prayer_id,
+              allow_comments: request.allow_comments,
+              use_alias: request.use_alias,
+              prayer_count: request.prayer_count || 0,
+              prayed_by_names: request.prayed_by_names || [],
+              user_has_prayed: request.user_has_prayed || false,
+              church_id: request.church_id
+            };
+          });
           
           console.log('📱 Parsed community prayers:', communityPrayers.length, 'items');
           setCommunityPrayers(communityPrayers);
@@ -2266,17 +2274,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.prayerContent}>{prayer.content}</Text>
                 
                 {/* Prayer Image - Only show if image exists */}
-                {prayer.picture && prayer.picture.trim() !== '' && (
-                  <Image 
-                    source={{ 
-                      uri: prayer.picture.startsWith('http') 
-                        ? prayer.picture 
-                        : `https://shouldcallpaul.replit.app/${prayer.picture}`
-                    }}
-                    style={styles.prayerCardImage}
-                    resizeMode="cover"
-                  />
-                )}
+                {(() => {
+                  // Debug: Log picture value for this prayer
+                  if (prayer.picture) {
+                    console.log(`📸 Rendering prayer ${prayer.id}: picture="${prayer.picture}"`);
+                  }
+                  
+                  // Only show image if picture field exists and is not empty
+                  if (prayer.picture && typeof prayer.picture === 'string' && prayer.picture.trim() !== '') {
+                    const imageUrl = prayer.picture.startsWith('http') 
+                      ? prayer.picture 
+                      : `https://shouldcallpaul.replit.app/${prayer.picture}`;
+                    
+                    console.log(`🖼️ Displaying image for prayer ${prayer.id}: ${imageUrl}`);
+                    
+                    return (
+                      <Image 
+                        source={{ uri: imageUrl }}
+                        style={styles.prayerCardImage}
+                        resizeMode="cover"
+                        onError={(error) => console.log(`❌ Image load error for prayer ${prayer.id}:`, error.nativeEvent.error)}
+                        onLoad={() => console.log(`✅ Image loaded successfully for prayer ${prayer.id}`)}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
                 
                 <View style={styles.prayerMeta}>
                   <Text style={styles.prayerAuthor}>{prayer.author}</Text>

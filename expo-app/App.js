@@ -228,6 +228,10 @@ function App() {
   const confettiCount = 40; // Way more confetti!
   const confettiAnims = useRef([...Array(40)].map(() => new Animated.Value(0))).current;
   const celebrationEmojis = ['🎉', '🎊', '⭐', '💫', '✨', '🌟', '🎆', '🎇', '💝', '🙏'];
+  
+  // Modal slide animation
+  const modalSlideAnim = useRef(new Animated.Value(1000)).current; // Start off-screen
+  const modalOpacityAnim = useRef(new Animated.Value(0)).current;
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -666,6 +670,21 @@ function App() {
         generatedPrayer: '',
         loading: true
       });
+      
+      // Beautiful slide-up animation!
+      Animated.parallel([
+        Animated.spring(modalSlideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }),
+        Animated.timing(modalOpacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       // Get prayer text from database by request ID
       try {
@@ -735,7 +754,21 @@ Through Christ our Lord. Amen.`;
   };
 
   const closePrayerModal = () => {
-    setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+    // Beautiful slide-down animation before closing!
+    Animated.parallel([
+      Animated.timing(modalSlideAnim, {
+        toValue: 1000,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacityAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+    });
   };
 
   const togglePrayerNames = (prayerId) => {
@@ -1973,35 +2006,63 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         })()}
       </ScrollView>
 
-      {/* Prayer Modal */}
+      {/* FULL SCREEN Prayer Modal with Beautiful Animations */}
       <Modal
         visible={prayerModal.visible}
         transparent={true}
-        animationType="slide"
+        animationType="none"
         onRequestClose={closePrayerModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Prayer for {prayerModal.prayer?.author}</Text>
-              <TouchableOpacity onPress={closePrayerModal} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>×</Text>
+        <Animated.View 
+          style={[
+            styles.fullScreenModalOverlay,
+            {
+              opacity: modalOpacityAnim,
+            }
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.fullScreenModalContent,
+              {
+                transform: [
+                  { translateY: modalSlideAnim }
+                ]
+              }
+            ]}
+          >
+            {/* Beautiful Header with Gradient-like effect */}
+            <View style={styles.fullScreenModalHeader}>
+              <View style={styles.modalHeaderContent}>
+                <Text style={styles.fullScreenModalTitle}>🙏 Prayer</Text>
+                <Text style={styles.fullScreenModalSubtitle}>for {prayerModal.prayer?.author}</Text>
+              </View>
+              <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
+                <Text style={styles.fullScreenCloseButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
 
             {prayerModal.loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366f1" />
-                <Text style={styles.loadingText}>Generating prayer...</Text>
+              <View style={styles.fullScreenLoadingContainer}>
+                <View style={styles.loadingPulse}>
+                  <Text style={styles.loadingPrayerHands}>🙏</Text>
+                </View>
+                <Text style={styles.fullScreenLoadingText}>Preparing your prayer...</Text>
               </View>
             ) : (
               <>
-                <ScrollView style={styles.prayerTextContainer}>
-                  <HtmlText html={prayerModal.generatedPrayer} style={styles.generatedPrayer} />
+                <ScrollView 
+                  style={styles.fullScreenPrayerTextContainer}
+                  contentContainerStyle={styles.fullScreenPrayerTextContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.fullScreenGeneratedPrayer} />
                 </ScrollView>
-                <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
-                  <Text style={styles.closeModalButtonText}>Amen 🙏</Text>
-                </TouchableOpacity>
+                <View style={styles.fullScreenButtonContainer}>
+                  <TouchableOpacity style={styles.fullScreenAmenButton} onPress={markAsPrayed}>
+                    <Text style={styles.fullScreenAmenButtonText}>Amen 🙏</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
             
@@ -2112,8 +2173,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </Animated.View>
               </View>
             )}
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -2556,6 +2617,128 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // FULL SCREEN MODAL STYLES - Beautiful & Immersive!
+  fullScreenModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  fullScreenModalContent: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+  },
+  fullScreenModalHeader: {
+    backgroundColor: '#6366f1',
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeaderContent: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  fullScreenModalTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  fullScreenModalSubtitle: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  fullScreenCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenCloseButtonText: {
+    fontSize: 28,
+    color: '#ffffff',
+    fontWeight: '300',
+  },
+  fullScreenLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingPulse: {
+    marginBottom: 30,
+  },
+  loadingPrayerHands: {
+    fontSize: 80,
+  },
+  fullScreenLoadingText: {
+    fontSize: 20,
+    color: '#6366f1',
+    fontWeight: '500',
+  },
+  fullScreenPrayerTextContainer: {
+    flex: 1,
+  },
+  fullScreenPrayerTextContent: {
+    padding: 30,
+    paddingBottom: 100,
+  },
+  fullScreenGeneratedPrayer: {
+    fontSize: 18,
+    lineHeight: 32,
+    color: '#1f2937',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  fullScreenButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 25,
+    paddingBottom: 40,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fullScreenAmenButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  fullScreenAmenButtonText: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
   // CELEBRATION FIREWORKS & CONFETTI styles!
   celebrationContainer: {

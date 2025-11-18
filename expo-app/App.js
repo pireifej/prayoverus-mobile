@@ -452,9 +452,15 @@ function App() {
     // Clean up notification listeners
     NotificationService.cleanup();
     
+    // Clear all user data
     await clearUserFromStorage();
+    
+    // Reset all state to logged-out state
     setCurrentUser(null);
+    setAuthScreen('login'); // Important: Reset to login screen
     setCurrentScreen('home');
+    setCommunityPrayers([]);
+    setPersonalPrayers([]);
     
     console.log('✅ Logout complete - redirecting to Sign In');
   };

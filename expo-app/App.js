@@ -855,9 +855,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       if (response.ok) {
         const data = await response.json();
-        if (data.error === 0 && data.result) {
-          setChurches(data.result);
-          console.log('Loaded', data.result.length, 'churches');
+        if (data.error === 0 && data.churches) {
+          setChurches(data.churches);
+          console.log('Loaded', data.churches.length, 'churches');
         }
       }
     } catch (error) {

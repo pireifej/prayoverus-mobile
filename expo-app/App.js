@@ -482,7 +482,7 @@ function App() {
     // Reset all state first (synchronous)
     setAuthScreen('login'); // Important: Set to login screen FIRST
     setCommunityPrayers([]);
-    setPersonalPrayers([]);
+    setPrayers([]); // Fixed: was setPersonalPrayers which doesn't exist
     setCurrentScreen('home');
     
     // Clear storage (async)

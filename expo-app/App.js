@@ -848,15 +848,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Play heavenly chime sound
+  // Play modern notification sound
   const playHeavenlyChime = async () => {
     try {
-      console.log('🔔 Playing heavenly chime...');
+      console.log('🔔 Playing notification...');
       
-      // Elegant, smooth bell chime - longer and more peaceful
+      // Modern, clean notification sound - like iOS/iPad notification
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
-        { shouldPlay: true, volume: 0.6 }
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3' },
+        { shouldPlay: true, volume: 0.5 }
       );
       
       setSound(newSound);

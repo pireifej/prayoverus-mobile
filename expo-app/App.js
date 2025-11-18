@@ -189,6 +189,7 @@ function App() {
   const [prayers, setPrayers] = useState([]);
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
+  const [prayerImage, setPrayerImage] = useState(null);
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
@@ -599,6 +600,7 @@ function App() {
         // Clear form after short delay to show success state
         setTimeout(() => {
           setNewPrayer({ title: '', content: '', isPublic: true });
+          setPrayerImage(null); // Clear selected image
           setShowTitleInput(false);
           setPostSuccess(false);
         }, 1200);
@@ -610,6 +612,7 @@ function App() {
           setCommunityPrayers([prayer, ...communityPrayers]);
         }
         setNewPrayer({ title: '', content: '', isPublic: true });
+        setPrayerImage(null); // Clear selected image
         setShowTitleInput(false);
         Alert.alert('Success', 'Prayer added locally (will sync when connection is restored)');
       } finally {
@@ -632,31 +635,60 @@ function App() {
       }
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-      
       const endpoint = 'https://shouldcallpaul.replit.app/createRequestAndPrayer';
-      const requestPayload = {
-        requestText: prayer.content,
-        requestTitle: prayer.title,
-        tz: timezone,
-        userId: currentUser?.id,
-        sendEmail: "true",
-        idempotencyKey: idempotencyKey
+      
+      let requestBody;
+      let headers = {
+        'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
       };
       
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
+      // If there's an image, use FormData, otherwise use JSON
+      if (prayerImage) {
+        const formData = new FormData();
+        formData.append('requestText', prayer.content);
+        formData.append('requestTitle', prayer.title);
+        formData.append('tz', timezone);
+        formData.append('userId', currentUser?.id.toString());
+        formData.append('sendEmail', 'true');
+        formData.append('idempotencyKey', idempotencyKey);
+        
+        // Add image to FormData
+        const uriParts = prayerImage.split('.');
+        const fileExtension = uriParts[uriParts.length - 1];
+        formData.append('image', {
+          uri: prayerImage,
+          type: `image/${fileExtension}`,
+          name: `prayer.${fileExtension}`,
+        });
+        
+        requestBody = formData;
+        console.log('📱 MOBILE APP API CALL (with image):');
+        console.log('POST ' + endpoint);
+      } else {
+        const requestPayload = {
+          requestText: prayer.content,
+          requestTitle: prayer.title,
+          tz: timezone,
+          userId: currentUser?.id,
+          sendEmail: "true",
+          idempotencyKey: idempotencyKey
+        };
+        
+        headers['Content-Type'] = 'application/json';
+        requestBody = JSON.stringify(requestPayload);
+        
+        console.log('📱 MOBILE APP API CALL:');
+        console.log('POST ' + endpoint);
+        console.log(JSON.stringify(requestPayload, null, 2));
+      }
       
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          ...headers,
           'X-Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify(requestPayload)
+        body: requestBody
       });
       
       if (response.ok) {
@@ -1072,6 +1104,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       Alert.alert('Error', 'Failed to save profile changes');
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  // Pick image for prayer request
+  const pickPrayerImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to add an image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPrayerImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Error picking prayer image:', error);
+      Alert.alert('Error', 'Failed to select image');
     }
   };
 
@@ -2045,6 +2102,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             editable={!isPosting}
           />
           
+          {/* Image Preview and Picker */}
+          {prayerImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image 
+                source={{ uri: prayerImage }}
+                style={styles.imagePreview}
+              />
+              <TouchableOpacity 
+                style={styles.removeImageButton}
+                onPress={() => setPrayerImage(null)}
+                data-testid="button-remove-prayer-image"
+              >
+                <Text style={styles.removeImageText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
           <View style={styles.postActions}>
             <TouchableOpacity 
               style={styles.linkButton}
@@ -2053,6 +2127,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <Text style={[styles.linkButtonText, isPosting && { opacity: 0.5 }]}>
                 {showTitleInput ? 'Hide' : 'Add'} custom title
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.linkButton}
+              onPress={pickPrayerImage}
+              disabled={isPosting}
+              data-testid="button-add-prayer-image"
+            >
+              <Text style={[styles.linkButtonText, isPosting && { opacity: 0.5 }]}>
+                {prayerImage ? '✓' : '📷'} {prayerImage ? 'Image added' : 'Add image'}
               </Text>
             </TouchableOpacity>
             
@@ -3257,6 +3342,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   linkButton: {
     padding: 8,
@@ -3265,6 +3352,35 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontSize: 14,
     fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeImageText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   postButton: {
     backgroundColor: '#6366f1',

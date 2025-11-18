@@ -889,7 +889,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setIsSavingProfile(true);
     
     try {
-      // Call updateUser API
+      // Call updateUser API with correct parameter names
       const response = await fetch('https://shouldcallpaul.replit.app/updateUser', {
         method: 'POST',
         headers: {
@@ -898,30 +898,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         },
         body: JSON.stringify({
           userId: currentUser.id,
-          userTitle: profileForm.title,
-          userAbout: profileForm.about,
-          churchId: profileForm.churchId
+          user_title: profileForm.title,
+          user_about: profileForm.about,
+          church_id: profileForm.churchId
         })
       });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.error === 0) {
-          // Update current user with new values
+        if (data.error === 0 && data.user) {
+          // Update current user with values from API response
           const updatedUser = {
             ...currentUser,
-            title: profileForm.title,
-            about: profileForm.about,
-            churchName: profileForm.churchName
+            title: data.user.user_title,
+            about: data.user.user_about,
+            churchName: profileForm.churchName // Keep the selected church name from form
           };
           
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
           
+          console.log('Profile updated successfully:', data.result);
           Alert.alert('Success', 'Profile updated successfully!');
           setIsEditingProfile(false);
         } else {
-          Alert.alert('Error', data.message || 'Failed to update profile');
+          Alert.alert('Error', data.result || 'Failed to update profile');
         }
       } else {
         Alert.alert('Error', 'Failed to update profile');

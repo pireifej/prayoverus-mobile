@@ -208,6 +208,7 @@ function App() {
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
+  const [showChurchOnly, setShowChurchOnly] = useState(false);
   
   // Rosary state
   const [rosaryScreen, setRosaryScreen] = useState('lobby'); // 'lobby', 'session'
@@ -2181,25 +2182,52 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         {/* Community Wall Feed */}
         <View style={styles.feedHeader}>
           <Text style={styles.feedTitle}>Community Prayers</Text>
-          <TouchableOpacity 
-            style={styles.filterButton}
-            onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
-            data-testid="button-filter-prayed"
-          >
-            <Text style={styles.filterButtonText}>
-              {hideAlreadyPrayed ? 'Show All' : 'Hide Prayed ✓'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.filterButtonsContainer}>
+            <TouchableOpacity 
+              style={styles.filterButton}
+              onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+              data-testid="button-filter-prayed"
+            >
+              <Text style={styles.filterButtonText}>
+                {hideAlreadyPrayed ? '✓ Show All' : 'Hide Prayed ✓'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.filterButton, showChurchOnly && styles.filterButtonActive]}
+              onPress={() => setShowChurchOnly(!showChurchOnly)}
+              data-testid="button-filter-church"
+            >
+              <Text style={[styles.filterButtonText, showChurchOnly && styles.filterButtonTextActive]}>
+                {showChurchOnly ? '⛪ My Church' : 'My Church Only'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {(() => {
-          const filteredPrayers = communityPrayers.filter(prayer => !hideAlreadyPrayed || !prayer.user_has_prayed);
+          let filteredPrayers = communityPrayers;
+          
+          // Apply "Hide Prayed" filter
+          if (hideAlreadyPrayed) {
+            filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
+          }
+          
+          // Apply "Church Only" filter
+          if (showChurchOnly && currentUser?.churchId) {
+            filteredPrayers = filteredPrayers.filter(prayer => 
+              prayer.church_id && prayer.church_id === currentUser.churchId
+            );
+          }
           
           if (communityPrayers.length === 0) {
             return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
           }
           
           if (filteredPrayers.length === 0) {
-            return <Text style={styles.emptyText}>All caught up! 🙏 Tap 'Show All' to review prayed requests.</Text>;
+            if (showChurchOnly) {
+              return <Text style={styles.emptyText}>No prayers from your church yet. Turn off the filter to see all prayers.</Text>;
+            }
+            return <Text style={styles.emptyText}>All caught up! 🙏 Tap '✓ Show All' to review prayed requests.</Text>;
           }
           
           return filteredPrayers.map((prayer) => (
@@ -3484,6 +3512,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     marginBottom: 0,
   },
+  filterButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
   filterButton: {
     backgroundColor: '#e0f2fe',
     paddingHorizontal: 12,
@@ -3492,10 +3525,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#38bdf8',
   },
+  filterButtonActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
   filterButtonText: {
     fontSize: 12,
     color: '#0369a1',
     fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: '#ffffff',
   },
   personalRequestsSection: {
     marginTop: 20,

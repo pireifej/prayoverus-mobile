@@ -1,13 +1,15 @@
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Buffer } from 'buffer';
+
 // Base64 encoding that works in both web and React Native
 const base64Encode = (str) => {
   if (typeof btoa !== "undefined") {
-    return base64Encode(str);
+    return btoa(str);
   } else {
     return Buffer.from(str, "utf-8").toString("base64");
   }
 };
-import * as Device from 'expo-device';
 import { Platform, Alert } from 'react-native';
 
 // Configure how notifications are displayed when the app is in foreground

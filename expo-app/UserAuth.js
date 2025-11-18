@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { Buffer } from 'buffer';
+
 // Base64 encoding that works in both web and React Native
 const base64Encode = (str) => {
   if (typeof btoa !== "undefined") {
-    return base64Encode(str);
+    return btoa(str);
   } else {
     return Buffer.from(str, "utf-8").toString("base64");
   }
 };
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';

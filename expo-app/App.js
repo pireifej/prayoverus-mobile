@@ -5,6 +5,7 @@ import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
+import { Buffer } from 'buffer';
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  
 import { Platform } from 'react-native';
@@ -14,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const base64Encode = (str) => {
   if (typeof btoa !== 'undefined') {
     // Web environment
-    return base64Encode(str);
+    return btoa(str);
   } else {
     // React Native environment
     return Buffer.from(str, 'utf-8').toString('base64');

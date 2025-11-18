@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
@@ -223,9 +223,11 @@ function App() {
   const [showChurchPicker, setShowChurchPicker] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
-  // Prayer animation state
+  // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
-  const sparkleAnims = useRef([...Array(12)].map(() => new Animated.Value(0))).current;
+  const confettiCount = 40; // Way more confetti!
+  const confettiAnims = useRef([...Array(40)].map(() => new Animated.Value(0))).current;
+  const celebrationEmojis = ['🎉', '🎊', '⭐', '💫', '✨', '🌟', '🎆', '🎇', '💝', '🙏'];
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -788,33 +790,30 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Trigger prayer sparkle animation
+  // Trigger BIG CELEBRATION animation with vibration!
   const triggerPrayerAnimation = () => {
+    // VIBRATE the phone for haptic feedback!
+    Vibration.vibrate([0, 100, 50, 100]); // Pattern: wait, vibrate, wait, vibrate
+    
     setShowPrayerAnimation(true);
     
-    // Animate each sparkle
-    const animations = sparkleAnims.map((anim, index) => {
+    // Animate each confetti piece with random trajectories
+    const animations = confettiAnims.map((anim, index) => {
       return Animated.sequence([
-        Animated.delay(index * 50),
-        Animated.parallel([
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 400,
-            delay: 600,
-            useNativeDriver: true,
-          })
-        ])
+        Animated.delay(index * 20), // Stagger start times
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 1500, // Longer duration for dramatic effect
+          useNativeDriver: true,
+        })
       ]);
     });
     
     Animated.parallel(animations).start(() => {
-      setShowPrayerAnimation(false);
-      sparkleAnims.forEach(anim => anim.setValue(0));
+      setTimeout(() => {
+        setShowPrayerAnimation(false);
+        confettiAnims.forEach(anim => anim.setValue(0));
+      }, 500); // Keep showing for a bit longer
     });
   };
 
@@ -875,10 +874,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
     
-    // Close the modal after a short delay to show animation
+    // Close the modal after animation completes
     setTimeout(() => {
       closePrayerModal();
-    }, 1200);
+    }, 2000); // 2 seconds to enjoy the celebration!
   };
 
   // Fetch all churches for the dropdown
@@ -2000,20 +1999,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </>
             )}
             
-            {/* Prayer Sparkle Animation */}
+            {/* CELEBRATION FIREWORKS & CONFETTI! */}
             {showPrayerAnimation && (
-              <View style={styles.sparkleContainer} pointerEvents="none">
-                {sparkleAnims.map((anim, index) => {
-                  const angle = (index / sparkleAnims.length) * Math.PI * 2;
-                  const radius = 120;
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
+              <View style={styles.celebrationContainer} pointerEvents="none">
+                {confettiAnims.map((anim, index) => {
+                  // Random trajectories for each confetti piece!
+                  const randomAngle = (Math.random() * Math.PI * 2);
+                  const randomDistance = 100 + Math.random() * 150; // Between 100-250
+                  const x = Math.cos(randomAngle) * randomDistance;
+                  const y = Math.sin(randomAngle) * randomDistance - 50; // Bias upward
+                  
+                  // Random rotation
+                  const randomRotation = Math.random() * 720 - 360; // -360 to 360 degrees
+                  
+                  // Pick random celebration emoji
+                  const emoji = celebrationEmojis[index % celebrationEmojis.length];
                   
                   return (
                     <Animated.View
                       key={index}
                       style={[
-                        styles.sparkle,
+                        styles.confettiPiece,
                         {
                           transform: [
                             {
@@ -2029,45 +2035,74 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                               }),
                             },
                             {
+                              rotate: anim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', `${randomRotation}deg`],
+                              }),
+                            },
+                            {
                               scale: anim.interpolate({
-                                inputRange: [0, 0.5, 1],
-                                outputRange: [0, 1.5, 0],
+                                inputRange: [0, 0.3, 0.7, 1],
+                                outputRange: [0, 1.8, 1.5, 0.5],
                               }),
                             },
                           ],
                           opacity: anim.interpolate({
-                            inputRange: [0, 0.5, 1],
-                            outputRange: [0, 1, 0],
+                            inputRange: [0, 0.2, 0.8, 1],
+                            outputRange: [0, 1, 1, 0],
                           }),
                         },
                       ]}
                     >
-                      <Text style={styles.sparkleEmoji}>✨</Text>
+                      <Text style={styles.confettiEmoji}>{emoji}</Text>
                     </Animated.View>
                   );
                 })}
                 
-                {/* Center glow effect */}
+                {/* Center BURST effect */}
                 <Animated.View
                   style={[
-                    styles.centerGlow,
+                    styles.burstCenter,
                     {
-                      opacity: sparkleAnims[0].interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0, 0.8, 0],
+                      opacity: confettiAnims[0].interpolate({
+                        inputRange: [0, 0.3, 0.6, 1],
+                        outputRange: [0, 1, 0.5, 0],
                       }),
                       transform: [
                         {
-                          scale: sparkleAnims[0].interpolate({
-                            inputRange: [0, 0.5, 1],
-                            outputRange: [0.5, 1.2, 0.5],
+                          scale: confettiAnims[0].interpolate({
+                            inputRange: [0, 0.3, 1],
+                            outputRange: [0.5, 2, 3],
                           }),
                         },
                       ],
                     },
                   ]}
                 >
-                  <Text style={styles.centerGlowText}>🙏</Text>
+                  <Text style={styles.burstEmoji}>🎉</Text>
+                </Animated.View>
+                
+                {/* Success message */}
+                <Animated.View
+                  style={[
+                    styles.successMessage,
+                    {
+                      opacity: confettiAnims[0].interpolate({
+                        inputRange: [0, 0.3, 0.7, 1],
+                        outputRange: [0, 1, 1, 0],
+                      }),
+                      transform: [
+                        {
+                          scale: confettiAnims[0].interpolate({
+                            inputRange: [0, 0.3, 1],
+                            outputRange: [0.5, 1.1, 1],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Text style={styles.successText}>Prayer Sent! 🙏</Text>
                 </Animated.View>
               </View>
             )}
@@ -2516,43 +2551,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Prayer Animation styles
-  sparkleContainer: {
+  // CELEBRATION FIREWORKS & CONFETTI styles!
+  celebrationContainer: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 300,
-    height: 300,
-    marginLeft: -150,
-    marginTop: -150,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  confettiPiece: {
+    position: 'absolute',
+  },
+  confettiEmoji: {
+    fontSize: 32,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
+  },
+  burstCenter: {
+    position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sparkle: {
-    position: 'absolute',
-  },
-  sparkleEmoji: {
-    fontSize: 24,
-    textShadowColor: 'rgba(255, 215, 0, 0.8)',
+  burstEmoji: {
+    fontSize: 80,
+    textShadowColor: 'rgba(255, 215, 0, 1)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 30,
   },
-  centerGlow: {
+  successMessage: {
     position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 100,
-    height: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 50,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 30,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#6366f1',
   },
-  centerGlowText: {
-    fontSize: 50,
+  successText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#6366f1',
+    textAlign: 'center',
   },
   // Profile and Settings styles
   settingsButton: {

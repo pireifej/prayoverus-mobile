@@ -1168,8 +1168,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Profile</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Text style={[styles.headerTitle, { flex: 1 }]}>My Profile</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {!isEditingProfile && (
               <TouchableOpacity 
                 onPress={enterEditMode} 
@@ -2408,18 +2408,12 @@ const styles = StyleSheet.create({
   },
   // Profile and Settings styles
   settingsButton: {
-    position: 'absolute',
-    right: 20,
-    top: 60,
     padding: 10,
   },
   settingsIcon: {
     fontSize: 24,
   },
   editButton: {
-    position: 'absolute',
-    right: 60,
-    top: 60,
     padding: 10,
   },
   editIcon: {

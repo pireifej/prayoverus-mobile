@@ -2261,10 +2261,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
                 <Text style={styles.prayerContent}>{prayer.content}</Text>
                 
-                {/* Prayer Image */}
-                {prayer.picture && (
+                {/* Prayer Image - Only show if image exists */}
+                {prayer.picture && prayer.picture.trim() !== '' && (
                   <Image 
-                    source={{ uri: prayer.picture }}
+                    source={{ 
+                      uri: prayer.picture.startsWith('http') 
+                        ? prayer.picture 
+                        : `https://shouldcallpaul.replit.app/${prayer.picture}`
+                    }}
                     style={styles.prayerCardImage}
                     resizeMode="cover"
                   />

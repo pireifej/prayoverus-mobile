@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Audio } from 'expo-av';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 
@@ -233,18 +232,6 @@ function App() {
   // Modal slide animation
   const modalSlideAnim = useRef(new Animated.Value(1000)).current; // Start off-screen
   const modalOpacityAnim = useRef(new Animated.Value(0)).current;
-  
-  // Sound effect
-  const [sound, setSound] = useState(null);
-
-  // Configure audio mode for the app
-  useEffect(() => {
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
-      shouldDuckAndroid: true,
-    });
-  }, []);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -842,32 +829,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Play heavenly chime sound
-  const playHeavenlyChime = async () => {
-    try {
-      // Create a beautiful ascending chime using Web Audio API frequencies
-      // This creates a magical, bell-like sound
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' }, // Beautiful notification chime
-        { shouldPlay: true, volume: 0.8 }
-      );
-      setSound(newSound);
-      
-      // Unload sound after it finishes
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          newSound.unloadAsync();
-        }
-      });
-    } catch (error) {
-      console.log('Could not play sound:', error);
-    }
-  };
-
   // Trigger BIG CELEBRATION animation with MAGICAL vibration pattern!
   const triggerPrayerAnimation = async () => {
-    // Play heavenly chime sound!
-    await playHeavenlyChime();
     
     // MAGICAL HEAVENLY vibration pattern - like bells chiming!
     // Pattern: [wait, vibrate, wait, vibrate, ...] in milliseconds

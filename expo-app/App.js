@@ -222,6 +222,10 @@ function App() {
   const [churches, setChurches] = useState([]);
   const [showChurchPicker, setShowChurchPicker] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  
+  // Prayer animation state
+  const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
+  const sparkleAnims = useRef([...Array(12)].map(() => new Animated.Value(0))).current;
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -784,9 +788,42 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
+  // Trigger prayer sparkle animation
+  const triggerPrayerAnimation = () => {
+    setShowPrayerAnimation(true);
+    
+    // Animate each sparkle
+    const animations = sparkleAnims.map((anim, index) => {
+      return Animated.sequence([
+        Animated.delay(index * 50),
+        Animated.parallel([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 400,
+            delay: 600,
+            useNativeDriver: true,
+          })
+        ])
+      ]);
+    });
+    
+    Animated.parallel(animations).start(() => {
+      setShowPrayerAnimation(false);
+      sparkleAnims.forEach(anim => anim.setValue(0));
+    });
+  };
+
   const markAsPrayed = async () => {
     const prayer = prayerModal.prayer;
     if (!prayer) return;
+
+    // Trigger magical animation
+    triggerPrayerAnimation();
 
     try {
       const endpoint = 'https://shouldcallpaul.replit.app/prayFor';
@@ -838,8 +875,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
     
-    // Close the modal
-    closePrayerModal();
+    // Close the modal after a short delay to show animation
+    setTimeout(() => {
+      closePrayerModal();
+    }, 1200);
   };
 
   // Fetch all churches for the dropdown
@@ -1960,6 +1999,78 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </TouchableOpacity>
               </>
             )}
+            
+            {/* Prayer Sparkle Animation */}
+            {showPrayerAnimation && (
+              <View style={styles.sparkleContainer} pointerEvents="none">
+                {sparkleAnims.map((anim, index) => {
+                  const angle = (index / sparkleAnims.length) * Math.PI * 2;
+                  const radius = 120;
+                  const x = Math.cos(angle) * radius;
+                  const y = Math.sin(angle) * radius;
+                  
+                  return (
+                    <Animated.View
+                      key={index}
+                      style={[
+                        styles.sparkle,
+                        {
+                          transform: [
+                            {
+                              translateX: anim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, x],
+                              }),
+                            },
+                            {
+                              translateY: anim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, y],
+                              }),
+                            },
+                            {
+                              scale: anim.interpolate({
+                                inputRange: [0, 0.5, 1],
+                                outputRange: [0, 1.5, 0],
+                              }),
+                            },
+                          ],
+                          opacity: anim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, 1, 0],
+                          }),
+                        },
+                      ]}
+                    >
+                      <Text style={styles.sparkleEmoji}>✨</Text>
+                    </Animated.View>
+                  );
+                })}
+                
+                {/* Center glow effect */}
+                <Animated.View
+                  style={[
+                    styles.centerGlow,
+                    {
+                      opacity: sparkleAnims[0].interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0, 0.8, 0],
+                      }),
+                      transform: [
+                        {
+                          scale: sparkleAnims[0].interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0.5, 1.2, 0.5],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <Text style={styles.centerGlowText}>🙏</Text>
+                </Animated.View>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -2404,6 +2515,44 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Prayer Animation styles
+  sparkleContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 300,
+    height: 300,
+    marginLeft: -150,
+    marginTop: -150,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sparkle: {
+    position: 'absolute',
+  },
+  sparkleEmoji: {
+    fontSize: 24,
+    textShadowColor: 'rgba(255, 215, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  centerGlow: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 50,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  centerGlowText: {
+    fontSize: 50,
   },
   // Profile and Settings styles
   settingsButton: {

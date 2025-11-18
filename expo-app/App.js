@@ -846,9 +846,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   const fetchChurches = async () => {
     try {
       const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         }
       });

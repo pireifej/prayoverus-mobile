@@ -29,7 +29,6 @@
         "backgroundColor": "#6366f1"
       },
       "package": "com.pireifej.prayoverus",
-      "versionCode": 5,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -49,8 +48,7 @@
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
-      ],
-      "useNextNotificationsApi": true
+      ]
     },
     "notification": {
       "icon": "./assets/icon.png",

@@ -946,12 +946,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Play modern notification sound
   const playHeavenlyChime = async () => {
     try {
-      console.log('🔔 Playing notification...');
+      console.log('🔔 Playing magical success sound...');
       
-      // Modern, clean notification sound - like iOS/iPad notification
+      // Magical whoosh/swoosh sound - like a magical email being sent ✨
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3' },
-        { shouldPlay: true, volume: 0.5 }
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
+        { shouldPlay: true, volume: 0.7 }
       );
       
       setSound(newSound);

@@ -8,6 +8,8 @@
     "userInterfaceStyle": "light",
     "scheme": "prayoverus",
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#6366f1"
     },
     "assetBundlePatterns": [
@@ -23,9 +25,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#6366f1"
       },
       "package": "com.pireifej.prayoverus",
+      "versionCode": 5,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",

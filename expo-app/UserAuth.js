@@ -895,18 +895,25 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         placeholder="Password"
         value={displayPassword}
         onChangeText={(text) => {
-          // Calculate the actual password based on what changed
-          if (text.length > displayPassword.length) {
-            // User added a character - take the last char from text
+          const lengthDiff = text.length - displayPassword.length;
+          
+          // Autofill detection: if more than 1 character added at once
+          if (lengthDiff > 1) {
+            // Autofill pasted entire password - use it directly
+            setPassword(text);
+            setDisplayPassword('•'.repeat(text.length));
+          } else if (lengthDiff === 1) {
+            // User typed a single character
             const newChar = text[text.length - 1];
             setPassword(password + newChar);
-          } else if (text.length < displayPassword.length) {
-            // User deleted a character
-            setPassword(password.slice(0, -1));
+          } else if (lengthDiff < 0) {
+            // User deleted character(s)
+            setPassword(password.slice(0, text.length));
           }
         }}
         autoCapitalize="none"
         autoCorrect={false}
+        textContentType="password"
         data-testid="input-password"
       />
       
@@ -988,6 +995,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
     color: '#666',
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+    marginLeft: 2,
+  },
+  halfInputContainer: {
+    flex: 1,
   },
   input: {
     backgroundColor: 'white',

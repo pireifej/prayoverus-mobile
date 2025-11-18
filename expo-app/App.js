@@ -2084,15 +2084,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={styles.widgetTitle}>Share a Prayer Request</Text>
           
           {showTitleInput && (
-            <TextInput
-              style={styles.input}
-              placeholder={`${currentUser?.firstName}'s Prayer Request`}
-              value={newPrayer.title}
-              onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
-              editable={!isPosting}
-            />
+            <>
+              <Text style={styles.inputLabel}>Prayer Title (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={`${currentUser?.firstName}'s Prayer Request`}
+                value={newPrayer.title}
+                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+                editable={!isPosting}
+              />
+            </>
           )}
           
+          <Text style={styles.inputLabel}>Prayer Request</Text>
           <TextInput
             style={[styles.input, styles.compactTextArea]}
             placeholder="What would you like prayer for?"
@@ -2625,6 +2629,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 20,
     lineHeight: 24,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
+    marginLeft: 2,
   },
   input: {
     borderWidth: 1,

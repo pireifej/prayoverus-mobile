@@ -210,6 +210,18 @@ function App() {
   const [rosaryScreen, setRosaryScreen] = useState('lobby'); // 'lobby', 'session'
   const [rosaryRole, setRosaryRole] = useState(null); // 'host' or 'participant'
   const [rosarySession, setRosarySession] = useState(null);
+  
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    title: '',
+    about: '',
+    churchId: null,
+    churchName: ''
+  });
+  const [churches, setChurches] = useState([]);
+  const [showChurchPicker, setShowChurchPicker] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -830,6 +842,98 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     closePrayerModal();
   };
 
+  // Fetch all churches for the dropdown
+  const fetchChurches = async () => {
+    try {
+      const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === 0 && data.result) {
+          setChurches(data.result);
+          console.log('Loaded', data.result.length, 'churches');
+        }
+      }
+    } catch (error) {
+      console.log('Error fetching churches:', error);
+      Alert.alert('Error', 'Failed to load churches');
+    }
+  };
+
+  // Enter edit mode and populate form with current values
+  const enterEditMode = async () => {
+    setProfileForm({
+      title: currentUser.title || '',
+      about: currentUser.about || '',
+      churchId: null, // We'll need to fetch this from the API
+      churchName: currentUser.churchName || ''
+    });
+    setIsEditingProfile(true);
+    await fetchChurches();
+  };
+
+  // Cancel editing
+  const cancelEditProfile = () => {
+    setIsEditingProfile(false);
+    setProfileForm({ title: '', about: '', churchId: null, churchName: '' });
+  };
+
+  // Save profile updates
+  const saveProfile = async () => {
+    setIsSavingProfile(true);
+    
+    try {
+      // Call updateUser API
+      const response = await fetch('https://shouldcallpaul.replit.app/updateUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          userTitle: profileForm.title,
+          userAbout: profileForm.about,
+          churchId: profileForm.churchId
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === 0) {
+          // Update current user with new values
+          const updatedUser = {
+            ...currentUser,
+            title: profileForm.title,
+            about: profileForm.about,
+            churchName: profileForm.churchName
+          };
+          
+          setCurrentUser(updatedUser);
+          await saveUserToStorage(updatedUser);
+          
+          Alert.alert('Success', 'Profile updated successfully!');
+          setIsEditingProfile(false);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to update profile');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to update profile');
+      }
+    } catch (error) {
+      console.log('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile changes');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   // Show loading while checking authentication
   if (isCheckingAuth) {
     return (
@@ -1064,13 +1168,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Profile</Text>
-          <TouchableOpacity 
-            onPress={() => setCurrentScreen('settings')} 
-            style={styles.settingsButton}
-            data-testid="button-settings"
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {!isEditingProfile && (
+              <TouchableOpacity 
+                onPress={enterEditMode} 
+                style={styles.editButton}
+                data-testid="button-edit-profile"
+              >
+                <Text style={styles.editIcon}>✏️</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              onPress={() => setCurrentScreen('settings')} 
+              style={styles.settingsButton}
+              data-testid="button-settings"
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <ScrollView style={styles.screenContent}>
@@ -1095,19 +1210,120 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>Title</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.title || 'Not set'}</Text>
+              {isEditingProfile ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={profileForm.title}
+                  onChangeText={(text) => setProfileForm({...profileForm, title: text})}
+                  placeholder="Enter your title"
+                  data-testid="input-edit-title"
+                />
+              ) : (
+                <Text style={styles.profileInfoValue}>{currentUser.title || 'Not set'}</Text>
+              )}
             </View>
             
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>About</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
+              {isEditingProfile ? (
+                <TextInput
+                  style={[styles.editInput, styles.editTextArea]}
+                  value={profileForm.about}
+                  onChangeText={(text) => setProfileForm({...profileForm, about: text})}
+                  placeholder="Tell us about yourself"
+                  multiline
+                  numberOfLines={3}
+                  data-testid="input-edit-about"
+                />
+              ) : (
+                <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
+              )}
             </View>
             
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>Church</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.churchName || 'Not set'}</Text>
+              {isEditingProfile ? (
+                <TouchableOpacity 
+                  style={styles.churchSelector}
+                  onPress={() => setShowChurchPicker(true)}
+                  data-testid="button-select-church"
+                >
+                  <Text style={styles.churchSelectorText}>
+                    {profileForm.churchName || 'Select a church...'}
+                  </Text>
+                  <Text style={styles.churchSelectorArrow}>▼</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.profileInfoValue}>{currentUser.churchName || 'Not set'}</Text>
+              )}
             </View>
+            
+            {isEditingProfile && (
+              <View style={styles.editActions}>
+                <TouchableOpacity 
+                  style={[styles.editActionButton, styles.cancelButton]}
+                  onPress={cancelEditProfile}
+                  disabled={isSavingProfile}
+                  data-testid="button-cancel-edit"
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.editActionButton, styles.saveButton, isSavingProfile && styles.saveButtonDisabled]}
+                  onPress={saveProfile}
+                  disabled={isSavingProfile}
+                  data-testid="button-save-profile"
+                >
+                  {isSavingProfile ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
+          
+          {/* Church Picker Modal */}
+          <Modal
+            visible={showChurchPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowChurchPicker(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.churchPickerModal}>
+                <View style={styles.churchPickerHeader}>
+                  <Text style={styles.churchPickerTitle}>Select Your Church</Text>
+                  <TouchableOpacity onPress={() => setShowChurchPicker(false)}>
+                    <Text style={styles.churchPickerClose}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.churchList}>
+                  {churches.map((church) => (
+                    <TouchableOpacity
+                      key={church.church_id}
+                      style={styles.churchOption}
+                      onPress={() => {
+                        setProfileForm({
+                          ...profileForm,
+                          churchId: church.church_id,
+                          churchName: church.church_name
+                        });
+                        setShowChurchPicker(false);
+                      }}
+                      data-testid={`church-option-${church.church_id}`}
+                    >
+                      <Text style={styles.churchOptionText}>{church.church_name}</Text>
+                      {profileForm.churchId === church.church_id && (
+                        <Text style={styles.churchSelectedCheck}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
 
           {/* Help & Support Button */}
           <TouchableOpacity 
@@ -2198,6 +2414,130 @@ const styles = StyleSheet.create({
   },
   settingsIcon: {
     fontSize: 24,
+  },
+  editButton: {
+    position: 'absolute',
+    right: 60,
+    top: 60,
+    padding: 10,
+  },
+  editIcon: {
+    fontSize: 22,
+  },
+  editInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    marginTop: 8,
+  },
+  editTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  churchSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  churchSelectorText: {
+    fontSize: 16,
+    color: '#1f2937',
+    flex: 1,
+  },
+  churchSelectorArrow: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  editActionButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#e5e7eb',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    backgroundColor: '#6366f1',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  churchPickerModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  churchPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  churchPickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  churchPickerClose: {
+    fontSize: 24,
+    color: '#6b7280',
+  },
+  churchList: {
+    maxHeight: 400,
+  },
+  churchOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  churchOptionText: {
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  churchSelectedCheck: {
+    fontSize: 20,
+    color: '#6366f1',
+    fontWeight: 'bold',
   },
   profileCard: {
     backgroundColor: 'white',

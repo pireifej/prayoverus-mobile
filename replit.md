@@ -2,7 +2,17 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (October 20, 2025)
+## Recent Changes (November 18, 2025)
+- ✅ **Profile Picture Upload**: Complete implementation for users to upload and change their profile pictures
+  - Camera button overlay on profile picture in profile screen
+  - expo-image-picker integration with photo library access
+  - Image upload to production API (/uploadProfilePicture endpoint)
+  - Real-time profile picture updates across all screens
+  - Loading indicator during upload
+  - Proper error handling and success feedback
+  - Profile pictures persist to AsyncStorage and sync with backend
+
+## Previous Changes (October 20, 2025)
 - ✅ **Live Rosary Feature**: Complete UI implementation for multi-user synchronized Rosary prayer sessions
   - Rosary lobby with host/join session options
   - Visual rosary bead progress indicator with current prayer highlighting

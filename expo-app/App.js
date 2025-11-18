@@ -477,17 +477,19 @@ function App() {
     // Clean up notification listeners
     NotificationService.cleanup();
     
-    // Clear all user data
-    await clearUserFromStorage();
-    
-    // Reset all state to logged-out state
-    setCurrentUser(null);
-    setAuthScreen('login'); // Important: Reset to login screen
-    setCurrentScreen('home');
+    // Reset all state first (synchronous)
+    setAuthScreen('login'); // Important: Set to login screen FIRST
     setCommunityPrayers([]);
     setPersonalPrayers([]);
+    setCurrentScreen('home');
     
-    console.log('✅ Logout complete - redirecting to Sign In');
+    // Clear storage (async)
+    await clearUserFromStorage();
+    
+    // Set currentUser to null LAST to trigger re-render with login screen
+    setCurrentUser(null);
+    
+    console.log('✅ Logout complete - should show Sign In screen now');
   };
 
   const loadUserPrayers = async () => {

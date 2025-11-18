@@ -50,21 +50,8 @@
         }
       ]
     },
-    "notification": {
-      "icon": "./assets/icon.png",
-      "color": "#6366f1",
-      "androidMode": "default",
-      "androidCollapsedTitle": "PrayOverUs"
-    },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#6366f1",
-          "sounds": []
-        }
-      ]
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

@@ -1932,7 +1932,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               {session.participants.map((p) => (
                 <View key={p.userId} style={styles.rosaryParticipantItem}>
                   <Image 
-                    source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${p.picture}` }}
+                    source={{ 
+                      uri: p.picture || 'https://via.placeholder.com/50/6366f1/ffffff?text=👤'
+                    }}
                     style={styles.rosaryParticipantPicture}
                   />
                   <Text style={styles.rosaryParticipantName}>
@@ -1995,7 +1997,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <View style={styles.userHeader}>
         <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
           <Image 
-            source={{ uri: `https://shouldcallpaul.replit.app/profile_images/${currentUser.picture}` }}
+            source={{ 
+              uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
+            }}
             style={styles.headerProfilePicture}
           />
           <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>

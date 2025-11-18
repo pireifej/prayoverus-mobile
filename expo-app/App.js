@@ -2232,6 +2232,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <View style={styles.communityPrayerCard}>
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
                 <Text style={styles.prayerContent}>{prayer.content}</Text>
+                
+                {/* Prayer Image */}
+                {prayer.picture && (
+                  <Image 
+                    source={{ uri: prayer.picture }}
+                    style={styles.prayerCardImage}
+                    resizeMode="cover"
+                  />
+                )}
+                
                 <View style={styles.prayerMeta}>
                   <Text style={styles.prayerAuthor}>{prayer.author}</Text>
                   {prayer.category && (
@@ -3381,6 +3391,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  prayerCardImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginTop: 12,
+    marginBottom: 12,
   },
   postButton: {
     backgroundColor: '#6366f1',

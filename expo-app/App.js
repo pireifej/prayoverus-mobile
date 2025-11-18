@@ -948,10 +948,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     try {
       console.log('🔔 Playing magical success sound...');
       
-      // Magical whoosh/swoosh sound - like a magical email being sent ✨
+      // Soft sparkle/success notification - light and pleasant ✨
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
-        { shouldPlay: true, volume: 0.7 }
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3' },
+        { shouldPlay: true, volume: 0.5 }
       );
       
       setSound(newSound);

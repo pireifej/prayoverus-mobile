@@ -499,7 +499,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           
           console.log('Facebook login successful for user:', userDataFormatted.firstName);
           onLogin(userDataFormatted);
-          Alert.alert('Success', `Welcome back, ${userDataFormatted.firstName}!`);
+          // No popup needed - user sees the app loaded successfully!
           
         } else {
           // User doesn't exist, create account
@@ -733,7 +733,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           }
           
           onLogin(userData);
-          Alert.alert('Success', `Welcome back, ${userData.firstName}!`);
+          // No popup needed - user sees the app loaded successfully!
           
         } else {
           // Show actual error message from API

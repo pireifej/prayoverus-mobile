@@ -853,10 +853,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     try {
       console.log('🔔 Playing heavenly chime...');
       
-      // Load and play beautiful notification chime
+      // Elegant, smooth bell chime - longer and more peaceful
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' },
-        { shouldPlay: true, volume: 0.7 }
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
+        { shouldPlay: true, volume: 0.6 }
       );
       
       setSound(newSound);

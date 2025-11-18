@@ -406,6 +406,7 @@ function App() {
   const handleLogin = async (userData) => {
     setCurrentUser(userData);
     await saveUserToStorage(userData);
+    setCurrentScreen('home'); // Explicitly navigate to home after login
     
     // Set up push notifications for the logged-in user
     if (userData && userData.id) {

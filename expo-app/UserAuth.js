@@ -118,6 +118,7 @@ export function ForgotPasswordScreen({ onBack }) {
           Enter your email address and we'll send you a link to reset your password.
         </Text>
 
+        <Text style={styles.inputLabel}>Email Address</Text>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -240,6 +241,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
           Enter your new password below.
         </Text>
 
+        <Text style={styles.inputLabel}>New Password</Text>
         <View style={styles.passwordContainer}>
           <TextInput
             style={styles.passwordInput}
@@ -257,6 +259,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
           </TouchableOpacity>
         </View>
 
+        <Text style={styles.inputLabel}>Confirm Password</Text>
         <View style={styles.passwordContainer}>
           <TextInput
             style={styles.passwordInput}
@@ -792,22 +795,28 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         <>
           
           <View style={styles.nameRow}>
-            <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoCapitalize="words"
-              data-testid="input-firstname"
-            />
-            <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-              autoCapitalize="words"
-              data-testid="input-lastname"
-            />
+            <View style={styles.halfInputContainer}>
+              <Text style={styles.inputLabel}>First Name</Text>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+                data-testid="input-firstname"
+              />
+            </View>
+            <View style={styles.halfInputContainer}>
+              <Text style={styles.inputLabel}>Last Name</Text>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+                data-testid="input-lastname"
+              />
+            </View>
           </View>
 
           {/* Church Selection Dropdown */}
@@ -869,6 +878,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         </>
       )}
       
+      <Text style={styles.inputLabel}>Email Address</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -879,6 +889,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         data-testid="input-email"
       />
       
+      <Text style={styles.inputLabel}>Password</Text>
       <TextInput
         style={styles.input}
         placeholder="Password"

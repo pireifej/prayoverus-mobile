@@ -297,10 +297,11 @@ function App() {
     }
   }, [currentUser]);
 
-  // Refresh user prayers when entering personal screen
+  // Refresh user prayers and profile data when entering personal screen
   useEffect(() => {
     if (currentUser?.id && currentScreen === 'personal') {
       loadUserPrayers();
+      refreshUserProfile(); // Reload user profile data including church
     }
   }, [currentScreen, currentUser?.id]);
 
@@ -500,6 +501,55 @@ function App() {
     setCurrentUser(null);
     
     console.log('✅ Logout complete - should show Sign In screen now');
+  };
+
+  const refreshUserProfile = async () => {
+    if (!currentUser?.id) {
+      console.log('No user ID available for refreshing profile');
+      return;
+    }
+
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/getUser';
+      const requestPayload = {
+        userId: currentUser.id.toString()
+      };
+      
+      console.log('🔄 Refreshing user profile data');
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0 && data.result && data.result.length > 0) {
+          const user = data.result[0];
+          
+          // Update current user with fresh data including church_name
+          const updatedUser = {
+            ...currentUser,
+            churchName: user.church_name,
+            title: user.user_title,
+            about: user.user_about,
+            picture: user.picture
+          };
+          
+          console.log('✅ User profile refreshed. Church:', user.church_name);
+          setCurrentUser(updatedUser);
+          await saveUserToStorage(updatedUser);
+        }
+      }
+    } catch (error) {
+      console.log('Error refreshing user profile:', error.message);
+    }
   };
 
   const loadUserPrayers = async () => {

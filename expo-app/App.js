@@ -10,6 +10,17 @@ import NotificationService from './NotificationService';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Base64 encoding that works in both web and React Native
+const base64Encode = (str) => {
+  if (typeof btoa !== 'undefined') {
+    // Web environment
+    return base64Encode(str);
+  } else {
+    // React Native environment
+    return Buffer.from(str, 'utf-8').toString('base64');
+  }
+};
+
 class SimpleStorage {
   constructor() {
     this.isWeb = Platform.OS === 'web';
@@ -345,7 +356,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload),
         timeout: 10000,
@@ -522,7 +533,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -577,7 +588,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -698,7 +709,7 @@ function App() {
       
       let requestBody;
       let headers = {
-        'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
       };
       
       // If there's an image, use FormData, otherwise use JSON
@@ -817,7 +828,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
           },
           body: JSON.stringify(requestPayload),
         });
@@ -925,7 +936,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -1035,7 +1046,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -1080,7 +1091,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
         method: 'GET',
         headers: {
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         }
       });
       
@@ -1125,7 +1136,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({
           userId: currentUser.id,
@@ -1243,7 +1254,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       const response = await fetch('https://shouldcallpaul.replit.app/uploadProfilePicture', {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: formData,
       });
@@ -1767,7 +1778,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+                    'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
                   },
                   body: JSON.stringify(requestPayload)
                 });

@@ -1,4 +1,12 @@
 import * as Notifications from 'expo-notifications';
+// Base64 encoding that works in both web and React Native
+const base64Encode = (str) => {
+  if (typeof btoa !== "undefined") {
+    return base64Encode(str);
+  } else {
+    return Buffer.from(str, "utf-8").toString("base64");
+  }
+};
 import * as Device from 'expo-device';
 import { Platform, Alert } from 'react-native';
 
@@ -92,7 +100,7 @@ class NotificationService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({
           userId: userId,

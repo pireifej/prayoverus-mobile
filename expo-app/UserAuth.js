@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+// Base64 encoding that works in both web and React Native
+const base64Encode = (str) => {
+  if (typeof btoa !== "undefined") {
+    return base64Encode(str);
+  } else {
+    return Buffer.from(str, "utf-8").toString("base64");
+  }
+};
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
@@ -475,7 +483,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload),
       });
@@ -554,7 +562,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -626,7 +634,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload)
       });
@@ -696,7 +704,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Basic ' + btoa('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify(requestPayload),
         timeout: 10000,

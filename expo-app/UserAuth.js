@@ -260,6 +260,10 @@ export function ResetPasswordScreen({ token, onSuccess }) {
             onChangeText={setNewPassword}
             secureTextEntry={!showPassword}
             editable={!loading}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoComplete="password"
+            textContentType="password"
           />
           <TouchableOpacity 
             style={styles.eyeButton}
@@ -278,6 +282,10 @@ export function ResetPasswordScreen({ token, onSuccess }) {
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
             editable={!loading}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoComplete="password"
+            textContentType="password"
           />
           <TouchableOpacity 
             style={styles.eyeButton}

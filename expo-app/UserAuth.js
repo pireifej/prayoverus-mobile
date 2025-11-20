@@ -332,6 +332,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [churches, setChurches] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
+  const [emailError, setEmailError] = useState('');
   
   // Password reveal logic - show last typed character
   const [displayPassword, setDisplayPassword] = useState('');
@@ -459,6 +460,36 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       }
     };
   }, [password]);
+
+  // Email validation function
+  const validateEmail = (email) => {
+    // Basic email regex pattern
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!email) {
+      setEmailError('');
+      return false;
+    }
+    
+    if (!emailRegex.test(email)) {
+      setEmailError('⚠️ Please enter a valid email address');
+      return false;
+    }
+    
+    setEmailError('');
+    return true;
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    // Only validate if user has typed something
+    if (text.length > 0) {
+      validateEmail(text);
+    } else {
+      setEmailError('');
+    }
+  };
 
   const handleFacebookLogin = async (accessToken) => {
     setLoading(true);
@@ -601,6 +632,12 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const handleCreateAccount = async () => {
     if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
@@ -898,14 +935,17 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       
       <Text style={styles.inputLabel}>Email Address</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, emailError && styles.inputError]}
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={handleEmailChange}
         keyboardType="email-address"
         autoCapitalize="none"
         data-testid="input-email"
       />
+      {emailError ? (
+        <Text style={styles.errorText}>{emailError}</Text>
+      ) : null}
       
       <Text style={styles.inputLabel}>Password</Text>
       <TextInput
@@ -1032,6 +1072,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  inputError: {
+    borderColor: '#ff4444',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#ff4444',
+    fontSize: 12,
+    marginTop: -10,
+    marginBottom: 10,
+    paddingLeft: 5,
   },
   button: {
     backgroundColor: '#8B5CF6',

@@ -1470,6 +1470,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               Have questions or need support? Send us a message and we'll get back to you as soon as possible.
             </Text>
             
+            <Text style={styles.inputLabel}>Message</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Your message..."
@@ -1480,6 +1481,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               data-testid="input-help-message"
             />
             
+            <Text style={styles.inputLabel}>Name</Text>
             <TextInput
               style={styles.input}
               placeholder="Your name"
@@ -1488,15 +1490,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               data-testid="input-help-name"
             />
             
+            <Text style={styles.inputLabel}>Email Address</Text>
             <TextInput
               style={styles.input}
               placeholder="Your email"
               keyboardType="email-address"
+              autoCapitalize="none"
               value={helpForm.email}
               onChangeText={(text) => setHelpForm({...helpForm, email: text})}
               data-testid="input-help-email"
             />
             
+            <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
             <TextInput
               style={styles.input}
               placeholder="Your phone (optional)"

@@ -301,10 +301,9 @@ function App() {
     };
   }, []);
 
-  // Load community prayers from the API when user logs in
+  // Load user prayers when user logs in
   useEffect(() => {
     if (currentUser) {
-      loadCommunityPrayers();
       loadUserPrayers();
     }
   }, [currentUser]);
@@ -317,19 +316,12 @@ function App() {
     }
   }, [currentScreen, currentUser?.id]);
 
-  // Load community prayers when entering community screen
+  // Load community prayers when entering community screen OR when filter changes
   useEffect(() => {
     if (currentUser && currentScreen === 'community') {
       loadCommunityPrayers();
     }
-  }, [currentScreen, currentUser]);
-
-  // Reload community prayers when church filter changes
-  useEffect(() => {
-    if (currentUser && currentScreen === 'community') {
-      loadCommunityPrayers();
-    }
-  }, [showChurchOnly]);
+  }, [currentScreen, currentUser, showChurchOnly]);
 
   const loadCommunityPrayers = async (showRefreshIndicator = false) => {
     console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id, 'Church Filter:', showChurchOnly);

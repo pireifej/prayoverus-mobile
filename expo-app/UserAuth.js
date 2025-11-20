@@ -1072,6 +1072,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+    color: '#000',
   },
   inputError: {
     borderColor: '#ff4444',
@@ -1295,6 +1296,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
     fontSize: 16,
+    color: '#000',
   },
   eyeButton: {
     padding: 15,

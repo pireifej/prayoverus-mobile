@@ -2730,6 +2730,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     backgroundColor: '#fff',
+    color: '#000',
   },
   textArea: {
     height: 100,

@@ -319,7 +319,10 @@ function App() {
   // Load community prayers when entering community screen OR when filter changes
   useEffect(() => {
     if (currentUser && currentScreen === 'community') {
-      loadCommunityPrayers();
+      // Clear current prayers and show loading indicator when filter changes
+      setCommunityPrayers([]);
+      setRefreshingCommunity(true);
+      loadCommunityPrayers(true);
     }
   }, [currentScreen, currentUser, showChurchOnly]);
 

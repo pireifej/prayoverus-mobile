@@ -324,8 +324,15 @@ function App() {
     }
   }, [currentScreen, currentUser]);
 
+  // Reload community prayers when church filter changes
+  useEffect(() => {
+    if (currentUser && currentScreen === 'community') {
+      loadCommunityPrayers();
+    }
+  }, [showChurchOnly]);
+
   const loadCommunityPrayers = async (showRefreshIndicator = false) => {
-    console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id);
+    console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id, 'Church Filter:', showChurchOnly);
     try {
       if (showRefreshIndicator) {
         setRefreshingCommunity(true);
@@ -344,7 +351,8 @@ function App() {
       const endpoint = 'https://shouldcallpaul.replit.app/getCommunityWall';
       const requestPayload = {
         userId: userId.toString(),
-        tz: timezone
+        tz: timezone,
+        filterByChurch: showChurchOnly
       };
       
       // Clean debug output - endpoint and payload ONLY
@@ -2286,26 +2294,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         {(() => {
           let filteredPrayers = communityPrayers;
           
-          // Apply "Hide Prayed" filter
+          // Apply "Hide Prayed" filter (client-side only)
           if (hideAlreadyPrayed) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
           }
           
-          // Apply "Church Only" filter
-          if (showChurchOnly && currentUser?.churchId) {
-            filteredPrayers = filteredPrayers.filter(prayer => 
-              prayer.church_id && prayer.church_id === currentUser.churchId
-            );
-          }
+          // Church filter is now handled by backend via filterByChurch parameter
           
           if (communityPrayers.length === 0) {
+            if (showChurchOnly) {
+              return <Text style={styles.emptyText}>No prayers from your church yet. Turn off the filter to see all prayers.</Text>;
+            }
             return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
           }
           
           if (filteredPrayers.length === 0) {
-            if (showChurchOnly) {
-              return <Text style={styles.emptyText}>No prayers from your church yet. Turn off the filter to see all prayers.</Text>;
-            }
             return <Text style={styles.emptyText}>All caught up! 🙏 Tap '✓ Show All' to review prayed requests.</Text>;
           }
           

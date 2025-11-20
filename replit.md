@@ -2,7 +2,17 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (November 18, 2025)
+## Recent Changes (November 20, 2025)
+- ✅ **Backend Church Filtering**: "My Church Only" button now uses server-side filtering for better performance
+  - Passes `filterByChurch: true/false` parameter to `/getCommunityWall` API
+  - Automatically reloads prayers when filter is toggled
+  - Removes client-side filtering for church data (now handled by backend)
+  - More efficient for large prayer communities
+- ✅ **Fullscreen Prayer Display Enhancement**: Increased bottom padding from 100px to 250px
+  - Ensures long prayers can be fully scrolled and read
+  - Prayer text no longer cuts off behind "Amen" button
+
+## Previous Changes (November 18, 2025)
 - ✅ **Profile Picture Upload**: Complete implementation for users to upload and change their profile pictures
   - Camera button overlay on profile picture in profile screen
   - expo-image-picker integration with photo library access

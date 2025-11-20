@@ -3098,7 +3098,7 @@ const styles = StyleSheet.create({
   },
   fullScreenPrayerTextContent: {
     padding: 30,
-    paddingBottom: 100,
+    paddingBottom: 250,
   },
   fullScreenGeneratedPrayer: {
     fontSize: 18,

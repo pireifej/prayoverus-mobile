@@ -858,7 +858,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
                     styles.churchOptionText,
                     selectedChurch?.church_id === church.church_id && styles.churchOptionTextSelected
                   ]}>
-                    {church.church_name}
+                    {church.church_name}{church.church_addr ? ` (${church.church_addr})` : ''}
                   </Text>
                   {selectedChurch?.church_id === church.church_id && (
                     <Text style={styles.checkmark}>✓</Text>

@@ -1686,7 +1686,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       }}
                       data-testid={`church-option-${church.church_id}`}
                     >
-                      <Text style={styles.churchOptionText}>{church.church_name}</Text>
+                      <Text style={styles.churchOptionText}>{church.church_name}{church.church_addr ? ` (${church.church_addr})` : ''}</Text>
                       {profileForm.churchId === church.church_id && (
                         <Text style={styles.churchSelectedCheck}>✓</Text>
                       )}

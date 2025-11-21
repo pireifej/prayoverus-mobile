@@ -304,6 +304,7 @@ function App() {
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {
     if (currentUser?.id && currentScreen === 'profile') {
+      console.log('📍 Profile screen opened. Current churchName:', currentUser.churchName, 'Current churchId:', currentUser.churchId);
       loadUserPrayers();
       refreshUserProfile(); // Reload user profile data including church
     }
@@ -541,6 +542,8 @@ function App() {
         if (data.error === 0 && data.result && data.result.length > 0) {
           const user = data.result[0];
           
+          console.log('📥 Raw API response from getUser:', JSON.stringify(user, null, 2));
+          
           // Update current user with fresh data including church_name AND church_id
           const updatedUser = {
             ...currentUser,
@@ -552,6 +555,7 @@ function App() {
           };
           
           console.log('✅ User profile refreshed. Church ID:', user.church_id, 'Church Name:', user.church_name);
+          console.log('📤 Updated user object:', JSON.stringify(updatedUser, null, 2));
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
         }

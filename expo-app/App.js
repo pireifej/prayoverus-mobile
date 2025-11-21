@@ -301,14 +301,7 @@ function App() {
     };
   }, []);
 
-  // Load user prayers when user logs in
-  useEffect(() => {
-    if (currentUser) {
-      loadUserPrayers();
-    }
-  }, [currentUser]);
-
-  // Refresh user prayers and profile data when entering personal screen
+  // Load user prayers ONLY when entering personal/profile screen
   useEffect(() => {
     if (currentUser?.id && currentScreen === 'personal') {
       loadUserPrayers();

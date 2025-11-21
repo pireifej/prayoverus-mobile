@@ -773,10 +773,11 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             picture: user.picture,
             active: user.active,
             timestamp: user.timestamp,
+            churchId: user.church_id,
             churchName: user.church_name
           };
           
-          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
+          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name);
           
           // Save email if Remember Me is checked
           if (rememberMe) {

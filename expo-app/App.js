@@ -541,16 +541,17 @@ function App() {
         if (data.error === 0 && data.result && data.result.length > 0) {
           const user = data.result[0];
           
-          // Update current user with fresh data including church_name
+          // Update current user with fresh data including church_name AND church_id
           const updatedUser = {
             ...currentUser,
+            churchId: user.church_id,
             churchName: user.church_name,
             title: user.user_title,
             about: user.user_about,
             picture: user.picture
           };
           
-          console.log('✅ User profile refreshed. Church:', user.church_name);
+          console.log('✅ User profile refreshed. Church ID:', user.church_id, 'Church Name:', user.church_name);
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
         }
@@ -1110,7 +1111,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setProfileForm({
       title: currentUser.title || '',
       about: currentUser.about || '',
-      churchId: null, // We'll need to fetch this from the API
+      churchId: currentUser.churchId || null,
       churchName: currentUser.churchName || ''
     });
     setIsEditingProfile(true);

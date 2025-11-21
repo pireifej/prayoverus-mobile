@@ -2274,7 +2274,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               data-testid="button-filter-church"
             >
               <Text style={[styles.filterButtonText, showChurchOnly && styles.filterButtonTextActive]}>
-                ⛪ Church
+                {showChurchOnly ? '⛪ Church' : '🌍 All'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -2760,6 +2760,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#1e293b',
+    paddingHorizontal: 15,
   },
   emptyText: {
     fontSize: 16,

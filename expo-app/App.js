@@ -301,9 +301,9 @@ function App() {
     };
   }, []);
 
-  // Load user prayers ONLY when entering personal/profile screen
+  // Load user prayers ONLY when entering profile screen
   useEffect(() => {
-    if (currentUser?.id && currentScreen === 'personal') {
+    if (currentUser?.id && currentScreen === 'profile') {
       loadUserPrayers();
       refreshUserProfile(); // Reload user profile data including church
     }

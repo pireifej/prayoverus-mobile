@@ -2262,16 +2262,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
 
         {/* Community Wall Feed */}
-        <View style={styles.feedHeader}>
+        <View style={styles.feedHeaderSection}>
           <Text style={styles.feedTitle}>Community Prayers</Text>
           <View style={styles.filterButtonsContainer}>
             <TouchableOpacity 
-              style={styles.filterButton}
+              style={[styles.filterButton, hideAlreadyPrayed && styles.filterButtonActive]}
               onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
               data-testid="button-filter-prayed"
             >
-              <Text style={styles.filterButtonText}>
-                {hideAlreadyPrayed ? '✓ Show All' : 'Hide Prayed ✓'}
+              <Text style={[styles.filterButtonText, hideAlreadyPrayed && styles.filterButtonTextActive]}>
+                ✓ Prayed
               </Text>
             </TouchableOpacity>
             
@@ -2281,7 +2281,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               data-testid="button-filter-church"
             >
               <Text style={[styles.filterButtonText, showChurchOnly && styles.filterButtonTextActive]}>
-                {showChurchOnly ? '⛪ My Church' : 'My Church Only'}
+                ⛪ Church
               </Text>
             </TouchableOpacity>
           </View>
@@ -2304,7 +2304,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           }
           
           if (filteredPrayers.length === 0) {
-            return <Text style={styles.emptyText}>All caught up! 🙏 Tap '✓ Show All' to review prayed requests.</Text>;
+            return <Text style={styles.emptyText}>All caught up! 🙏 Tap '✓ Prayed' to show all prayers.</Text>;
           }
           
           return filteredPrayers.map((prayer) => (
@@ -3609,12 +3609,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 10,
   },
+  feedHeaderSection: {
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
   feedTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
     marginHorizontal: 0,
-    marginBottom: 0,
+    marginBottom: 8,
   },
   filterButtonsContainer: {
     flexDirection: 'row',

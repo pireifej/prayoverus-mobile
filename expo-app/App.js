@@ -2254,7 +2254,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.postButtonText}>Posted!</Text>
               </View>
             ) : (
-              <Text style={styles.postButtonText}>Post Prayer</Text>
+              <Text style={styles.postButtonText}>Post Request</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -2294,9 +2294,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           // Church filter is now handled by backend via filterByChurch parameter
           
+          // Show loading state during refresh instead of empty message
+          if (refreshingCommunity && communityPrayers.length === 0) {
+            return <Text style={styles.emptyText}>Loading prayers...</Text>;
+          }
+          
           if (communityPrayers.length === 0) {
             if (showChurchOnly) {
-              return <Text style={styles.emptyText}>No prayers from your church yet. Turn off the filter to see all prayers.</Text>;
+              return <Text style={styles.emptyText}>No prayers from your church yet. Tap the church button to see all prayers.</Text>;
             }
             return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
           }

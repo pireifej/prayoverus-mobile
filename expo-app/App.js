@@ -678,15 +678,26 @@ function App() {
         }, 1200);
         
       } catch (error) {
-        // Even if API fails, add to local state for offline functionality
-        setPrayers([prayer, ...prayers]);
-        if (newPrayer.isPublic) {
-          setCommunityPrayers([prayer, ...communityPrayers]);
+        // Check if it's a network error or a server validation error
+        const isNetworkError = error.message.includes('Network request failed') || 
+                              error.message.includes('Failed to fetch') ||
+                              error.message.includes('timeout');
+        
+        if (isNetworkError) {
+          // Network error - save locally for offline functionality
+          setPrayers([prayer, ...prayers]);
+          if (newPrayer.isPublic) {
+            setCommunityPrayers([prayer, ...communityPrayers]);
+          }
+          setNewPrayer({ title: '', content: '', isPublic: true });
+          setPrayerImage(null);
+          setShowTitleInput(false);
+          Alert.alert('Offline Mode', 'Prayer saved locally. It will sync when you have internet connection.');
+        } else {
+          // Server error or validation error - show the actual error message
+          Alert.alert('Error', error.message || 'Unable to create prayer request. Please try again.');
+          // Don't clear the form so user can retry
         }
-        setNewPrayer({ title: '', content: '', isPublic: true });
-        setPrayerImage(null); // Clear selected image
-        setShowTitleInput(false);
-        Alert.alert('Success', 'Prayer added locally (will sync when connection is restored)');
       } finally {
         // Reset loading state
         setIsPosting(false);
@@ -778,14 +789,28 @@ function App() {
           setHasShownSuccessForCurrentKey(false);
           loadCommunityPrayers(); // Refresh community prayers
         } else {
-
-          console.log('Warning: Prayer saved locally but may not be synced to server');
+          // API returned an error response
+          const errorMessage = data.message || data.error_message || 'Unable to save prayer request. Please try again.';
+          console.error('API Error:', errorMessage);
+          throw new Error(errorMessage);
         }
       } else {
-        console.log('Warning: Prayer saved locally but may not be synced to server');
+        // HTTP error (4xx, 5xx)
+        let errorMessage = 'Server error. Please try again later.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error_message || errorMessage;
+        } catch (e) {
+          // If response body is not JSON, use status text
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+        console.error('HTTP Error:', response.status, errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.log('Warning: Prayer saved locally but may not be synced to server');
+      // Re-throw the error to be handled by addPrayer
+      console.error('savePrayerToAPI error:', error.message);
+      throw error;
     }
   };
 

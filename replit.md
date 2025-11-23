@@ -2,7 +2,15 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (November 20, 2025)
+## Recent Changes (November 23, 2025)
+- ✅ **Prayer Request Error Handling**: Comprehensive error handling when creating prayer requests
+  - Shows actual error messages from the API to users (validation errors, server errors)
+  - Distinguishes between network errors (offline) and server errors
+  - Network errors: Saves prayer locally and shows "Offline Mode" message
+  - Server errors: Shows error message and keeps form filled so user can retry
+  - No more silent failures or misleading "saved locally" messages for validation errors
+
+## Previous Changes (November 20, 2025)
 - ✅ **Backend Church Filtering**: "My Church Only" button now uses server-side filtering for better performance
   - Passes `filterByChurch: true/false` parameter to `/getCommunityWall` API
   - Automatically reloads prayers when filter is toggled

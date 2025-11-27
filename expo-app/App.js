@@ -458,6 +458,9 @@ function App() {
     isLoading: false
   });
   
+  // Deep link pending prayer ID (to open after prayers load)
+  const [pendingDeepLinkPrayerId, setPendingDeepLinkPrayerId] = useState(null);
+  
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
   const confettiCount = 40; // Way more confetti!
@@ -511,24 +514,14 @@ function App() {
         const prayerId = parseInt(prayerMatch[1], 10);
         console.log('📱 Deep link detected: Prayer ID', prayerId);
         
-        // If user is logged in, navigate to home and scroll to prayer
+        // If user is logged in, store the prayer ID and navigate to home
         if (currentUser) {
+          setPendingDeepLinkPrayerId(prayerId);
           setCurrentScreen('home');
-          // Store the prayer ID to scroll to after prayers load
-          setTimeout(() => {
-            // Find the prayer in the community prayers and open it
-            const prayer = communityPrayers.find(p => p.id === prayerId);
-            if (prayer) {
-              console.log('📱 Found prayer, opening modal:', prayer.title);
-              generatePrayer(prayer);
-            } else {
-              console.log('📱 Prayer not found in current feed, ID:', prayerId);
-              Alert.alert('Prayer Not Found', 'This prayer request may have been deleted or is no longer available.');
-            }
-          }, 1500); // Wait for prayers to load
         } else {
           // Save the prayer ID to navigate after login
           console.log('📱 User not logged in, will navigate after login');
+          setPendingDeepLinkPrayerId(prayerId);
           Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
         }
         return;
@@ -548,7 +541,23 @@ function App() {
     return () => {
       subscription?.remove();
     };
-  }, [currentUser, communityPrayers]);
+  }, [currentUser]);
+  
+  // Handle pending deep link prayer after community prayers are loaded
+  useEffect(() => {
+    if (pendingDeepLinkPrayerId && communityPrayers.length > 0) {
+      const prayer = communityPrayers.find(p => p.id === pendingDeepLinkPrayerId);
+      if (prayer) {
+        console.log('📱 Found deep link prayer, opening modal:', prayer.title);
+        generatePrayer(prayer);
+        setPendingDeepLinkPrayerId(null);
+      } else {
+        console.log('📱 Deep link prayer not found in current feed, ID:', pendingDeepLinkPrayerId);
+        Alert.alert('Prayer Not Found', 'This prayer request may have been deleted or is no longer available.');
+        setPendingDeepLinkPrayerId(null);
+      }
+    }
+  }, [communityPrayers, pendingDeepLinkPrayerId]);
 
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {

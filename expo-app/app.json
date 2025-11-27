@@ -48,6 +48,18 @@
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "prayoverus.com",
+              "pathPrefix": "/prayer"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },

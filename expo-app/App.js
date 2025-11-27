@@ -491,16 +491,47 @@ function App() {
     checkStoredAuth();
   }, []);
 
-  // Deep linking support for password reset
+  // Deep linking support for password reset and prayer sharing
   useEffect(() => {
     const handleDeepLink = ({ url }) => {
       const route = url.replace(/.*?:\/\//g, '');
-      const resetMatch = route.match(/reset-password\?token=([^&]+)/);
       
+      // Check for password reset link
+      const resetMatch = route.match(/reset-password\?token=([^&]+)/);
       if (resetMatch && resetMatch[1]) {
         console.log('📱 Deep link detected: Password reset with token');
         setResetToken(resetMatch[1]);
         setAuthScreen('reset');
+        return;
+      }
+      
+      // Check for prayer deep link (e.g., prayoverus.com/prayer/123)
+      const prayerMatch = route.match(/prayer\/(\d+)/);
+      if (prayerMatch && prayerMatch[1]) {
+        const prayerId = parseInt(prayerMatch[1], 10);
+        console.log('📱 Deep link detected: Prayer ID', prayerId);
+        
+        // If user is logged in, navigate to home and scroll to prayer
+        if (currentUser) {
+          setCurrentScreen('home');
+          // Store the prayer ID to scroll to after prayers load
+          setTimeout(() => {
+            // Find the prayer in the community prayers and open it
+            const prayer = communityPrayers.find(p => p.id === prayerId);
+            if (prayer) {
+              console.log('📱 Found prayer, opening modal:', prayer.title);
+              generatePrayer(prayer);
+            } else {
+              console.log('📱 Prayer not found in current feed, ID:', prayerId);
+              Alert.alert('Prayer Not Found', 'This prayer request may have been deleted or is no longer available.');
+            }
+          }, 1500); // Wait for prayers to load
+        } else {
+          // Save the prayer ID to navigate after login
+          console.log('📱 User not logged in, will navigate after login');
+          Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
+        }
+        return;
       }
     };
 
@@ -517,7 +548,7 @@ function App() {
     return () => {
       subscription?.remove();
     };
-  }, []);
+  }, [currentUser, communityPrayers]);
 
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {

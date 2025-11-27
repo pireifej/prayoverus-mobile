@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -194,6 +194,215 @@ function AnimatedButton({ children, onPress, style, disabled, ...props }) {
     </TouchableOpacity>
   );
 }
+
+// Prayer Options Menu Component - Three dots menu for edit/delete/share
+function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, isProfileSection = false }) {
+  const [menuVisible, setMenuVisible] = useState(false);
+  
+  // Check if current user owns this prayer
+  const isOwner = prayer.user_id && currentUserId && 
+    (prayer.user_id.toString() === currentUserId.toString());
+  
+  const handleShare = async () => {
+    setMenuVisible(false);
+    const shareUrl = `https://prayoverus.com/prayer/${prayer.id}`;
+    
+    try {
+      await Share.share({
+        message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
+        url: shareUrl, // iOS only
+        title: `Prayer Request: ${prayer.title}`,
+      });
+    } catch (error) {
+      // Fallback: show the link in an alert so user can copy it
+      Alert.alert(
+        'Share Prayer',
+        `Copy this link to share:\n\n${shareUrl}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+  
+  const handleEdit = () => {
+    setMenuVisible(false);
+    if (onEdit) onEdit(prayer);
+  };
+  
+  const handleDelete = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Delete Prayer Request',
+      'Are you sure you want to delete this prayer request? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            if (onDelete) onDelete(prayer);
+          }
+        }
+      ]
+    );
+  };
+  
+  return (
+    <View style={optionsMenuStyles.container}>
+      <TouchableOpacity 
+        style={optionsMenuStyles.menuButton}
+        onPress={() => setMenuVisible(true)}
+        data-testid={`button-options-${prayer.id}`}
+      >
+        <Text style={optionsMenuStyles.menuDots}>⋮</Text>
+      </TouchableOpacity>
+      
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity 
+          style={optionsMenuStyles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={optionsMenuStyles.menuContainer}>
+            <View style={optionsMenuStyles.menuHeader}>
+              <Text style={optionsMenuStyles.menuTitle}>Options</Text>
+            </View>
+            
+            {/* Share - Always visible */}
+            <TouchableOpacity 
+              style={optionsMenuStyles.menuItem}
+              onPress={handleShare}
+              data-testid={`button-share-${prayer.id}`}
+            >
+              <Text style={optionsMenuStyles.menuIcon}>🔗</Text>
+              <Text style={optionsMenuStyles.menuItemText}>Share Prayer</Text>
+            </TouchableOpacity>
+            
+            {/* Edit - Owner only */}
+            {isOwner && (
+              <TouchableOpacity 
+                style={optionsMenuStyles.menuItem}
+                onPress={handleEdit}
+                data-testid={`button-edit-${prayer.id}`}
+              >
+                <Text style={optionsMenuStyles.menuIcon}>✏️</Text>
+                <Text style={optionsMenuStyles.menuItemText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Delete - Owner only */}
+            {isOwner && (
+              <TouchableOpacity 
+                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
+                onPress={handleDelete}
+                data-testid={`button-delete-${prayer.id}`}
+              >
+                <Text style={optionsMenuStyles.menuIcon}>🗑️</Text>
+                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Delete</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Cancel */}
+            <TouchableOpacity 
+              style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemCancel]}
+              onPress={() => setMenuVisible(false)}
+            >
+              <Text style={optionsMenuStyles.menuItemTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+// Styles for the options menu
+const optionsMenuStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuDots: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '80%',
+    maxWidth: 300,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  menuItemDanger: {
+    borderBottomWidth: 0,
+  },
+  menuItemTextDanger: {
+    color: '#dc3545',
+  },
+  menuItemCancel: {
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    borderBottomWidth: 0,
+  },
+  menuItemTextCancel: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    width: '100%',
+  },
+});
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);

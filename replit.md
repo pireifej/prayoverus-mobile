@@ -2,7 +2,21 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
-## Recent Changes (November 23, 2025)
+## Recent Changes (November 27, 2025)
+- ✅ **Prayer Options Menu**: Three-dot menu (⋮) on prayer cards with Edit, Delete, Share options
+  - Edit: Opens modal with pre-filled title/content form, saves via updateRequest API
+  - Delete: Confirmation dialog, removes prayer via deleteRequest API  
+  - Share: Copies shareable link (prayoverus.com/prayer/{id}) to clipboard
+  - Ownership detection: Edit/Delete only shown for user's own prayers
+  - Works on both Community Wall and Profile screen prayer cards
+- ✅ **Prayer Deep Linking**: App opens shared prayer links directly
+  - Custom scheme: prayoverus://prayer/{id}
+  - Universal links: https://prayoverus.com/prayer/{id}
+  - Waits for prayers to load before opening modal (race condition fix)
+  - Shows "Prayer Not Found" if prayer was deleted
+  - Prompts sign-in if user not authenticated
+
+## Previous Changes (November 23, 2025)
 - ✅ **Prayer Request Error Handling**: Comprehensive error handling when creating prayer requests
   - Shows actual error messages from the API to users (validation errors, server errors)
   - Distinguishes between network errors (offline) and server errors

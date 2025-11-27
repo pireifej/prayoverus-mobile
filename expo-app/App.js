@@ -2084,6 +2084,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ) : (
               prayers.map((prayer) => (
                 <View key={prayer.id} style={styles.prayerCard}>
+                  {/* Options Menu - User owns all prayers in profile */}
+                  <PrayerOptionsMenu 
+                    prayer={{ ...prayer, user_id: currentUser?.id }}
+                    currentUserId={currentUser?.id}
+                    onEdit={handleEditPrayer}
+                    onDelete={handleDeletePrayer}
+                    isProfileSection={true}
+                  />
+                  
                   <Text style={styles.prayerTitle}>{prayer.title}</Text>
                   <Text style={styles.prayerContent}>{prayer.content}</Text>
                   <Text style={styles.prayerTime}>
@@ -2940,6 +2949,70 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             )}
           </Animated.View>
         </Animated.View>
+      </Modal>
+
+      {/* Edit Prayer Modal */}
+      <Modal
+        visible={editPrayerModal.visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+      >
+        <View style={styles.editModalOverlay}>
+          <View style={styles.editModalContent}>
+            <View style={styles.editModalHeader}>
+              <Text style={styles.editModalTitle}>Edit Prayer Request</Text>
+              <TouchableOpacity 
+                onPress={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+                style={styles.editModalCloseButton}
+              >
+                <Text style={styles.editModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.editModalBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.inputLabel}>Title</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Prayer title"
+                value={editPrayerModal.title}
+                onChangeText={(text) => setEditPrayerModal(prev => ({ ...prev, title: text }))}
+                data-testid="input-edit-title"
+              />
+              
+              <Text style={styles.inputLabel}>Prayer Request</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Your prayer request..."
+                multiline
+                numberOfLines={5}
+                value={editPrayerModal.content}
+                onChangeText={(text) => setEditPrayerModal(prev => ({ ...prev, content: text }))}
+                data-testid="input-edit-content"
+              />
+            </ScrollView>
+            
+            <View style={styles.editModalFooter}>
+              <TouchableOpacity 
+                style={styles.editModalCancelButton}
+                onPress={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+              >
+                <Text style={styles.editModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.editModalSaveButton, editPrayerModal.isLoading && styles.buttonDisabled]}
+                onPress={saveEditedPrayer}
+                disabled={editPrayerModal.isLoading}
+                data-testid="button-save-edit"
+              >
+                <Text style={styles.editModalSaveText}>
+                  {editPrayerModal.isLoading ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -4023,6 +4096,84 @@ const styles = StyleSheet.create({
   },
   personalRequestsSection: {
     marginTop: 20,
+  },
+  // Edit Prayer Modal Styles
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  editModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  editModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  editModalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editModalCloseText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  editModalBody: {
+    padding: 16,
+  },
+  editModalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    gap: 12,
+  },
+  editModalCancelButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  editModalCancelText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  editModalSaveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#6366f1',
+  },
+  editModalSaveText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
   },
   // Rosary Styles
   rosaryButton: {

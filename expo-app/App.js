@@ -449,6 +449,15 @@ function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
   
+  // Edit Prayer Modal state
+  const [editPrayerModal, setEditPrayerModal] = useState({
+    visible: false,
+    prayer: null,
+    title: '',
+    content: '',
+    isLoading: false
+  });
+  
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
   const confettiCount = 40; // Way more confetti!
@@ -1319,6 +1328,127 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setTimeout(() => {
       closePrayerModal();
     }, 2000); // 2 seconds to enjoy the celebration!
+  };
+
+  // Open Edit Prayer Modal
+  const handleEditPrayer = (prayer) => {
+    setEditPrayerModal({
+      visible: true,
+      prayer: prayer,
+      title: prayer.title || '',
+      content: prayer.content || '',
+      isLoading: false
+    });
+  };
+
+  // Save edited prayer
+  const saveEditedPrayer = async () => {
+    if (!editPrayerModal.title.trim() || !editPrayerModal.content.trim()) {
+      Alert.alert('Error', 'Please fill in both title and prayer content');
+      return;
+    }
+
+    setEditPrayerModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/updateRequest';
+      const requestPayload = {
+        requestId: editPrayerModal.prayer.id,
+        userId: currentUser?.id,
+        requestTitle: editPrayerModal.title.trim(),
+        requestText: editPrayerModal.content.trim()
+      };
+
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0) {
+          // Update local state
+          setCommunityPrayers(prevPrayers =>
+            prevPrayers.map(p =>
+              p.id === editPrayerModal.prayer.id
+                ? { ...p, title: editPrayerModal.title.trim(), content: editPrayerModal.content.trim() }
+                : p
+            )
+          );
+          setPrayers(prevPrayers =>
+            prevPrayers.map(p =>
+              p.id === editPrayerModal.prayer.id
+                ? { ...p, title: editPrayerModal.title.trim(), content: editPrayerModal.content.trim() }
+                : p
+            )
+          );
+          
+          setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
+          Alert.alert('Success', 'Prayer request updated successfully');
+        } else {
+          throw new Error(data.result || data.message || 'Failed to update prayer');
+        }
+      } else {
+        throw new Error('Server error');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to update prayer request. Please try again.');
+    } finally {
+      setEditPrayerModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // Delete prayer
+  const handleDeletePrayer = async (prayer) => {
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/deleteRequest';
+      const requestPayload = {
+        requestId: prayer.id,
+        userId: currentUser?.id
+      };
+
+      console.log('📱 MOBILE APP API CALL:');
+      console.log('POST ' + endpoint);
+      console.log(JSON.stringify(requestPayload, null, 2));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.error === 0) {
+          // Remove from local state
+          setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
+          setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
+          
+          Alert.alert('Success', 'Prayer request deleted successfully');
+        } else {
+          throw new Error(data.result || data.message || 'Failed to delete prayer');
+        }
+      } else {
+        throw new Error('Server error');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to delete prayer request. Please try again.');
+    }
   };
 
   // Fetch all churches for the dropdown
@@ -2572,6 +2702,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               )}
 
               <View style={styles.communityPrayerCard}>
+                {/* Options Menu - Three dots for share/edit/delete */}
+                <PrayerOptionsMenu 
+                  prayer={prayer}
+                  currentUserId={currentUser?.id}
+                  onEdit={handleEditPrayer}
+                  onDelete={handleDeletePrayer}
+                />
+                
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
                 <Text style={styles.prayerContent}>{prayer.content}</Text>
                 

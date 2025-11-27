@@ -334,10 +334,6 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [selectedChurch, setSelectedChurch] = useState(null);
   const [emailError, setEmailError] = useState('');
   
-  // Password reveal logic - show last typed character
-  const [displayPassword, setDisplayPassword] = useState('');
-  const [lastRevealedIndex, setLastRevealedIndex] = useState(-1);
-  const revealTimerRef = useRef(null);
 
   // Facebook OAuth configuration
   const discovery = {
@@ -427,39 +423,6 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
     }
   };
   
-  useEffect(() => {
-    if (password.length === 0) {
-      setDisplayPassword('');
-      setLastRevealedIndex(-1);
-      return;
-    }
-    
-    // Show the last character temporarily
-    const lastIndex = password.length - 1;
-    setLastRevealedIndex(lastIndex);
-    
-    // Build display string: dots for all chars except last one
-    const dots = '•'.repeat(password.length - 1);
-    const lastChar = password[lastIndex];
-    setDisplayPassword(dots + lastChar);
-    
-    // Clear any existing timer
-    if (revealTimerRef.current) {
-      clearTimeout(revealTimerRef.current);
-    }
-    
-    // After 1 second, hide the last character too
-    revealTimerRef.current = setTimeout(() => {
-      setDisplayPassword('•'.repeat(password.length));
-      setLastRevealedIndex(-1);
-    }, 1000);
-    
-    return () => {
-      if (revealTimerRef.current) {
-        clearTimeout(revealTimerRef.current);
-      }
-    };
-  }, [password]);
 
   // Email validation function
   const validateEmail = (email) => {
@@ -952,27 +915,15 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        value={displayPassword}
-        onChangeText={(text) => {
-          const lengthDiff = text.length - displayPassword.length;
-          
-          // Autofill detection: if more than 1 character added at once
-          if (lengthDiff > 1) {
-            // Autofill pasted entire password - use it directly
-            setPassword(text);
-            setDisplayPassword('•'.repeat(text.length));
-          } else if (lengthDiff === 1) {
-            // User typed a single character
-            const newChar = text[text.length - 1];
-            setPassword(password + newChar);
-          } else if (lengthDiff < 0) {
-            // User deleted character(s)
-            setPassword(password.slice(0, text.length));
-          }
-        }}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={true}
         autoCapitalize="none"
         autoCorrect={false}
+        autoComplete="off"
         textContentType="password"
+        keyboardType="default"
+        importantForAutofill="no"
         data-testid="input-password"
       />
       

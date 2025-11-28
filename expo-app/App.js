@@ -898,11 +898,13 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📥 Raw API response from getUser:', JSON.stringify(data, null, 2));
         
-        if (data.error === 0 && data.result && data.result.length > 0) {
-          const user = data.result[0];
-          
-          console.log('📥 Raw API response from getUser:', JSON.stringify(user, null, 2));
+        // API returns direct array: [{user_id, church_id, church_name, ...}]
+        const userArray = Array.isArray(data) ? data : (data.result || []);
+        
+        if (userArray.length > 0) {
+          const user = userArray[0];
           
           // Update current user with fresh data including church_name AND church_id
           const updatedUser = {
@@ -911,11 +913,10 @@ function App() {
             churchName: user.church_name,
             title: user.user_title,
             about: user.user_about,
-            picture: user.picture
+            picture: user.picture || user.profile_picture_url
           };
           
           console.log('✅ User profile refreshed. Church ID:', user.church_id, 'Church Name:', user.church_name);
-          console.log('📤 Updated user object:', JSON.stringify(updatedUser, null, 2));
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
         }
@@ -1622,6 +1623,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // Enter edit mode and populate form with current values
   const enterEditMode = async () => {
+    // Fetch churches FIRST so dropdown is populated
+    await fetchChurches();
+    
+    // THEN set the form with current values
     setProfileForm({
       title: currentUser.title || '',
       about: currentUser.about || '',
@@ -1629,7 +1634,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       churchName: currentUser.churchName || ''
     });
     setIsEditingProfile(true);
-    await fetchChurches();
   };
 
   // Cancel editing
@@ -1666,6 +1670,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ...currentUser,
             title: data.user.user_title,
             about: data.user.user_about,
+            churchId: profileForm.churchId, // Save the church ID
             churchName: profileForm.churchName // Keep the selected church name from form
           };
           

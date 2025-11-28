@@ -198,6 +198,7 @@ function AnimatedButton({ children, onPress, style, disabled, ...props }) {
 // Prayer Options Menu Component - Three dots menu for edit/delete/share
 function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, isProfileSection = false }) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   
   // Check if current user owns this prayer
   const isOwner = prayer.user_id && currentUserId && 
@@ -229,20 +230,12 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
   
   const handleDelete = () => {
     setMenuVisible(false);
-    Alert.alert(
-      'Delete Prayer Request',
-      'Are you sure you want to delete this prayer request? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            if (onDelete) onDelete(prayer);
-          }
-        }
-      ]
-    );
+    setDeleteConfirmVisible(true);
+  };
+  
+  const confirmDelete = () => {
+    setDeleteConfirmVisible(false);
+    if (onDelete) onDelete(prayer);
   };
   
   return (
@@ -314,6 +307,38 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+      
+      {/* Custom Delete Confirmation Modal */}
+      <Modal
+        visible={deleteConfirmVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDeleteConfirmVisible(false)}
+      >
+        <View style={optionsMenuStyles.modalOverlay}>
+          <View style={optionsMenuStyles.deleteConfirmContainer}>
+            <Text style={optionsMenuStyles.deleteConfirmIcon}>🗑️</Text>
+            <Text style={optionsMenuStyles.deleteConfirmTitle}>Delete Prayer Request</Text>
+            <Text style={optionsMenuStyles.deleteConfirmMessage}>
+              Are you sure you want to delete this prayer request? This cannot be undone.
+            </Text>
+            <View style={optionsMenuStyles.deleteConfirmButtons}>
+              <TouchableOpacity 
+                style={optionsMenuStyles.cancelButton}
+                onPress={() => setDeleteConfirmVisible(false)}
+              >
+                <Text style={optionsMenuStyles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={optionsMenuStyles.deleteButton}
+                onPress={confirmDelete}
+              >
+                <Text style={optionsMenuStyles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -400,6 +425,73 @@ const optionsMenuStyles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     width: '100%',
+  },
+  // Delete confirmation modal styles
+  deleteConfirmContainer: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    width: '85%',
+    maxWidth: 340,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  deleteConfirmIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  deleteConfirmTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  deleteConfirmMessage: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  deleteConfirmButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  deleteButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#dc3545',
+    borderWidth: 2,
+    borderColor: '#dc3545',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

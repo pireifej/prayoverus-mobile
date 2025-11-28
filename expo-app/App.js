@@ -1002,6 +1002,10 @@ function App() {
         formData.append('userId', currentUser?.id.toString());
         formData.append('sendEmail', 'true');
         formData.append('idempotencyKey', idempotencyKey);
+        // Add myChurchOnly flag when checkbox is checked (isPublic = false)
+        if (!prayer.isPublic) {
+          formData.append('myChurchOnly', 'true');
+        }
         
         // Add image to FormData
         const uriParts = prayerImage.split('.');
@@ -1022,7 +1026,9 @@ function App() {
           tz: timezone,
           userId: currentUser?.id,
           sendEmail: "true",
-          idempotencyKey: idempotencyKey
+          idempotencyKey: idempotencyKey,
+          // Add myChurchOnly flag when checkbox is checked (isPublic = false)
+          ...((!prayer.isPublic) && { myChurchOnly: true })
         };
         
         headers['Content-Type'] = 'application/json';

@@ -2713,12 +2713,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.checkbox, newPrayer.isPublic && styles.checkboxChecked]}
+              style={[styles.checkbox, !newPrayer.isPublic && styles.checkboxChecked]}
               onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
               disabled={isPosting}
             >
               <Text style={[styles.checkboxText, isPosting && { opacity: 0.5 }]}>
-                {newPrayer.isPublic ? '☑' : '☐'} Share publicly
+                {!newPrayer.isPublic ? '☑' : '☐'} My Church Only
               </Text>
             </TouchableOpacity>
           </View>

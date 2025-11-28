@@ -1050,8 +1050,12 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📥 API Response:', JSON.stringify(data, null, 2));
         
-        if (data.error === 0) {
+        // Check for success: error === 0 OR error === "0" OR no error field with result
+        const isSuccess = data.error === 0 || data.error === "0" || (data.result && !data.error);
+        
+        if (isSuccess) {
           console.log('Prayer request saved successfully:', data.result);
           // Show success message only once per idempotency key
           if (!hasShownSuccessForCurrentKey) {

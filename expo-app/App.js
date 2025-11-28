@@ -2727,8 +2727,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
               disabled={isPosting}
             >
-              <Text style={[styles.checkboxText, isPosting && { opacity: 0.5 }]}>
-                {!newPrayer.isPublic ? '☑' : '☐'} My Church Only
+              <View style={[styles.checkboxBox, !newPrayer.isPublic && styles.checkboxBoxChecked]}>
+                {!newPrayer.isPublic && <Text style={styles.checkboxMark}>✓</Text>}
+              </View>
+              <Text style={[styles.checkboxText, !newPrayer.isPublic && styles.checkboxTextChecked, isPosting && { opacity: 0.5 }]}>
+                🏛️ My Church Only
               </Text>
             </TouchableOpacity>
           </View>
@@ -3310,13 +3313,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   checkboxChecked: {
-    color: '#6366f1',
+    backgroundColor: '#ede9fe',
+    borderColor: '#8b5cf6',
+  },
+  checkboxBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#ffffff',
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxBoxChecked: {
+    backgroundColor: '#8b5cf6',
+    borderColor: '#8b5cf6',
+  },
+  checkboxMark: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   checkboxText: {
-    fontSize: 16,
-    color: '#64748b',
+    fontSize: 17,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  checkboxTextChecked: {
+    color: '#7c3aed',
+    fontWeight: '600',
   },
   addButton: {
     backgroundColor: '#6366f1',

@@ -1450,13 +1450,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Delete prayer
+  // Delete prayer - calls deleteRequestById endpoint
   const handleDeletePrayer = async (prayer) => {
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/deleteRequest';
+      const endpoint = 'https://shouldcallpaul.replit.app/deleteRequestById';
       const requestPayload = {
-        requestId: prayer.id,
-        userId: currentUser?.id
+        request_id: prayer.id
       };
 
       console.log('📱 MOBILE APP API CALL:');
@@ -1476,14 +1475,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (response.ok) {
         const data = await response.json();
         
+        // Display the message from the response
+        const message = data.message || data.result || (data.error === 0 ? 'Prayer request deleted' : 'Failed to delete');
+        
         if (data.error === 0) {
           // Remove from local state
           setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
           setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
           
-          Alert.alert('Success', 'Prayer request deleted successfully');
+          Alert.alert('Success', message);
         } else {
-          throw new Error(data.result || data.message || 'Failed to delete prayer');
+          Alert.alert('Error', message);
         }
       } else {
         throw new Error('Server error');

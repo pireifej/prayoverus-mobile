@@ -5,7 +5,7 @@ PrayOverUs is a full-stack prayer community platform available as both a web app
 ## Recent Changes (November 27, 2025)
 - ✅ **Prayer Options Menu**: Three-dot menu (⋮) on prayer cards with Edit, Delete, Share options
   - Edit: Opens modal with pre-filled request text, saves via editRequest API (requestId, userId, requestText)
-  - Delete: Confirmation dialog, removes prayer via deleteRequest API  
+  - Delete: Confirmation dialog ("Are you sure?"), calls deleteRequestById API with request_id, displays response message  
   - Share: Copies shareable link (prayoverus.com/index.html?requestId={id}) to clipboard
   - Ownership detection: Edit/Delete only shown for user's own prayers
   - Works on both Community Wall and Profile screen prayer cards

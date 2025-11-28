@@ -530,6 +530,8 @@ function App() {
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
     title: '',
     about: '',
     churchId: null,
@@ -1628,6 +1630,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     
     // THEN set the form with current values
     setProfileForm({
+      firstName: currentUser.firstName || '',
+      lastName: currentUser.lastName || '',
       title: currentUser.title || '',
       about: currentUser.about || '',
       churchId: currentUser.churchId || null,
@@ -1639,7 +1643,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Cancel editing
   const cancelEditProfile = () => {
     setIsEditingProfile(false);
-    setProfileForm({ title: '', about: '', churchId: null, churchName: '' });
+    setProfileForm({ firstName: '', lastName: '', title: '', about: '', churchId: null, churchName: '' });
   };
 
   // Save profile updates
@@ -1656,6 +1660,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         },
         body: JSON.stringify({
           userId: currentUser.id,
+          real_name: profileForm.firstName,
+          last_name: profileForm.lastName,
           user_title: profileForm.title,
           user_about: profileForm.about,
           church_id: profileForm.churchId
@@ -1668,10 +1674,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           // Update current user with values from API response
           const updatedUser = {
             ...currentUser,
+            firstName: profileForm.firstName,
+            lastName: profileForm.lastName,
             title: data.user.user_title,
             about: data.user.user_about,
-            churchId: profileForm.churchId, // Save the church ID
-            churchName: profileForm.churchName // Keep the selected church name from form
+            churchId: profileForm.churchId,
+            churchName: profileForm.churchName
           };
           
           setCurrentUser(updatedUser);
@@ -2101,12 +2109,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>First Name</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.firstName || 'Not set'}</Text>
+              {isEditingProfile ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={profileForm.firstName}
+                  onChangeText={(text) => setProfileForm({...profileForm, firstName: text})}
+                  placeholder="Enter your first name"
+                  data-testid="input-edit-firstname"
+                />
+              ) : (
+                <Text style={styles.profileInfoValue}>{currentUser.firstName || 'Not set'}</Text>
+              )}
             </View>
             
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>Last Name</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.lastName || 'Not set'}</Text>
+              {isEditingProfile ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={profileForm.lastName}
+                  onChangeText={(text) => setProfileForm({...profileForm, lastName: text})}
+                  placeholder="Enter your last name"
+                  data-testid="input-edit-lastname"
+                />
+              ) : (
+                <Text style={styles.profileInfoValue}>{currentUser.lastName || 'Not set'}</Text>
+              )}
             </View>
             
             <View style={styles.profileInfoSection}>

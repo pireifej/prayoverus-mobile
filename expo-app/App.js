@@ -207,47 +207,17 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
     setMenuVisible(false);
     const shareUrl = `https://prayoverus.com/index.html?requestId=${prayer.id}`;
     
-    // First, copy the link to clipboard
+    // Directly open native share sheet
     try {
-      Clipboard.setString(shareUrl);
-      
-      // Show a brief notification that link was copied
-      Alert.alert(
-        'Link Copied!',
-        'The prayer link has been copied to your clipboard. You can also share it directly:',
-        [
-          { 
-            text: 'Share Now', 
-            onPress: async () => {
-              try {
-                await Share.share({
-                  message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
-                  url: shareUrl, // iOS only
-                  title: `Prayer Request: ${prayer.title}`,
-                });
-              } catch (shareError) {
-                // User cancelled or share failed, but link is already copied
-                console.log('Share cancelled or failed:', shareError);
-              }
-            }
-          },
-          { text: 'Done', style: 'cancel' }
-        ]
-      );
+      await Share.share({
+        message: `🙏 Please pray for this intention:\n\n${shareUrl}`,
+        url: shareUrl, // iOS uses this URL directly
+        title: 'Share Prayer Request',
+      });
     } catch (error) {
-      // Fallback: just try to share directly
-      try {
-        await Share.share({
-          message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
-          url: shareUrl,
-          title: `Prayer Request: ${prayer.title}`,
-        });
-      } catch (shareError) {
-        Alert.alert(
-          'Share Prayer',
-          `Copy this link to share:\n\n${shareUrl}`,
-          [{ text: 'OK' }]
-        );
+      // User cancelled share - this is normal, no need to show error
+      if (error.message !== 'User did not share') {
+        console.log('Share error:', error);
       }
     }
   };

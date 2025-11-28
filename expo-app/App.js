@@ -1052,8 +1052,13 @@ function App() {
         const data = await response.json();
         console.log('📥 API Response:', JSON.stringify(data, null, 2));
         
-        // Check for success: error === 0 OR error === "0" OR no error field with result
-        const isSuccess = data.error === 0 || data.error === "0" || (data.result && !data.error);
+        // Check for success: 
+        // - error === 0 OR error === "0"
+        // - result contains success message
+        // - no error field with result
+        const resultStr = typeof data.result === 'string' ? data.result.toLowerCase() : '';
+        const hasSuccessMessage = resultStr.includes('success') || resultStr.includes('created');
+        const isSuccess = data.error === 0 || data.error === "0" || hasSuccessMessage || (data.result && !data.error);
         
         if (isSuccess) {
           console.log('Prayer request saved successfully:', data.result);

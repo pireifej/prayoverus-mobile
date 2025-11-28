@@ -1078,17 +1078,40 @@ function App() {
           throw new Error(errorMessage);
         }
       } else {
-        // HTTP error (4xx, 5xx)
-        let errorMessage = 'Server error. Please try again later.';
+        // HTTP error (4xx, 5xx) - but check if body contains success message anyway
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error_message || errorMessage;
+          console.log('📥 API Error Response:', JSON.stringify(errorData, null, 2));
+          
+          // Check if the "error" response actually contains a success message
+          const resultStr = typeof errorData.result === 'string' ? errorData.result.toLowerCase() : '';
+          const hasSuccessMessage = resultStr.includes('success') || resultStr.includes('created');
+          
+          if (hasSuccessMessage) {
+            // It's actually a success! API just returned wrong HTTP status
+            console.log('Prayer request saved successfully (despite HTTP error):', errorData.result);
+            if (!hasShownSuccessForCurrentKey) {
+              Alert.alert('Success', 'Prayer request created and saved to your account!');
+              setHasShownSuccessForCurrentKey(true);
+            }
+            setCurrentIdempotencyKey(null);
+            setHasShownSuccessForCurrentKey(false);
+            loadCommunityPrayers();
+            return; // Don't throw error
+          }
+          
+          const errorMessage = errorData.message || errorData.error_message || 'Server error. Please try again later.';
+          console.error('HTTP Error:', response.status, errorMessage);
+          throw new Error(errorMessage);
         } catch (e) {
+          if (e.message && !e.message.includes('Server error')) {
+            throw e; // Re-throw if it's our custom error
+          }
           // If response body is not JSON, use status text
-          errorMessage = `Server error (${response.status}). Please try again.`;
+          const errorMessage = `Server error (${response.status}). Please try again.`;
+          console.error('HTTP Error:', response.status, errorMessage);
+          throw new Error(errorMessage);
         }
-        console.error('HTTP Error:', response.status, errorMessage);
-        throw new Error(errorMessage);
       }
     } catch (error) {
       // Re-throw the error to be handled by addPrayer

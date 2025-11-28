@@ -30,6 +30,7 @@
         "backgroundColor": "#6366f1"
       },
       "package": "com.pireifej.prayoverus",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

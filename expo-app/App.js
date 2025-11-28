@@ -2198,6 +2198,62 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           )}
         </ScrollView>
+
+        {/* Edit Prayer Modal for Profile Screen */}
+        <Modal
+          visible={editPrayerModal.visible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+        >
+          <View style={styles.editModalOverlay}>
+            <View style={styles.editModalContent}>
+              <View style={styles.editModalHeader}>
+                <Text style={styles.editModalTitle}>Edit Prayer Request</Text>
+                <TouchableOpacity 
+                  onPress={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+                  style={styles.editModalCloseButton}
+                >
+                  <Text style={styles.editModalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.editModalBody} keyboardShouldPersistTaps="handled">
+                <Text style={styles.inputLabel}>Prayer Request</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea, { minHeight: 150 }]}
+                  placeholder="Your prayer request..."
+                  multiline
+                  numberOfLines={8}
+                  value={editPrayerModal.content}
+                  onChangeText={(text) => setEditPrayerModal(prev => ({ ...prev, content: text }))}
+                  textAlignVertical="top"
+                  data-testid="input-edit-content-profile"
+                />
+              </ScrollView>
+              
+              <View style={styles.editModalFooter}>
+                <TouchableOpacity 
+                  style={styles.editModalCancelButton}
+                  onPress={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
+                >
+                  <Text style={styles.editModalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.editModalSaveButton, editPrayerModal.isLoading && styles.buttonDisabled]}
+                  onPress={saveEditedPrayer}
+                  disabled={editPrayerModal.isLoading}
+                  data-testid="button-save-edit-profile"
+                >
+                  <Text style={styles.editModalSaveText}>
+                    {editPrayerModal.isLoading ? 'Saving...' : 'Save Changes'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }

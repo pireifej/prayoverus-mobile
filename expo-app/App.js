@@ -477,6 +477,7 @@ function App() {
   const [showChurchPicker, setShowChurchPicker] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   // Edit Prayer Modal state
   const [editPrayerModal, setEditPrayerModal] = useState({
@@ -590,11 +591,21 @@ function App() {
 
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {
-    if (currentUser?.id && currentScreen === 'profile') {
-      console.log('📍 Profile screen opened. Current churchName:', currentUser.churchName, 'Current churchId:', currentUser.churchId);
-      loadUserPrayers();
-      refreshUserProfile(); // Reload user profile data including church
-    }
+    const loadProfileData = async () => {
+      if (currentUser?.id && currentScreen === 'profile') {
+        console.log('📍 Profile screen opened. Current churchName:', currentUser.churchName, 'Current churchId:', currentUser.churchId);
+        setIsLoadingProfile(true);
+        try {
+          // Load profile data first to get the latest church info
+          await refreshUserProfile();
+          // Then load user's prayers
+          await loadUserPrayers();
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+    loadProfileData();
   }, [currentScreen, currentUser?.id]);
 
   // Load community prayers when entering home or community screen OR when filter changes
@@ -1987,6 +1998,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         </View>
         
+        {isLoadingProfile ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
+            <ActivityIndicator size="large" color="#6366f1" />
+            <Text style={{ marginTop: 16, color: '#64748b', fontSize: 16 }}>Loading profile...</Text>
+          </View>
+        ) : (
         <ScrollView style={styles.screenContent}>
           {/* User Profile Info */}
           <View style={styles.profileCard}>
@@ -2198,6 +2215,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           )}
         </ScrollView>
+        )}
 
         {/* Edit Prayer Modal for Profile Screen */}
         <Modal

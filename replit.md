@@ -6,12 +6,11 @@ PrayOverUs is a full-stack prayer community platform available as both a web app
 - ✅ **Prayer Options Menu**: Three-dot menu (⋮) on prayer cards with Edit, Delete, Share options
   - Edit: Opens modal with pre-filled title/content form, saves via updateRequest API
   - Delete: Confirmation dialog, removes prayer via deleteRequest API  
-  - Share: Copies shareable link (prayoverus.com/prayer/{id}) to clipboard
+  - Share: Copies shareable link (prayoverus.com/index.html?requestId={id}) to clipboard
   - Ownership detection: Edit/Delete only shown for user's own prayers
   - Works on both Community Wall and Profile screen prayer cards
 - ✅ **Prayer Deep Linking**: App opens shared prayer links directly
-  - Custom scheme: prayoverus://prayer/{id}
-  - Universal links: https://prayoverus.com/prayer/{id}
+  - Share URL format: https://prayoverus.com/index.html?requestId={id}
   - Waits for prayers to load before opening modal (race condition fix)
   - Shows "Prayer Not Found" if prayer was deleted
   - Prompts sign-in if user not authenticated

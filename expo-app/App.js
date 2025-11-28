@@ -205,7 +205,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
   
   const handleShare = async () => {
     setMenuVisible(false);
-    const shareUrl = `https://prayoverus.com/prayer/${prayer.id}`;
+    const shareUrl = `https://prayoverus.com/index.html?requestId=${prayer.id}`;
     
     try {
       await Share.share({
@@ -508,8 +508,8 @@ function App() {
         return;
       }
       
-      // Check for prayer deep link (e.g., prayoverus.com/prayer/123)
-      const prayerMatch = route.match(/prayer\/(\d+)/);
+      // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
+      const prayerMatch = route.match(/requestId=(\d+)/);
       if (prayerMatch && prayerMatch[1]) {
         const prayerId = parseInt(prayerMatch[1], 10);
         console.log('📱 Deep link detected: Prayer ID', prayerId);

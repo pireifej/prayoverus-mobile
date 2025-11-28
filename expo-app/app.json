@@ -56,7 +56,7 @@
             {
               "scheme": "https",
               "host": "prayoverus.com",
-              "pathPrefix": "/prayer"
+              "pathPrefix": "/index.html"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

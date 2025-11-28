@@ -908,9 +908,11 @@ function App() {
         if (userArray.length > 0) {
           const user = userArray[0];
           
-          // Update current user with fresh data including church_name AND church_id
+          // Update current user with fresh data from API
           const updatedUser = {
             ...currentUser,
+            firstName: user.real_name,
+            lastName: user.last_name,
             churchId: user.church_id,
             churchName: user.church_name,
             title: user.user_title,
@@ -918,7 +920,7 @@ function App() {
             picture: user.picture || user.profile_picture_url
           };
           
-          console.log('✅ User profile refreshed. Church ID:', user.church_id, 'Church Name:', user.church_name);
+          console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name);
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
         }

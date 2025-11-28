@@ -1048,70 +1048,31 @@ function App() {
         body: requestBody
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📥 API Response:', JSON.stringify(data, null, 2));
-        
-        // Check for success: 
-        // - error === 0 OR error === "0"
-        // - result contains success message
-        // - no error field with result
-        const resultStr = typeof data.result === 'string' ? data.result.toLowerCase() : '';
-        const hasSuccessMessage = resultStr.includes('success') || resultStr.includes('created');
-        const isSuccess = data.error === 0 || data.error === "0" || hasSuccessMessage || (data.result && !data.error);
-        
-        if (isSuccess) {
-          console.log('Prayer request saved successfully:', data.result);
-          // Show success message only once per idempotency key
-          if (!hasShownSuccessForCurrentKey) {
-            Alert.alert('Success', 'Prayer request created and saved to your account!');
-            setHasShownSuccessForCurrentKey(true);
-          }
-          // Clear the idempotency key on successful completion
-          setCurrentIdempotencyKey(null);
-          setHasShownSuccessForCurrentKey(false);
-          loadCommunityPrayers(); // Refresh community prayers
-        } else {
-          // API returned an error response
-          const errorMessage = data.message || data.error_message || 'Unable to save prayer request. Please try again.';
-          console.error('API Error:', errorMessage);
-          throw new Error(errorMessage);
+      const data = await response.json();
+      console.log('📥 API Response:', JSON.stringify(data, null, 2));
+      
+      // Check for success: API returns { success: true, ... } on success
+      // Check for error: API returns { error: 1, result: "error message" } on failure
+      if (data.success === true) {
+        console.log('Prayer request saved successfully:', data.message);
+        // Show success message only once per idempotency key
+        if (!hasShownSuccessForCurrentKey) {
+          Alert.alert('Success', 'Prayer request created and saved to your account!');
+          setHasShownSuccessForCurrentKey(true);
         }
+        // Clear the idempotency key on successful completion
+        setCurrentIdempotencyKey(null);
+        setHasShownSuccessForCurrentKey(false);
+        loadCommunityPrayers(); // Refresh community prayers
+      } else if (data.error) {
+        // API returned an error response: { error: 1, result: "error message" }
+        const errorMessage = data.result || 'Unable to save prayer request. Please try again.';
+        console.error('API Error:', errorMessage);
+        throw new Error(errorMessage);
       } else {
-        // HTTP error (4xx, 5xx) - but check if body contains success message anyway
-        try {
-          const errorData = await response.json();
-          console.log('📥 API Error Response:', JSON.stringify(errorData, null, 2));
-          
-          // Check if the "error" response actually contains a success message
-          const resultStr = typeof errorData.result === 'string' ? errorData.result.toLowerCase() : '';
-          const hasSuccessMessage = resultStr.includes('success') || resultStr.includes('created');
-          
-          if (hasSuccessMessage) {
-            // It's actually a success! API just returned wrong HTTP status
-            console.log('Prayer request saved successfully (despite HTTP error):', errorData.result);
-            if (!hasShownSuccessForCurrentKey) {
-              Alert.alert('Success', 'Prayer request created and saved to your account!');
-              setHasShownSuccessForCurrentKey(true);
-            }
-            setCurrentIdempotencyKey(null);
-            setHasShownSuccessForCurrentKey(false);
-            loadCommunityPrayers();
-            return; // Don't throw error
-          }
-          
-          const errorMessage = errorData.message || errorData.error_message || 'Server error. Please try again later.';
-          console.error('HTTP Error:', response.status, errorMessage);
-          throw new Error(errorMessage);
-        } catch (e) {
-          if (e.message && !e.message.includes('Server error')) {
-            throw e; // Re-throw if it's our custom error
-          }
-          // If response body is not JSON, use status text
-          const errorMessage = `Server error (${response.status}). Please try again.`;
-          console.error('HTTP Error:', response.status, errorMessage);
-          throw new Error(errorMessage);
-        }
+        // Unknown response format
+        console.error('Unknown API response:', data);
+        throw new Error('Unexpected response from server. Please try again.');
       }
     } catch (error) {
       // Re-throw the error to be handled by addPrayer

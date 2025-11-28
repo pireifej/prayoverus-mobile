@@ -1573,23 +1573,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         body: JSON.stringify(requestPayload)
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+      console.log('📥 Delete API Response:', JSON.stringify(data, null, 2));
+      
+      // Check for success: API returns { success: true } or { error: 0 }
+      const isSuccess = data.success === true || data.error === 0;
+      const message = data.message || data.result || 'Prayer request deleted';
+      
+      if (isSuccess) {
+        // Remove from local state immediately
+        setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
+        setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
         
-        // Display the message from the response
-        const message = data.message || data.result || (data.error === 0 ? 'Prayer request deleted' : 'Failed to delete');
-        
-        if (data.error === 0) {
-          // Remove from local state
-          setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
-          setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
-          
-          Alert.alert('Success', message);
-        } else {
-          Alert.alert('Error', message);
-        }
+        Alert.alert('Success', message);
+      } else if (data.error) {
+        // API returned an error
+        Alert.alert('Error', data.result || 'Failed to delete prayer request');
       } else {
-        throw new Error('Server error');
+        throw new Error('Unexpected response from server');
       }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to delete prayer request. Please try again.');

@@ -2097,14 +2097,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.profileName}>
-              {currentUser.firstName} {currentUser.lastName || ''}
-            </Text>
             <Text style={styles.profileEmail}>{currentUser.email}</Text>
             
             <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>Username</Text>
-              <Text style={styles.profileInfoValue}>{currentUser.userName || 'Not set'}</Text>
+              <Text style={styles.profileInfoLabel}>First Name</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.firstName || 'Not set'}</Text>
+            </View>
+            
+            <View style={styles.profileInfoSection}>
+              <Text style={styles.profileInfoLabel}>Last Name</Text>
+              <Text style={styles.profileInfoValue}>{currentUser.lastName || 'Not set'}</Text>
             </View>
             
             <View style={styles.profileInfoSection}>

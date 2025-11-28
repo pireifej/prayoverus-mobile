@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -207,19 +207,48 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
     setMenuVisible(false);
     const shareUrl = `https://prayoverus.com/index.html?requestId=${prayer.id}`;
     
+    // First, copy the link to clipboard
     try {
-      await Share.share({
-        message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
-        url: shareUrl, // iOS only
-        title: `Prayer Request: ${prayer.title}`,
-      });
-    } catch (error) {
-      // Fallback: show the link in an alert so user can copy it
+      Clipboard.setString(shareUrl);
+      
+      // Show a brief notification that link was copied
       Alert.alert(
-        'Share Prayer',
-        `Copy this link to share:\n\n${shareUrl}`,
-        [{ text: 'OK' }]
+        'Link Copied!',
+        'The prayer link has been copied to your clipboard. You can also share it directly:',
+        [
+          { 
+            text: 'Share Now', 
+            onPress: async () => {
+              try {
+                await Share.share({
+                  message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
+                  url: shareUrl, // iOS only
+                  title: `Prayer Request: ${prayer.title}`,
+                });
+              } catch (shareError) {
+                // User cancelled or share failed, but link is already copied
+                console.log('Share cancelled or failed:', shareError);
+              }
+            }
+          },
+          { text: 'Done', style: 'cancel' }
+        ]
       );
+    } catch (error) {
+      // Fallback: just try to share directly
+      try {
+        await Share.share({
+          message: `🙏 Please pray for: ${prayer.title}\n\n${prayer.content}\n\nPray with me: ${shareUrl}`,
+          url: shareUrl,
+          title: `Prayer Request: ${prayer.title}`,
+        });
+      } catch (shareError) {
+        Alert.alert(
+          'Share Prayer',
+          `Copy this link to share:\n\n${shareUrl}`,
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
   

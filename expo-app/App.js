@@ -1381,21 +1381,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     });
   };
 
-  // Save edited prayer
+  // Save edited prayer - calls editRequest endpoint
   const saveEditedPrayer = async () => {
-    if (!editPrayerModal.title.trim() || !editPrayerModal.content.trim()) {
-      Alert.alert('Error', 'Please fill in both title and prayer content');
+    if (!editPrayerModal.content.trim()) {
+      Alert.alert('Error', 'Please enter your prayer request');
       return;
     }
 
     setEditPrayerModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/updateRequest';
+      const endpoint = 'https://shouldcallpaul.replit.app/editRequest';
       const requestPayload = {
         requestId: editPrayerModal.prayer.id,
         userId: currentUser?.id,
-        requestTitle: editPrayerModal.title.trim(),
         requestText: editPrayerModal.content.trim()
       };
 
@@ -1421,22 +1420,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           setCommunityPrayers(prevPrayers =>
             prevPrayers.map(p =>
               p.id === editPrayerModal.prayer.id
-                ? { ...p, title: editPrayerModal.title.trim(), content: editPrayerModal.content.trim() }
+                ? { ...p, content: editPrayerModal.content.trim() }
                 : p
             )
           );
           setPrayers(prevPrayers =>
             prevPrayers.map(p =>
               p.id === editPrayerModal.prayer.id
-                ? { ...p, title: editPrayerModal.title.trim(), content: editPrayerModal.content.trim() }
+                ? { ...p, content: editPrayerModal.content.trim() }
                 : p
             )
           );
           
           setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
           Alert.alert('Success', 'Prayer request updated successfully');
+        } else if (data.error === 1) {
+          // Show the result message from the API
+          Alert.alert('Error', data.result || 'Failed to update prayer');
         } else {
-          throw new Error(data.result || data.message || 'Failed to update prayer');
+          Alert.alert('Error', data.result || data.message || 'Failed to update prayer');
         }
       } else {
         throw new Error('Server error');
@@ -3011,23 +3013,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
             
             <ScrollView style={styles.editModalBody} keyboardShouldPersistTaps="handled">
-              <Text style={styles.inputLabel}>Title</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Prayer title"
-                value={editPrayerModal.title}
-                onChangeText={(text) => setEditPrayerModal(prev => ({ ...prev, title: text }))}
-                data-testid="input-edit-title"
-              />
-              
               <Text style={styles.inputLabel}>Prayer Request</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { minHeight: 150 }]}
                 placeholder="Your prayer request..."
                 multiline
-                numberOfLines={5}
+                numberOfLines={8}
                 value={editPrayerModal.content}
                 onChangeText={(text) => setEditPrayerModal(prev => ({ ...prev, content: text }))}
+                textAlignVertical="top"
                 data-testid="input-edit-content"
               />
             </ScrollView>

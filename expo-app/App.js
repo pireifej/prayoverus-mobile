@@ -3381,7 +3381,7 @@ const styles = StyleSheet.create({
   screenContent: {
     flex: 1,
     paddingVertical: 20,
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     backgroundColor: '#f3f4f6',
   },
   addPrayerForm: {
@@ -3488,7 +3488,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#1e293b',
-    paddingHorizontal: 15,
   },
   emptyText: {
     fontSize: 16,
@@ -3547,7 +3546,7 @@ const styles = StyleSheet.create({
   },
   prayerCardContainer: {
     marginBottom: 24,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     borderRadius: 16,
     backgroundColor: 'white',
     borderWidth: 1,

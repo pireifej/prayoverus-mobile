@@ -1154,7 +1154,7 @@ function App() {
         console.log('Prayer request saved successfully:', data.message);
         // Show success message only once per idempotency key
         if (!hasShownSuccessForCurrentKey) {
-          Alert.alert('Success', 'Prayer request created and saved to your account!');
+          Alert.alert('Success', data.message || 'Your prayer has been shared!');
           setHasShownSuccessForCurrentKey(true);
         }
         // Clear the idempotency key on successful completion

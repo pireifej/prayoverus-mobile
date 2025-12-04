@@ -2822,39 +2822,36 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           )}
           
-          <View style={styles.postActions}>
+          {/* Facebook-style icon buttons */}
+          <View style={styles.iconButtonRow}>
             <TouchableOpacity 
-              style={styles.linkButton}
+              style={[styles.iconButton, showTitleInput && styles.iconButtonActive]}
               onPress={() => setShowTitleInput(!showTitleInput)}
               disabled={isPosting}
+              data-testid="button-toggle-title"
             >
-              <Text style={[styles.linkButtonText, isPosting && { opacity: 0.5 }]}>
-                {showTitleInput ? 'Hide' : 'Add'} custom title
-              </Text>
+              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📝</Text>
+              <Text style={[styles.iconButtonLabel, showTitleInput && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Title</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.linkButton}
+              style={[styles.iconButton, prayerImage && styles.iconButtonActive]}
               onPress={pickPrayerImage}
               disabled={isPosting}
               data-testid="button-add-prayer-image"
             >
-              <Text style={[styles.linkButtonText, isPosting && { opacity: 0.5 }]}>
-                {prayerImage ? '✓' : '📷'} {prayerImage ? 'Image added' : 'Add image'}
-              </Text>
+              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📷</Text>
+              <Text style={[styles.iconButtonLabel, prayerImage && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Picture</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.checkbox, !newPrayer.isPublic && styles.checkboxChecked]}
+              style={[styles.iconButton, !newPrayer.isPublic && styles.iconButtonActive]}
               onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
               disabled={isPosting}
+              data-testid="button-toggle-church"
             >
-              <View style={[styles.checkboxBox, !newPrayer.isPublic && styles.checkboxBoxChecked]}>
-                {!newPrayer.isPublic && <Text style={styles.checkboxMark}>✓</Text>}
-              </View>
-              <Text style={[styles.checkboxText, !newPrayer.isPublic && styles.checkboxTextChecked, isPosting && { opacity: 0.5 }]}>
-                🏛️ My Church Only
-              </Text>
+              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>⛪</Text>
+              <Text style={[styles.iconButtonLabel, !newPrayer.isPublic && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>My Church</Text>
             </TouchableOpacity>
           </View>
           
@@ -4215,6 +4212,40 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexWrap: 'wrap',
     gap: 8,
+  },
+  iconButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  iconButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    minWidth: 80,
+  },
+  iconButtonActive: {
+    backgroundColor: '#f0f4ff',
+  },
+  iconButtonIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+    filter: 'grayscale(100%)',
+  },
+  iconButtonLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  iconButtonLabelActive: {
+    color: '#6366f1',
+    fontWeight: '600',
   },
   linkButton: {
     padding: 8,

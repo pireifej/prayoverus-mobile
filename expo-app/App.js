@@ -3843,7 +3843,7 @@ const styles = StyleSheet.create({
   fullScreenAmenButton: {
     backgroundColor: '#6366f1',
     paddingTop: 24,
-    paddingBottom: 50,
+    paddingBottom: 80,
     alignItems: 'center',
     justifyContent: 'center',
     borderTopLeftRadius: 28,

@@ -2081,7 +2081,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={{ marginTop: 16, color: '#64748b', fontSize: 16 }}>Loading profile...</Text>
           </View>
         ) : (
-        <ScrollView style={styles.screenContent}>
+        <ScrollView 
+          style={styles.screenContent}
+          contentContainerStyle={{ paddingBottom: 140 }}
+        >
           {/* User Profile Info */}
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
@@ -3032,8 +3035,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* FULL SCREEN Prayer Modal with Beautiful Animations */}
       <Modal
         visible={prayerModal.visible}
-        transparent={true}
-        animationType="none"
+        transparent={false}
+        animationType="slide"
+        statusBarTranslucent={true}
         onRequestClose={closePrayerModal}
       >
         <Animated.View 
@@ -3547,7 +3551,7 @@ const styles = StyleSheet.create({
   },
   prayerCardContainer: {
     marginBottom: 24,
-    marginHorizontal: 0,
+    marginHorizontal: 16,
     borderRadius: 16,
     backgroundColor: 'white',
     borderWidth: 1,
@@ -3741,19 +3745,11 @@ const styles = StyleSheet.create({
   // FULL SCREEN MODAL STYLES - Beautiful & Immersive!
   fullScreenModalOverlay: {
     flex: 1,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: '#ffffff',
   },
   fullScreenModalContent: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    overflow: 'hidden',
   },
   fullScreenModalHeader: {
     backgroundColor: '#6366f1',
@@ -4190,6 +4186,7 @@ const styles = StyleSheet.create({
   // New Facebook-style feed styles
   feedContainer: {
     flex: 1,
+    paddingBottom: 100,
   },
   compactPostWidget: {
     backgroundColor: 'white',

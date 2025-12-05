@@ -853,25 +853,37 @@ function App() {
   };
 
   // Handle user logout and clear storage
-  const handleLogout = async () => {
-    console.log('🚪 Logging out user:', currentUser?.firstName);
+  const handleLogout = () => {
+    console.log('🚪 Logout button pressed - user:', currentUser?.firstName);
     
-    // Clean up notification listeners
-    NotificationService.cleanup();
-    
-    // Reset all state first (synchronous)
-    setAuthScreen('login'); // Important: Set to login screen FIRST
-    setCommunityPrayers([]);
-    setPrayers([]); // Fixed: was setPersonalPrayers which doesn't exist
-    setCurrentScreen('home');
-    
-    // Clear storage (async)
-    await clearUserFromStorage();
-    
-    // Set currentUser to null LAST to trigger re-render with login screen
-    setCurrentUser(null);
-    
-    console.log('✅ Logout complete - should show Sign In screen now');
+    try {
+      // Clean up notification listeners (with error handling)
+      try {
+        NotificationService.cleanup();
+      } catch (notifError) {
+        console.log('Notification cleanup error (non-blocking):', notifError);
+      }
+      
+      // Reset all state synchronously
+      setAuthScreen('login');
+      setCommunityPrayers([]);
+      setPrayers([]);
+      setCurrentScreen('home');
+      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
+      
+      // Clear storage (async but don't await - let it run in background)
+      clearUserFromStorage().catch(err => console.log('Storage clear error:', err));
+      
+      // Set currentUser to null LAST to trigger re-render with login screen
+      setCurrentUser(null);
+      
+      console.log('✅ Logout complete - should show Sign In screen now');
+    } catch (error) {
+      console.log('❌ Logout error:', error);
+      // Force logout even if there's an error
+      setCurrentUser(null);
+    }
   };
 
   const refreshUserProfile = async () => {
@@ -2762,7 +2774,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           />
           <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} data-testid="button-logout">
+        <TouchableOpacity 
+          onPress={handleLogout} 
+          style={styles.logoutButton} 
+          activeOpacity={0.6}
+          data-testid="button-logout"
+        >
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>

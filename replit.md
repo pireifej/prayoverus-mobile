@@ -2,6 +2,18 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
+## Version 1.0.10 (December 10, 2025)
+- ✅ **Android 15 Edge-to-Edge Support**: Updated to target SDK 35 for modern Android display
+  - Configured expo-build-properties for Android 15 compatibility
+  - Removed deprecated edge-to-edge API warnings
+- ✅ **Large Screen Device Support**: Removed orientation restrictions
+  - Changed orientation from "portrait" to "default" for tablets and foldables
+  - App now supports both portrait and landscape on large screens
+- ✅ **Build Configuration**: Updated Android build settings
+  - compileSdkVersion: 35
+  - targetSdkVersion: 35
+  - minSdkVersion: 24
+
 ## Version 1.0.9 (December 5, 2025)
 - ✅ **Facebook-Style Post Options**: Redesigned prayer request options as clean icon buttons
   - 📝 "Title" - Toggle custom title field

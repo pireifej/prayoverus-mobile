@@ -2994,7 +2994,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 {(() => {
                   // Debug: Log picture value for this prayer
                   if (prayer.picture) {
-                    console.log(`📸 Rendering prayer ${prayer.id}: picture="${prayer.picture}"`);
+                    // Prayer image rendering (logging suppressed)
                   }
                   
                   // Only show image if picture field exists and is not empty
@@ -3011,7 +3011,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         style={styles.prayerCardImage}
                         resizeMode="cover"
                         onError={(error) => console.log(`❌ Image load error for prayer ${prayer.id}:`, error.nativeEvent.error)}
-                        onLoad={() => console.log(`✅ Image loaded successfully for prayer ${prayer.id}`)}
+                        onLoad={() => {}}
                       />
                     );
                   }

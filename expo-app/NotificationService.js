@@ -105,15 +105,20 @@ class NotificationService {
           'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({
-          userId: userId,
-          token: token,
+          userId: userId.toString(),
+          fcmToken: token,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Token registered successfully:', data);
-        return true;
+        if (data.error === 0) {
+          console.log('✅ Token registered successfully:', data);
+          return true;
+        } else {
+          console.error('❌ Backend returned error:', data.result || data.message);
+          return false;
+        }
       } else {
         const errorText = await response.text();
         console.error('❌ Failed to register token:', response.status, errorText);

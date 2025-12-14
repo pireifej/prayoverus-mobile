@@ -724,7 +724,8 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📱 Community API Response:', JSON.stringify(data, null, 2));
+        const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
+        console.log('📱 Community API Response: Loaded', prayerCount, 'prayers');
         
         // Handle direct array response from getCommunityWall
         const prayersArray = Array.isArray(data) ? data : [];
@@ -912,7 +913,7 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📥 Raw API response from getUser:', JSON.stringify(data, null, 2));
+        console.log('📥 User profile loaded successfully');
         
         // API returns direct array: [{user_id, church_id, church_name, ...}]
         const userArray = Array.isArray(data) ? data : (data.result || []);
@@ -974,7 +975,8 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📱 API Response:', JSON.stringify(data, null, 2));
+        const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
+        console.log('📱 User Prayers API Response: Loaded', prayerCount, 'prayers');
         
         // Handle direct array response or wrapped response
         const prayersArray = Array.isArray(data) ? data : (data.result || []);

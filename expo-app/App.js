@@ -3003,7 +3003,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       ? prayer.picture 
                       : `https://shouldcallpaul.replit.app/${prayer.picture}`;
                     
-                    console.log(`🖼️ Displaying image for prayer ${prayer.id}: ${imageUrl}`);
+                    // Image display (logging suppressed)
                     
                     return (
                       <Image 

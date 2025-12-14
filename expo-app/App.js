@@ -734,7 +734,7 @@ function App() {
           const communityPrayers = prayersArray.map(request => {
             // Debug picture field - use request_picture for the prayer's image
             if (request.request_picture) {
-              console.log('📸 Prayer has request_picture:', request.request_id, 'request_picture:', request.request_picture);
+              // Image found for prayer (logging suppressed)
             }
             
             return {

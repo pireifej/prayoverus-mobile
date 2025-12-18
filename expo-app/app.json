@@ -20,7 +20,8 @@
       "buildNumber": "32",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
-        "applinks:prayoverus.com"
+        "applinks:prayoverus.com",
+        "applinks:www.prayoverus.com"
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -47,23 +48,11 @@
           "data": [
             {
               "scheme": "https",
-              "host": "prayoverus.com",
-              "pathPrefix": "/reset-password"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
+              "host": "prayoverus.com"
+            },
             {
               "scheme": "https",
-              "host": "prayoverus.com",
-              "pathPrefix": "/index.html"
+              "host": "www.prayoverus.com"
             }
           ],
           "category": [

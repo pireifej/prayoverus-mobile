@@ -1,8 +1,12 @@
 {
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3440306279423513~2757859969",
+    "ios_app_id": "ca-app-pub-3440306279423513~2757859969"
+  },
   "expo": {
     "name": "PrayOverUs",
     "slug": "pray-over-us",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +21,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "32",
+      "buildNumber": "33",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",
@@ -28,7 +32,7 @@
       }
     },
     "android": {
-      "versionCode": 32,
+      "versionCode": 33,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -67,12 +71,28 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "useFrameworks": "static"
+          },
           "android": {
             "enableProguardInReleaseBuilds": false,
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "minSdkVersion": 24
           }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3440306279423513~2757859969",
+          "iosAppId": "ca-app-pub-3440306279423513~2757859969"
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This app uses tracking to show you relevant ads."
         }
       ]
     ],

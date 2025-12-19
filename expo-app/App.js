@@ -6,6 +6,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 import { Buffer } from 'buffer';
+import mobileAds, { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+// AdMob Banner Ad Unit ID - use test ID in development
+const BANNER_AD_UNIT_ID = __DEV__ 
+  ? TestIds.BANNER 
+  : 'ca-app-pub-3440306279423513/4277741998';
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  
 import { Platform } from 'react-native';
@@ -586,6 +592,16 @@ function App() {
   // Check for stored user session on app start
   useEffect(() => {
     checkStoredAuth();
+    
+    // Initialize AdMob
+    mobileAds()
+      .initialize()
+      .then(adapterStatuses => {
+        console.log('AdMob initialized:', adapterStatuses);
+      })
+      .catch(error => {
+        console.log('AdMob initialization error:', error);
+      });
   }, []);
 
   // Deep linking support for password reset and prayer sharing
@@ -2900,6 +2916,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         </View>
 
+        {/* Banner Ad */}
+        <View style={styles.bannerAdContainer}>
+          <BannerAd
+            unitId={BANNER_AD_UNIT_ID}
+            size={BannerAdSize.BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+            onAdLoaded={() => console.log('Banner ad loaded')}
+            onAdFailedToLoad={(error) => console.log('Banner ad failed to load:', error)}
+          />
+        </View>
+
         {/* Community Wall Feed */}
         <View style={styles.feedHeaderSection}>
           <Text style={styles.feedTitle}>Community Prayers</Text>
@@ -3282,6 +3311,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  bannerAdContainer: {
+    alignItems: 'center',
+    marginVertical: 10,
     backgroundColor: '#f8fafc',
   },
   content: {

@@ -2,6 +2,16 @@
 
 PrayOverUs is a full-stack prayer community platform available as both a web application and React Native mobile app. The platform enables users to share prayers, support others, and participate in prayer groups. It combines personal prayer management with community features, allowing users to create private or public prayer requests, offer support through prayers and comments, and join prayer groups for collective spiritual support.
 
+## Version 1.0.14 (December 19, 2025)
+- ✅ **Google AdMob Integration**: Added banner ads for monetization
+  - Installed `react-native-google-mobile-ads` package
+  - App ID: ca-app-pub-3440306279423513~2757859969
+  - Banner Ad Unit ID: ca-app-pub-3440306279423513/4277741998
+  - Banner ad displayed on home screen below prayer request widget
+  - Uses test ads in development mode
+  - Added iOS tracking transparency permission for personalized ads
+  - Configured `useFrameworks: "static"` for iOS builds
+
 ## Version 1.0.10 (December 10, 2025)
 - ✅ **Android 15 Edge-to-Edge Support**: Updated to target SDK 35 for modern Android display
   - Configured expo-build-properties for Android 15 compatibility

@@ -29,10 +29,9 @@ const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds
   ? (__DEV__ ? TestIds.BANNER : 'ca-app-pub-3440306279423513/4277741998')
   : null;
 
-// AdMob Interstitial Ad Unit ID - use test ID in development
-// Note: You'll need to create an interstitial ad unit in AdMob and replace this ID for production
+// AdMob Interstitial Ad Unit ID - use test ID in development, production ID in release
 const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds 
-  ? (__DEV__ ? TestIds.INTERSTITIAL : TestIds.INTERSTITIAL)
+  ? (__DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-3440306279423513/9994022974')
   : null;
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  

@@ -6,12 +6,26 @@ import * as ImagePicker from 'expo-image-picker';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 import { Buffer } from 'buffer';
-import mobileAds, { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+// AdMob - conditionally import to support Expo Go (where native modules aren't available)
+let mobileAds, BannerAd, BannerAdSize, TestIds;
+let isAdMobAvailable = false;
+
+try {
+  const adMobModule = require('react-native-google-mobile-ads');
+  mobileAds = adMobModule.default;
+  BannerAd = adMobModule.BannerAd;
+  BannerAdSize = adMobModule.BannerAdSize;
+  TestIds = adMobModule.TestIds;
+  isAdMobAvailable = true;
+} catch (e) {
+  console.log('AdMob not available (running in Expo Go)');
+}
 
 // AdMob Banner Ad Unit ID - use test ID in development
-const BANNER_AD_UNIT_ID = __DEV__ 
-  ? TestIds.BANNER 
-  : 'ca-app-pub-3440306279423513/4277741998';
+const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds 
+  ? (__DEV__ ? TestIds.BANNER : 'ca-app-pub-3440306279423513/4277741998')
+  : null;
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  
 import { Platform } from 'react-native';
@@ -593,15 +607,17 @@ function App() {
   useEffect(() => {
     checkStoredAuth();
     
-    // Initialize AdMob
-    mobileAds()
-      .initialize()
-      .then(adapterStatuses => {
-        console.log('AdMob initialized:', adapterStatuses);
-      })
-      .catch(error => {
-        console.log('AdMob initialization error:', error);
-      });
+    // Initialize AdMob (only if available - not in Expo Go)
+    if (isAdMobAvailable && mobileAds) {
+      mobileAds()
+        .initialize()
+        .then(adapterStatuses => {
+          console.log('AdMob initialized:', adapterStatuses);
+        })
+        .catch(error => {
+          console.log('AdMob initialization error:', error);
+        });
+    }
   }, []);
 
   // Deep linking support for password reset and prayer sharing
@@ -2916,18 +2932,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         </View>
 
-        {/* Banner Ad */}
-        <View style={styles.bannerAdContainer}>
-          <BannerAd
-            unitId={BANNER_AD_UNIT_ID}
-            size={BannerAdSize.BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-            onAdLoaded={() => console.log('Banner ad loaded')}
-            onAdFailedToLoad={(error) => console.log('Banner ad failed to load:', error)}
-          />
-        </View>
+        {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}
+        {isAdMobAvailable && BannerAd && BANNER_AD_UNIT_ID && (
+          <View style={styles.bannerAdContainer}>
+            <BannerAd
+              unitId={BANNER_AD_UNIT_ID}
+              size={BannerAdSize.BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+              onAdLoaded={() => console.log('Banner ad loaded')}
+              onAdFailedToLoad={(error) => console.log('Banner ad failed to load:', error)}
+            />
+          </View>
+        )}
 
         {/* Community Wall Feed */}
         <View style={styles.feedHeaderSection}>

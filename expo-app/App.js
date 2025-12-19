@@ -8,7 +8,7 @@ import NotificationService from './NotificationService';
 import { Buffer } from 'buffer';
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
-let mobileAds, BannerAd, BannerAdSize, TestIds;
+let mobileAds, BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType;
 let isAdMobAvailable = false;
 
 try {
@@ -17,6 +17,8 @@ try {
   BannerAd = adMobModule.BannerAd;
   BannerAdSize = adMobModule.BannerAdSize;
   TestIds = adMobModule.TestIds;
+  InterstitialAd = adMobModule.InterstitialAd;
+  AdEventType = adMobModule.AdEventType;
   isAdMobAvailable = true;
 } catch (e) {
   console.log('AdMob not available (running in Expo Go)');
@@ -25,6 +27,12 @@ try {
 // AdMob Banner Ad Unit ID - use test ID in development
 const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds 
   ? (__DEV__ ? TestIds.BANNER : 'ca-app-pub-3440306279423513/4277741998')
+  : null;
+
+// AdMob Interstitial Ad Unit ID - use test ID in development
+// Note: You'll need to create an interstitial ad unit in AdMob and replace this ID for production
+const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds 
+  ? (__DEV__ ? TestIds.INTERSTITIAL : TestIds.INTERSTITIAL)
   : null;
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  
@@ -542,6 +550,11 @@ function App() {
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   
+  // AdMob interstitial state
+  const [prayerCount, setPrayerCount] = useState(0);
+  const [interstitialLoaded, setInterstitialLoaded] = useState(false);
+  const interstitialRef = useRef(null);
+  
   // Rosary state
   const [rosaryScreen, setRosaryScreen] = useState('lobby'); // 'lobby', 'session'
   const [rosaryRole, setRosaryRole] = useState(null); // 'host' or 'participant'
@@ -613,12 +626,59 @@ function App() {
         .initialize()
         .then(adapterStatuses => {
           console.log('AdMob initialized:', adapterStatuses);
+          // Load the first interstitial ad after initialization
+          loadInterstitialAd();
         })
         .catch(error => {
           console.log('AdMob initialization error:', error);
         });
     }
   }, []);
+  
+  // Function to load interstitial ad
+  const loadInterstitialAd = () => {
+    if (!isAdMobAvailable || !InterstitialAd || !INTERSTITIAL_AD_UNIT_ID) {
+      return;
+    }
+    
+    try {
+      const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
+        requestNonPersonalizedAdsOnly: true,
+      });
+      
+      interstitial.addAdEventListener(AdEventType.LOADED, () => {
+        console.log('Interstitial ad loaded');
+        setInterstitialLoaded(true);
+        interstitialRef.current = interstitial;
+      });
+      
+      interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        console.log('Interstitial ad closed');
+        setInterstitialLoaded(false);
+        interstitialRef.current = null;
+        // Load next interstitial
+        loadInterstitialAd();
+      });
+      
+      interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+        console.log('Interstitial ad error:', error);
+        setInterstitialLoaded(false);
+      });
+      
+      interstitial.load();
+    } catch (error) {
+      console.log('Error creating interstitial:', error);
+    }
+  };
+  
+  // Function to show interstitial ad (call after every 5th prayer)
+  const showInterstitialAd = () => {
+    if (interstitialLoaded && interstitialRef.current) {
+      interstitialRef.current.show();
+      return true;
+    }
+    return false;
+  };
 
   // Deep linking support for password reset and prayer sharing
   useEffect(() => {
@@ -1516,9 +1576,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
     
+    // Increment prayer count and show interstitial ad every 5th prayer
+    const newPrayerCount = prayerCount + 1;
+    setPrayerCount(newPrayerCount);
+    
     // Close the modal after animation completes
     setTimeout(() => {
       closePrayerModal();
+      
+      // Show interstitial ad after every 5th prayer
+      if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
+        console.log(`Showing interstitial ad after ${newPrayerCount} prayers`);
+        showInterstitialAd();
+      }
     }, 2000); // 2 seconds to enjoy the celebration!
   };
 

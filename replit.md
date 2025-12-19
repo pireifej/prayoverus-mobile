@@ -11,6 +11,11 @@ PrayOverUs is a full-stack prayer community platform available as both a web app
   - Uses test ads in development mode
   - Added iOS tracking transparency permission for personalized ads
   - Configured `useFrameworks: "static"` for iOS builds
+- ✅ **Interstitial Ads**: Full-screen ads shown after every 5th prayer
+  - Higher revenue than banner ads (~$5-8 per 1000 impressions)
+  - Shows after user prays 5, 10, 15, etc. times
+  - Gracefully handles Expo Go (ads disabled)
+  - Uses test ads in development, needs production Ad Unit ID for release
 
 ## Version 1.0.10 (December 10, 2025)
 - ✅ **Android 15 Edge-to-Edge Support**: Updated to target SDK 35 for modern Android display

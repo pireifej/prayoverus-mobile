@@ -1586,7 +1586,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       // Show interstitial ad after every 5th prayer
       if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
-        console.log(`Showing interstitial ad after ${newPrayerCount} prayers`);
+        console.log(`Showing interstitial ad after ${newPrayerCount} prayers (every 5th)`);
         showInterstitialAd();
       }
     }, 2000); // 2 seconds to enjoy the celebration!

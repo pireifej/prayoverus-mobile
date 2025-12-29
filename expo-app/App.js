@@ -1460,13 +1460,14 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
   }, [communityPrayers, hideAlreadyPrayed]);
 
-  // PanResponder for swipe gestures in detail modal - defined inline to access refs
+  // PanResponder for swipe gestures in detail modal - captures horizontal swipes
   const detailPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond to horizontal swipes (not vertical scrolling)
-        return Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dy) < 50;
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        // Capture horizontal swipes (more than 10px horizontal, less vertical)
+        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
       },
       onPanResponderMove: (evt, gestureState) => {
         detailSwipeAnim.setValue(gestureState.dx);
@@ -3656,7 +3657,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 styles.detailScrollContent,
                 !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
               ]}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
+              bounces={false}
+              overScrollMode="never"
+              nestedScrollEnabled={false}
             >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (

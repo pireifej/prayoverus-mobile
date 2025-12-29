@@ -855,6 +855,7 @@ function App() {
               use_alias: request.use_alias,
               prayer_count: request.prayer_count || 0,
               prayed_by_names: request.prayed_by_names || [],
+              prayed_by_people: request.prayed_by_people || [],
               user_has_prayed: request.user_has_prayed || false,
               church_id: request.church_id
             };
@@ -1634,7 +1635,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               prayedFor: true,
               user_has_prayed: true,
               prayer_count: (p.prayer_count || 0) + 1,
-              prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You']
+              prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You'],
+              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null }]
             }
           : p
       )
@@ -3511,16 +3513,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     <Text style={styles.detailPrayerCountText}>
                       🙏 {detailModal.prayer.prayer_count} {detailModal.prayer.prayer_count === 1 ? 'person' : 'people'} prayed
                     </Text>
-                    {detailModal.prayer.prayed_by_names && detailModal.prayer.prayed_by_names.length > 0 && (
+                    {detailModal.prayer.prayed_by_people && detailModal.prayer.prayed_by_people.length > 0 && (
                       <View style={styles.detailPrayerNamesList}>
-                        {detailModal.prayer.prayed_by_names.map((name, index) => (
+                        {detailModal.prayer.prayed_by_people.map((person, index) => (
                           <View key={index} style={styles.detailPrayerNameRow}>
-                            <View style={styles.detailPrayerNameAvatar}>
-                              <Text style={styles.detailPrayerNameAvatarText}>
-                                {name.charAt(0).toUpperCase()}
-                              </Text>
-                            </View>
-                            <Text style={styles.detailPrayerNameText}>{name}</Text>
+                            {person.picture && person.picture.startsWith('http') ? (
+                              <Image 
+                                source={{ uri: person.picture }} 
+                                style={styles.detailPrayerNameAvatarImage}
+                              />
+                            ) : (
+                              <View style={styles.detailPrayerNameAvatar}>
+                                <Text style={styles.detailPrayerNameAvatarText}>
+                                  {person.name.charAt(0).toUpperCase()}
+                                </Text>
+                              </View>
+                            )}
+                            <Text style={styles.detailPrayerNameText}>{person.name}</Text>
                           </View>
                         ))}
                       </View>
@@ -4889,6 +4898,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  detailPrayerNameAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   detailPrayerNameAvatarText: {
     fontSize: 14,

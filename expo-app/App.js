@@ -1460,14 +1460,17 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
   }, [communityPrayers, hideAlreadyPrayed]);
 
-  // PanResponder for swipe gestures in detail modal - captures horizontal swipes
+  // PanResponder for swipe gestures in detail modal - captures horizontal swipes only
   const detailPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to clear horizontal swipes (not taps or vertical scrolls)
+        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
+      },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        // Capture horizontal swipes (more than 10px horizontal, less vertical)
-        return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+        // Capture horizontal swipes (more than 15px horizontal, clearly more than vertical)
+        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
       },
       onPanResponderMove: (evt, gestureState) => {
         detailSwipeAnim.setValue(gestureState.dx);

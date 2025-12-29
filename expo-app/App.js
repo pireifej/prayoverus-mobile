@@ -3453,14 +3453,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         statusBarTranslucent={true}
         onRequestClose={closeDetailModal}
       >
-        <View style={styles.detailModalOverlay}>
-          {/* Background tap layer - catches taps on empty space */}
-          <Pressable 
-            style={StyleSheet.absoluteFill} 
-            onPress={closeDetailModal}
-          />
-          
-          {/* Content container - pointerEvents box-none lets taps pass through empty areas */}
+        <Pressable 
+          style={styles.detailModalOverlay}
+          onPress={closeDetailModal}
+        >
           <Animated.View 
             style={[
               styles.detailModalContent,
@@ -3469,21 +3465,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 transform: [{ translateY: detailModalSlideAnim }] 
               }
             ]}
-            pointerEvents="box-none"
           >
-            {/* Close Button - always on top */}
+            {/* Close Button - larger and moved inward */}
             <TouchableOpacity 
               onPress={closeDetailModal} 
               style={styles.detailCloseButton}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              activeOpacity={0.7}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              activeOpacity={0.6}
               data-testid="button-close-detail"
             >
               <Text style={styles.detailCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
-            {/* Scrollable content - wrapped to stop tap propagation */}
-            <TouchableWithoutFeedback>
+            {/* Scrollable content - Pressable wrapper stops propagation to overlay */}
+            <Pressable onPress={(e) => e.stopPropagation()}>
               <ScrollView 
                 style={styles.detailScrollView}
                 contentContainerStyle={[
@@ -3578,9 +3573,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
-          </TouchableWithoutFeedback>
+          </Pressable>
         </Animated.View>
-      </View>
+      </Pressable>
     </Modal>
     </View>
   );
@@ -4828,18 +4823,18 @@ const styles = StyleSheet.create({
   },
   detailCloseButton: {
     position: 'absolute',
-    top: 50,
-    right: 20,
+    top: 60,
+    right: 24,
     zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   detailCloseButtonText: {
-    fontSize: 20,
+    fontSize: 22,
     color: '#ffffff',
     fontWeight: 'bold',
   },

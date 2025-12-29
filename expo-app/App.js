@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -3479,7 +3479,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
               ]}
               showsVerticalScrollIndicator={false}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={(e) => {
+                // Close modal if tap is on the scroll view background (not on content)
+                if (e.target === e.currentTarget) {
+                  closeDetailModal();
+                }
+              }}
             >
+              {/* Tap outside content to close */}
+              <Pressable 
+                style={styles.detailTapOutside} 
+                onPress={closeDetailModal}
+              />
+              
               {/* Image Header - Only if prayer has image (edge-to-edge) */}
               {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                 <Image 
@@ -3493,8 +3506,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 />
               )}
 
-              {/* Prayer Content Container - with padding */}
-              <View style={styles.detailContentContainer}>
+              {/* Prayer Content Container - with padding - stops tap propagation */}
+              <Pressable style={styles.detailContentContainer} onPress={() => {}}>
                 {/* Prayer Count Badge with Facebook-style names list */}
                 {detailModal.prayer?.prayer_count > 0 && (
                   <View style={styles.detailPrayerCountBadge}>
@@ -3557,7 +3570,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </Text>
                   </AnimatedButton>
                 </View>
-              </View>
+              </Pressable>
             </ScrollView>
           </Animated.View>
         </Animated.View>
@@ -4833,6 +4846,13 @@ const styles = StyleSheet.create({
   detailScrollContentCentered: {
     justifyContent: 'center',
     minHeight: '100%',
+  },
+  detailTapOutside: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   detailImage: {
     width: '100%',

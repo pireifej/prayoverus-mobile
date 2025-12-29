@@ -3486,10 +3486,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
             <ScrollView 
               style={styles.detailScrollView}
-              contentContainerStyle={styles.detailScrollContent}
+              contentContainerStyle={[
+                styles.detailScrollContent,
+                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+              ]}
               showsVerticalScrollIndicator={false}
             >
-              {/* Image Header - Only if prayer has image */}
+              {/* Image Header - Only if prayer has image (edge-to-edge) */}
               {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                 <Image 
                   source={{ 
@@ -3502,18 +3505,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 />
               )}
 
-              {/* Prayer Content Container */}
+              {/* Prayer Content Container - with padding */}
               <View style={styles.detailContentContainer}>
-                {/* Prayer Count Badge */}
+                {/* Prayer Count Badge with Facebook-style names list */}
                 {detailModal.prayer?.prayer_count > 0 && (
                   <View style={styles.detailPrayerCountBadge}>
                     <Text style={styles.detailPrayerCountText}>
                       🙏 {detailModal.prayer.prayer_count} {detailModal.prayer.prayer_count === 1 ? 'person' : 'people'} prayed
                     </Text>
                     {detailModal.prayer.prayed_by_names && detailModal.prayer.prayed_by_names.length > 0 && (
-                      <Text style={styles.detailPrayerNames}>
-                        {detailModal.prayer.prayed_by_names.join(', ')}
-                      </Text>
+                      <View style={styles.detailPrayerNamesList}>
+                        {detailModal.prayer.prayed_by_names.map((name, index) => (
+                          <View key={index} style={styles.detailPrayerNameRow}>
+                            <Image 
+                              source={{ 
+                                uri: detailModal.prayer.prayed_by_pictures?.[index] 
+                                  ? (detailModal.prayer.prayed_by_pictures[index].startsWith('http') 
+                                      ? detailModal.prayer.prayed_by_pictures[index]
+                                      : `https://shouldcallpaul.replit.app/${detailModal.prayer.prayed_by_pictures[index]}`)
+                                  : 'https://via.placeholder.com/32/e2e8f0/6366f1?text=' + name.charAt(0).toUpperCase()
+                              }}
+                              style={styles.detailPrayerNameAvatar}
+                            />
+                            <Text style={styles.detailPrayerNameText}>{name}</Text>
+                          </View>
+                        ))}
+                      </View>
                     )}
                   </View>
                 )}
@@ -3538,27 +3555,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
                 {/* Prayer Content - Full text */}
                 <Text style={styles.detailPrayerText}>{detailModal.prayer?.content}</Text>
+
+                {/* Pray Button - flows with content */}
+                <View style={styles.detailActionContainer}>
+                  <AnimatedButton 
+                    style={[
+                      styles.detailPrayButton,
+                      detailModal.prayer?.user_has_prayed && styles.detailPrayButtonPrayed
+                    ]} 
+                    onPress={handlePrayFromDetailView}
+                    data-testid="button-pray-detail"
+                  >
+                    <Text style={[
+                      styles.detailPrayButtonText,
+                      detailModal.prayer?.user_has_prayed && styles.detailPrayButtonTextPrayed
+                    ]}>
+                      {detailModal.prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
+                    </Text>
+                  </AnimatedButton>
+                </View>
               </View>
             </ScrollView>
-
-            {/* Bottom Action Bar */}
-            <View style={styles.detailActionBar}>
-              <AnimatedButton 
-                style={[
-                  styles.detailPrayButton,
-                  detailModal.prayer?.user_has_prayed && styles.detailPrayButtonPrayed
-                ]} 
-                onPress={handlePrayFromDetailView}
-                data-testid="button-pray-detail"
-              >
-                <Text style={[
-                  styles.detailPrayButtonText,
-                  detailModal.prayer?.user_has_prayed && styles.detailPrayButtonTextPrayed
-                ]}>
-                  {detailModal.prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
-                </Text>
-              </AnimatedButton>
-            </View>
           </Animated.View>
         </Animated.View>
       </Modal>
@@ -4827,7 +4844,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailScrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 40,
+    flexGrow: 1,
+  },
+  detailScrollContentCentered: {
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   detailImage: {
     width: '100%',
@@ -4850,11 +4872,25 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '600',
   },
-  detailPrayerNames: {
-    fontSize: 13,
+  detailPrayerNamesList: {
+    marginTop: 10,
+    gap: 8,
+  },
+  detailPrayerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  detailPrayerNameAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e2e8f0',
+  },
+  detailPrayerNameText: {
+    fontSize: 14,
     color: '#1e40af',
-    marginTop: 6,
-    lineHeight: 18,
+    fontWeight: '500',
   },
   detailAuthorRow: {
     flexDirection: 'row',
@@ -4899,22 +4935,11 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     letterSpacing: 0.2,
   },
-  detailActionBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
+  detailActionContainer: {
+    marginTop: 24,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
   },
   detailPrayButton: {
     backgroundColor: '#6366f1',

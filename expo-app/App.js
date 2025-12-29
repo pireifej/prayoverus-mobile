@@ -3463,10 +3463,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               { transform: [{ translateY: detailModalSlideAnim }] }
             ]}
           >
-            {/* Close Button */}
+            {/* Tap on background to close - positioned behind everything */}
+            <Pressable 
+              style={StyleSheet.absoluteFill} 
+              onPress={closeDetailModal}
+            />
+
+            {/* Close Button - with larger hit area, on top */}
             <TouchableOpacity 
               onPress={closeDetailModal} 
               style={styles.detailCloseButton}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               data-testid="button-close-detail"
             >
               <Text style={styles.detailCloseButtonText}>✕</Text>
@@ -3479,20 +3486,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
               ]}
               showsVerticalScrollIndicator={false}
-              onStartShouldSetResponder={() => true}
-              onResponderRelease={(e) => {
-                // Close modal if tap is on the scroll view background (not on content)
-                if (e.target === e.currentTarget) {
-                  closeDetailModal();
-                }
-              }}
             >
-              {/* Tap outside content to close */}
-              <Pressable 
-                style={styles.detailTapOutside} 
-                onPress={closeDetailModal}
-              />
-              
               {/* Image Header - Only if prayer has image (edge-to-edge) */}
               {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                 <Image 

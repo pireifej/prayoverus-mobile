@@ -1403,9 +1403,20 @@ Through Christ our Lord. Amen.`;
     });
   };
 
+  // Get currently filtered prayers (based on hideAlreadyPrayed filter)
+  const getFilteredPrayers = () => {
+    let filtered = communityPrayers;
+    if (hideAlreadyPrayed) {
+      filtered = filtered.filter(prayer => !prayer.user_has_prayed);
+    }
+    return filtered;
+  };
+
   // Open prayer detail view (Instagram-style full-screen view)
   const openDetailModal = (prayer) => {
-    const index = communityPrayers.findIndex(p => p.id === prayer.id);
+    // Find index in the FILTERED prayers list (what's currently displayed)
+    const filtered = getFilteredPrayers();
+    const index = filtered.findIndex(p => p.id === prayer.id);
     setDetailModal({
       visible: true,
       prayer: prayer,
@@ -1433,16 +1444,21 @@ Through Christ our Lord. Amen.`;
 
   // Refs to hold current state for PanResponder (avoids stale closure)
   const detailModalRef = useRef(detailModal);
-  const communityPrayersRef = useRef(communityPrayers);
+  const filteredPrayersRef = useRef([]);
   
   // Keep refs in sync with state
   useEffect(() => {
     detailModalRef.current = detailModal;
   }, [detailModal]);
   
+  // Update filtered prayers ref when filters or prayers change
   useEffect(() => {
-    communityPrayersRef.current = communityPrayers;
-  }, [communityPrayers]);
+    let filtered = communityPrayers;
+    if (hideAlreadyPrayed) {
+      filtered = filtered.filter(prayer => !prayer.user_has_prayed);
+    }
+    filteredPrayersRef.current = filtered;
+  }, [communityPrayers, hideAlreadyPrayed]);
 
   // PanResponder for swipe gestures in detail modal - defined inline to access refs
   const detailPanResponder = useRef(
@@ -1457,7 +1473,7 @@ Through Christ our Lord. Amen.`;
       },
       onPanResponderRelease: (evt, gestureState) => {
         const currentIndex = detailModalRef.current.prayerIndex;
-        const prayers = communityPrayersRef.current;
+        const prayers = filteredPrayersRef.current;
         
         if (gestureState.dx < -100) {
           // Swiped left - go to next
@@ -3561,48 +3577,50 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         statusBarTranslucent={true}
         onRequestClose={closeDetailModal}
       >
-        <Animated.View 
-          style={[
-            styles.detailModalOverlay,
-            { 
-              opacity: detailModalOpacityAnim,
-              transform: [
-                { translateY: detailModalSlideAnim },
-                { translateX: detailSwipeAnim }
-              ] 
-            }
-          ]}
-          {...detailPanResponder.panHandlers}
-        >
-          {/* Close Button - larger and moved inward */}
+        <View style={styles.detailModalOverlay}>
+          {/* Close Button - OUTSIDE PanResponder so it always works */}
           <TouchableOpacity 
             onPress={closeDetailModal} 
             style={styles.detailCloseButton}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             activeOpacity={0.6}
             data-testid="button-close-detail"
           >
             <Text style={styles.detailCloseButtonText}>✕</Text>
           </TouchableOpacity>
 
-          {/* Swipe indicator - shows position in prayer list */}
-          {communityPrayers.length > 1 && detailModal.prayerIndex >= 0 && (
+          {/* Swipe indicator - shows position in FILTERED prayer list */}
+          {getFilteredPrayers().length > 1 && detailModal.prayerIndex >= 0 && (
             <View style={styles.detailSwipeIndicator}>
               <Text style={styles.detailSwipeIndicatorText}>
-                {detailModal.prayerIndex + 1} / {communityPrayers.length}
+                {detailModal.prayerIndex + 1} / {getFilteredPrayers().length}
               </Text>
             </View>
           )}
 
-          {/* Scrollable content */}
-          <ScrollView 
-            style={styles.detailScrollView}
-            contentContainerStyle={[
-              styles.detailScrollContent,
-              !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+          {/* Content with swipe gestures */}
+          <Animated.View 
+            style={[
+              styles.detailSwipeContainer,
+              { 
+                opacity: detailModalOpacityAnim,
+                transform: [
+                  { translateY: detailModalSlideAnim },
+                  { translateX: detailSwipeAnim }
+                ] 
+              }
             ]}
-            showsVerticalScrollIndicator={false}
+            {...detailPanResponder.panHandlers}
           >
+            {/* Scrollable content */}
+            <ScrollView 
+              style={styles.detailScrollView}
+              contentContainerStyle={[
+                styles.detailScrollContent,
+                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                   <Image 
@@ -3689,8 +3707,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
-        </Animated.View>
-    </Modal>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -4928,6 +4947,10 @@ const styles = StyleSheet.create({
   },
   // Detail Modal Styles (Instagram-style full-screen prayer view)
   detailModalOverlay: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  detailSwipeContainer: {
     flex: 1,
     backgroundColor: '#ffffff',
   },

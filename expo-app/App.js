@@ -3645,15 +3645,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable content */}
-          <ScrollView 
-            style={{ flex: 1 }}
-            contentContainerStyle={[
-              styles.detailScrollContent,
-              !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
-            ]}
-            showsVerticalScrollIndicator={false}
+          {/* Swipeable content container */}
+          <Animated.View 
+            style={{ flex: 1, transform: [{ translateX: detailSwipeAnim }] }}
+            {...detailPanResponder.panHandlers}
           >
+            <ScrollView 
+              style={{ flex: 1 }}
+              contentContainerStyle={[
+                styles.detailScrollContent,
+                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                   <Image 
@@ -3740,6 +3744,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
+          </Animated.View>
         </View>
       </Modal>
     </View>

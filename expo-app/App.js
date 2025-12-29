@@ -3572,37 +3572,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* Prayer Detail View Modal - Instagram-style full-screen view */}
       <Modal
         visible={detailModal.visible}
-        transparent={true}
+        transparent={false}
         animationType="slide"
         statusBarTranslucent={true}
-        onRequestClose={closeDetailModal}
+        onRequestClose={() => setDetailModal({ visible: false, prayer: null, prayerIndex: -1 })}
       >
-        <View style={styles.detailModalOverlay}>
-          {/* Close Button */}
-          <TouchableOpacity 
-            onPress={() => {
-              console.log('Close button pressed');
-              setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
-            }} 
-            style={styles.detailCloseButton}
-            activeOpacity={0.6}
-            data-testid="button-close-detail"
-          >
-            <Text style={styles.detailCloseButtonText}>✕</Text>
-          </TouchableOpacity>
-
-          {/* Swipe indicator - shows position in FILTERED prayer list */}
-          {getFilteredPrayers().length > 1 && detailModal.prayerIndex >= 0 && (
-            <View style={styles.detailSwipeIndicator}>
-              <Text style={styles.detailSwipeIndicatorText}>
-                {detailModal.prayerIndex + 1} / {getFilteredPrayers().length}
-              </Text>
-            </View>
-          )}
-
-          {/* Scrollable content */}
+        <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+          {/* Scrollable content - render first so button is on top */}
           <ScrollView 
-            style={styles.detailScrollView}
+            style={{ flex: 1, marginTop: 100 }}
             contentContainerStyle={[
               styles.detailScrollContent,
               !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
@@ -3695,6 +3673,54 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
+
+          {/* Close Button - rendered AFTER ScrollView so it's on top */}
+          <Pressable 
+            onPress={() => {
+              console.log('Close button pressed!');
+              setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
+            }} 
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              elevation: 10,
+            }}
+            data-testid="button-close-detail"
+          >
+            <Text style={{ fontSize: 22, color: '#ffffff', fontWeight: 'bold' }}>✕</Text>
+          </Pressable>
+
+          {/* Swipe indicator */}
+          {getFilteredPrayers().length > 1 && detailModal.prayerIndex >= 0 && (
+            <View style={{
+              position: 'absolute',
+              top: 54,
+              left: 0,
+              right: 0,
+              alignItems: 'center',
+              zIndex: 9998,
+            }}>
+              <Text style={{
+                fontSize: 14,
+                color: 'rgba(0, 0, 0, 0.5)',
+                fontWeight: '600',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 12,
+              }}>
+                {detailModal.prayerIndex + 1} / {getFilteredPrayers().length}
+              </Text>
+            </View>
+          )}
         </View>
       </Modal>
     </View>

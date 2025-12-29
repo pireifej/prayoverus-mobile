@@ -587,6 +587,14 @@ function App() {
   // Deep link pending prayer ID (to open after prayers load)
   const [pendingDeepLinkPrayerId, setPendingDeepLinkPrayerId] = useState(null);
   
+  // Prayer Detail View Modal state (Instagram-style full-screen view)
+  const [detailModal, setDetailModal] = useState({
+    visible: false,
+    prayer: null
+  });
+  const detailModalSlideAnim = useRef(new Animated.Value(1000)).current;
+  const detailModalOpacityAnim = useRef(new Animated.Value(0)).current;
+  
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
   const confettiCount = 40; // Way more confetti!
@@ -1390,6 +1398,63 @@ Through Christ our Lord. Amen.`;
     ]).start(() => {
       setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
     });
+  };
+
+  // Open prayer detail view (Instagram-style full-screen view)
+  const openDetailModal = (prayer) => {
+    setDetailModal({
+      visible: true,
+      prayer: prayer
+    });
+    
+    // Slide-up animation
+    Animated.parallel([
+      Animated.spring(detailModalSlideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }),
+      Animated.timing(detailModalOpacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // Close prayer detail view
+  const closeDetailModal = () => {
+    Animated.parallel([
+      Animated.timing(detailModalSlideAnim, {
+        toValue: 1000,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(detailModalOpacityAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setDetailModal({ visible: false, prayer: null });
+    });
+  };
+
+  // Handle praying from the detail view
+  const handlePrayFromDetailView = async () => {
+    if (!detailModal.prayer) return;
+    
+    // Capture prayer reference before closing modal (modal state will be cleared)
+    const prayerToOpen = detailModal.prayer;
+    
+    // Close detail modal and open prayer modal
+    closeDetailModal();
+    
+    // Small delay to let detail modal close, then open prayer modal
+    setTimeout(() => {
+      generatePrayer(prayerToOpen);
+    }, 350);
   };
 
   const togglePrayerNames = (prayerId) => {
@@ -3094,7 +3159,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               )}
 
-              <View style={styles.communityPrayerCard}>
+              <TouchableOpacity 
+                style={styles.communityPrayerCard}
+                onPress={() => openDetailModal(prayer)}
+                activeOpacity={0.9}
+                data-testid={`card-prayer-${prayer.id}`}
+              >
                 {/* Options Menu - Three dots for share/edit/delete */}
                 <PrayerOptionsMenu 
                   prayer={prayer}
@@ -3104,22 +3174,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 />
                 
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
-                <Text style={styles.prayerContent}>{prayer.content}</Text>
+                <Text style={styles.prayerContent} numberOfLines={4}>{prayer.content}</Text>
                 
                 {/* Prayer Image - Only show if image exists */}
                 {(() => {
-                  // Debug: Log picture value for this prayer
-                  if (prayer.picture) {
-                    // Prayer image rendering (logging suppressed)
-                  }
-                  
                   // Only show image if picture field exists and is not empty
                   if (prayer.picture && typeof prayer.picture === 'string' && prayer.picture.trim() !== '') {
                     const imageUrl = prayer.picture.startsWith('http') 
                       ? prayer.picture 
                       : `https://shouldcallpaul.replit.app/${prayer.picture}`;
-                    
-                    // Image display (logging suppressed)
                     
                     return (
                       <Image 
@@ -3158,7 +3221,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </Text>
                   </AnimatedButton>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           ));
         })()}
@@ -3390,6 +3453,114 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Prayer Detail View Modal - Instagram-style full-screen view */}
+      <Modal
+        visible={detailModal.visible}
+        transparent={false}
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={closeDetailModal}
+      >
+        <Animated.View 
+          style={[
+            styles.detailModalOverlay,
+            { opacity: detailModalOpacityAnim }
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.detailModalContent,
+              { transform: [{ translateY: detailModalSlideAnim }] }
+            ]}
+          >
+            {/* Close Button */}
+            <TouchableOpacity 
+              onPress={closeDetailModal} 
+              style={styles.detailCloseButton}
+              data-testid="button-close-detail"
+            >
+              <Text style={styles.detailCloseButtonText}>✕</Text>
+            </TouchableOpacity>
+
+            <ScrollView 
+              style={styles.detailScrollView}
+              contentContainerStyle={styles.detailScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Image Header - Only if prayer has image */}
+              {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
+                <Image 
+                  source={{ 
+                    uri: detailModal.prayer.picture.startsWith('http') 
+                      ? detailModal.prayer.picture 
+                      : `https://shouldcallpaul.replit.app/${detailModal.prayer.picture}` 
+                  }}
+                  style={styles.detailImage}
+                  resizeMode="cover"
+                />
+              )}
+
+              {/* Prayer Content Container */}
+              <View style={styles.detailContentContainer}>
+                {/* Prayer Count Badge */}
+                {detailModal.prayer?.prayer_count > 0 && (
+                  <View style={styles.detailPrayerCountBadge}>
+                    <Text style={styles.detailPrayerCountText}>
+                      🙏 {detailModal.prayer.prayer_count} {detailModal.prayer.prayer_count === 1 ? 'person' : 'people'} prayed
+                    </Text>
+                    {detailModal.prayer.prayed_by_names && detailModal.prayer.prayed_by_names.length > 0 && (
+                      <Text style={styles.detailPrayerNames}>
+                        {detailModal.prayer.prayed_by_names.join(', ')}
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Author Info */}
+                <View style={styles.detailAuthorRow}>
+                  <View style={styles.detailAuthorInfo}>
+                    <Text style={styles.detailAuthorName}>{detailModal.prayer?.author}</Text>
+                    <Text style={styles.detailDate}>{detailModal.prayer?.date}</Text>
+                  </View>
+                  {detailModal.prayer?.category && (
+                    <View style={styles.detailCategoryBadge}>
+                      <Text style={styles.detailCategoryText}>{detailModal.prayer.category}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Prayer Title */}
+                {detailModal.prayer?.title && (
+                  <Text style={styles.detailTitle}>{detailModal.prayer.title}</Text>
+                )}
+
+                {/* Prayer Content - Full text */}
+                <Text style={styles.detailPrayerText}>{detailModal.prayer?.content}</Text>
+              </View>
+            </ScrollView>
+
+            {/* Bottom Action Bar */}
+            <View style={styles.detailActionBar}>
+              <AnimatedButton 
+                style={[
+                  styles.detailPrayButton,
+                  detailModal.prayer?.user_has_prayed && styles.detailPrayButtonPrayed
+                ]} 
+                onPress={handlePrayFromDetailView}
+                data-testid="button-pray-detail"
+              >
+                <Text style={[
+                  styles.detailPrayButtonText,
+                  detailModal.prayer?.user_has_prayed && styles.detailPrayButtonTextPrayed
+                ]}>
+                  {detailModal.prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
+                </Text>
+              </AnimatedButton>
+            </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -4625,6 +4796,142 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     fontWeight: '600',
+  },
+  // Detail Modal Styles (Instagram-style full-screen prayer view)
+  detailModalOverlay: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  detailModalContent: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  detailCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailCloseButtonText: {
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  detailScrollView: {
+    flex: 1,
+  },
+  detailScrollContent: {
+    paddingBottom: 120,
+  },
+  detailImage: {
+    width: '100%',
+    height: 300,
+    backgroundColor: '#f0f0f0',
+  },
+  detailContentContainer: {
+    padding: 20,
+  },
+  detailPrayerCountBadge: {
+    backgroundColor: '#f0f4ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  detailPrayerCountText: {
+    fontSize: 15,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  detailPrayerNames: {
+    fontSize: 13,
+    color: '#1e40af',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  detailAuthorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detailAuthorInfo: {
+    flex: 1,
+  },
+  detailAuthorName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  detailDate: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  detailCategoryBadge: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  detailCategoryText: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+    lineHeight: 28,
+  },
+  detailPrayerText: {
+    fontSize: 17,
+    color: '#374151',
+    lineHeight: 26,
+    letterSpacing: 0.2,
+  },
+  detailActionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  detailPrayButton: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  detailPrayButtonPrayed: {
+    backgroundColor: '#10b981',
+  },
+  detailPrayButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  detailPrayButtonTextPrayed: {
+    color: '#ffffff',
   },
   // Rosary Styles
   rosaryButton: {

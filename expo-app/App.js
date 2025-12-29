@@ -3573,16 +3573,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <Modal
         visible={detailModal.visible}
         transparent={true}
-        animationType="none"
+        animationType="slide"
         statusBarTranslucent={true}
         onRequestClose={closeDetailModal}
       >
         <View style={styles.detailModalOverlay}>
-          {/* Close Button - OUTSIDE PanResponder so it always works */}
+          {/* Close Button */}
           <TouchableOpacity 
-            onPress={closeDetailModal} 
+            onPress={() => {
+              console.log('Close button pressed');
+              setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
+            }} 
             style={styles.detailCloseButton}
-            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             activeOpacity={0.6}
             data-testid="button-close-detail"
           >
@@ -3598,29 +3600,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           )}
 
-          {/* Content with swipe gestures */}
-          <Animated.View 
-            style={[
-              styles.detailSwipeContainer,
-              { 
-                opacity: detailModalOpacityAnim,
-                transform: [
-                  { translateY: detailModalSlideAnim },
-                  { translateX: detailSwipeAnim }
-                ] 
-              }
+          {/* Scrollable content */}
+          <ScrollView 
+            style={styles.detailScrollView}
+            contentContainerStyle={[
+              styles.detailScrollContent,
+              !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
             ]}
-            {...detailPanResponder.panHandlers}
+            showsVerticalScrollIndicator={false}
           >
-            {/* Scrollable content */}
-            <ScrollView 
-              style={styles.detailScrollView}
-              contentContainerStyle={[
-                styles.detailScrollContent,
-                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                   <Image 
@@ -3707,7 +3695,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
-          </Animated.View>
         </View>
       </Modal>
     </View>

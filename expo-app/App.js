@@ -3134,29 +3134,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           return filteredPrayers.map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
-              {/* Prayer Count Badge */}
+              {/* Prayer Count Badge - Opens detail view */}
               {prayer.prayer_count > 0 && (
                 <TouchableOpacity 
                   style={styles.prayerCountBadge}
-                  onPress={() => togglePrayerNames(prayer.id)}
+                  onPress={() => openDetailModal(prayer)}
                   data-testid={`badge-prayer-count-${prayer.id}`}
                 >
                   <Text style={styles.prayerCountText}>
-                    {prayer.prayer_count} {prayer.prayer_count === 1 ? 'person' : 'people'} prayed
-                  </Text>
-                  <Text style={styles.expandIcon}>
-                    {expandedPrayers[prayer.id] ? '▼' : '▶'}
+                    🙏 {prayer.prayer_count} {prayer.prayer_count === 1 ? 'person' : 'people'} prayed
                   </Text>
                 </TouchableOpacity>
-              )}
-              
-              {/* Expandable Names List */}
-              {expandedPrayers[prayer.id] && prayer.prayed_by_names && prayer.prayed_by_names.length > 0 && (
-                <View style={styles.prayerNamesList}>
-                  <Text style={styles.prayerNamesText}>
-                    {prayer.prayed_by_names.join(', ')}
-                  </Text>
-                </View>
               )}
 
               <TouchableOpacity 

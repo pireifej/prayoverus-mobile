@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -590,10 +590,12 @@ function App() {
   // Prayer Detail View Modal state (Instagram-style full-screen view)
   const [detailModal, setDetailModal] = useState({
     visible: false,
-    prayer: null
+    prayer: null,
+    prayerIndex: -1
   });
   const detailModalSlideAnim = useRef(new Animated.Value(1000)).current;
   const detailModalOpacityAnim = useRef(new Animated.Value(0)).current;
+  const detailSwipeAnim = useRef(new Animated.Value(0)).current;
   
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
@@ -1403,10 +1405,15 @@ Through Christ our Lord. Amen.`;
 
   // Open prayer detail view (Instagram-style full-screen view)
   const openDetailModal = (prayer) => {
+    const index = communityPrayers.findIndex(p => p.id === prayer.id);
     setDetailModal({
       visible: true,
-      prayer: prayer
+      prayer: prayer,
+      prayerIndex: index
     });
+    
+    // Reset swipe animation
+    detailSwipeAnim.setValue(0);
     
     // Slide-up animation
     Animated.parallel([
@@ -1424,6 +1431,87 @@ Through Christ our Lord. Amen.`;
     ]).start();
   };
 
+  // Navigate to next prayer in detail view
+  const navigateToNextPrayer = () => {
+    const nextIndex = detailModal.prayerIndex + 1;
+    if (nextIndex < communityPrayers.length) {
+      // Animate swipe left
+      Animated.timing(detailSwipeAnim, {
+        toValue: -400,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setDetailModal({
+          visible: true,
+          prayer: communityPrayers[nextIndex],
+          prayerIndex: nextIndex
+        });
+        detailSwipeAnim.setValue(400);
+        Animated.timing(detailSwipeAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  };
+
+  // Navigate to previous prayer in detail view
+  const navigateToPreviousPrayer = () => {
+    const prevIndex = detailModal.prayerIndex - 1;
+    if (prevIndex >= 0) {
+      // Animate swipe right
+      Animated.timing(detailSwipeAnim, {
+        toValue: 400,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setDetailModal({
+          visible: true,
+          prayer: communityPrayers[prevIndex],
+          prayerIndex: prevIndex
+        });
+        detailSwipeAnim.setValue(-400);
+        Animated.timing(detailSwipeAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  };
+
+  // PanResponder for swipe gestures in detail modal
+  const detailPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to horizontal swipes (not vertical scrolling)
+        return Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dy) < 50;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        detailSwipeAnim.setValue(gestureState.dx);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx < -100) {
+          // Swiped left - go to next
+          navigateToNextPrayer();
+        } else if (gestureState.dx > 100) {
+          // Swiped right - go to previous
+          navigateToPreviousPrayer();
+        } else {
+          // Return to center
+          Animated.spring(detailSwipeAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   // Close prayer detail view
   const closeDetailModal = () => {
     Animated.parallel([
@@ -1438,7 +1526,7 @@ Through Christ our Lord. Amen.`;
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setDetailModal({ visible: false, prayer: null });
+      setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
     });
   };
 
@@ -3462,9 +3550,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               styles.detailModalContent,
               { 
                 opacity: detailModalOpacityAnim,
-                transform: [{ translateY: detailModalSlideAnim }] 
+                transform: [
+                  { translateY: detailModalSlideAnim },
+                  { translateX: detailSwipeAnim }
+                ] 
               }
             ]}
+            {...detailPanResponder.panHandlers}
           >
             {/* Close Button - larger and moved inward */}
             <TouchableOpacity 
@@ -3476,6 +3568,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <Text style={styles.detailCloseButtonText}>✕</Text>
             </TouchableOpacity>
+
+            {/* Swipe indicator - shows position in prayer list */}
+            {communityPrayers.length > 1 && detailModal.prayerIndex >= 0 && (
+              <View style={styles.detailSwipeIndicator}>
+                <Text style={styles.detailSwipeIndicatorText}>
+                  {detailModal.prayerIndex + 1} / {communityPrayers.length}
+                </Text>
+              </View>
+            )}
 
             {/* Scrollable content - Pressable wrapper stops propagation to overlay */}
             <Pressable onPress={(e) => e.stopPropagation()}>
@@ -4837,6 +4938,23 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#ffffff',
     fontWeight: 'bold',
+  },
+  detailSwipeIndicator: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  detailSwipeIndicatorText: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.5)',
+    fontWeight: '600',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   detailScrollView: {
     flex: 1,

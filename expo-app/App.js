@@ -3561,53 +3561,48 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         statusBarTranslucent={true}
         onRequestClose={closeDetailModal}
       >
-        <Pressable 
-          style={styles.detailModalOverlay}
-          onPress={closeDetailModal}
+        <Animated.View 
+          style={[
+            styles.detailModalOverlay,
+            { 
+              opacity: detailModalOpacityAnim,
+              transform: [
+                { translateY: detailModalSlideAnim },
+                { translateX: detailSwipeAnim }
+              ] 
+            }
+          ]}
+          {...detailPanResponder.panHandlers}
         >
-          <Animated.View 
-            style={[
-              styles.detailModalContent,
-              { 
-                opacity: detailModalOpacityAnim,
-                transform: [
-                  { translateY: detailModalSlideAnim },
-                  { translateX: detailSwipeAnim }
-                ] 
-              }
-            ]}
-            {...detailPanResponder.panHandlers}
+          {/* Close Button - larger and moved inward */}
+          <TouchableOpacity 
+            onPress={closeDetailModal} 
+            style={styles.detailCloseButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            activeOpacity={0.6}
+            data-testid="button-close-detail"
           >
-            {/* Close Button - larger and moved inward */}
-            <TouchableOpacity 
-              onPress={closeDetailModal} 
-              style={styles.detailCloseButton}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-              activeOpacity={0.6}
-              data-testid="button-close-detail"
-            >
-              <Text style={styles.detailCloseButtonText}>✕</Text>
-            </TouchableOpacity>
+            <Text style={styles.detailCloseButtonText}>✕</Text>
+          </TouchableOpacity>
 
-            {/* Swipe indicator - shows position in prayer list */}
-            {communityPrayers.length > 1 && detailModal.prayerIndex >= 0 && (
-              <View style={styles.detailSwipeIndicator}>
-                <Text style={styles.detailSwipeIndicatorText}>
-                  {detailModal.prayerIndex + 1} / {communityPrayers.length}
-                </Text>
-              </View>
-            )}
+          {/* Swipe indicator - shows position in prayer list */}
+          {communityPrayers.length > 1 && detailModal.prayerIndex >= 0 && (
+            <View style={styles.detailSwipeIndicator}>
+              <Text style={styles.detailSwipeIndicatorText}>
+                {detailModal.prayerIndex + 1} / {communityPrayers.length}
+              </Text>
+            </View>
+          )}
 
-            {/* Scrollable content - Pressable wrapper stops propagation to overlay */}
-            <Pressable onPress={(e) => e.stopPropagation()}>
-              <ScrollView 
-                style={styles.detailScrollView}
-                contentContainerStyle={[
-                  styles.detailScrollContent,
-                  !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
-                ]}
-                showsVerticalScrollIndicator={false}
-              >
+          {/* Scrollable content */}
+          <ScrollView 
+            style={styles.detailScrollView}
+            contentContainerStyle={[
+              styles.detailScrollContent,
+              !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                   <Image 
@@ -3694,9 +3689,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
-          </Pressable>
         </Animated.View>
-      </Pressable>
     </Modal>
     </View>
   );

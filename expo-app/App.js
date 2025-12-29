@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -3446,62 +3446,65 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* Prayer Detail View Modal - Instagram-style full-screen view */}
       <Modal
         visible={detailModal.visible}
-        transparent={false}
-        animationType="slide"
+        transparent={true}
+        animationType="none"
         statusBarTranslucent={true}
         onRequestClose={closeDetailModal}
       >
-        <Animated.View 
-          style={[
-            styles.detailModalOverlay,
-            { opacity: detailModalOpacityAnim }
-          ]}
-        >
+        <View style={styles.detailModalOverlay}>
+          {/* Background tap layer - catches taps on empty space */}
+          <Pressable 
+            style={StyleSheet.absoluteFill} 
+            onPress={closeDetailModal}
+          />
+          
+          {/* Content container - pointerEvents box-none lets taps pass through empty areas */}
           <Animated.View 
             style={[
               styles.detailModalContent,
-              { transform: [{ translateY: detailModalSlideAnim }] }
+              { 
+                opacity: detailModalOpacityAnim,
+                transform: [{ translateY: detailModalSlideAnim }] 
+              }
             ]}
+            pointerEvents="box-none"
           >
-            {/* Tap on background to close - positioned behind everything */}
-            <Pressable 
-              style={StyleSheet.absoluteFill} 
-              onPress={closeDetailModal}
-            />
-
-            {/* Close Button - with larger hit area, on top */}
+            {/* Close Button - always on top */}
             <TouchableOpacity 
               onPress={closeDetailModal} 
               style={styles.detailCloseButton}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              activeOpacity={0.7}
               data-testid="button-close-detail"
             >
               <Text style={styles.detailCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
-            <ScrollView 
-              style={styles.detailScrollView}
-              contentContainerStyle={[
-                styles.detailScrollContent,
-                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Image Header - Only if prayer has image (edge-to-edge) */}
-              {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
-                <Image 
-                  source={{ 
-                    uri: detailModal.prayer.picture.startsWith('http') 
-                      ? detailModal.prayer.picture 
-                      : `https://shouldcallpaul.replit.app/${detailModal.prayer.picture}` 
-                  }}
-                  style={styles.detailImage}
-                  resizeMode="cover"
-                />
-              )}
+            {/* Scrollable content - wrapped to stop tap propagation */}
+            <TouchableWithoutFeedback>
+              <ScrollView 
+                style={styles.detailScrollView}
+                contentContainerStyle={[
+                  styles.detailScrollContent,
+                  !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
+                ]}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Image Header - Only if prayer has image (edge-to-edge) */}
+                {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
+                  <Image 
+                    source={{ 
+                      uri: detailModal.prayer.picture.startsWith('http') 
+                        ? detailModal.prayer.picture 
+                        : `https://shouldcallpaul.replit.app/${detailModal.prayer.picture}` 
+                    }}
+                    style={styles.detailImage}
+                    resizeMode="cover"
+                  />
+                )}
 
-              {/* Prayer Content Container - with padding - stops tap propagation */}
-              <Pressable style={styles.detailContentContainer} onPress={() => {}}>
+                {/* Prayer Content Container */}
+                <View style={styles.detailContentContainer}>
                 {/* Prayer Count Badge with Facebook-style names list */}
                 {detailModal.prayer?.prayer_count > 0 && (
                   <View style={styles.detailPrayerCountBadge}>
@@ -3564,11 +3567,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </Text>
                   </AnimatedButton>
                 </View>
-              </Pressable>
+              </View>
             </ScrollView>
-          </Animated.View>
+          </TouchableWithoutFeedback>
         </Animated.View>
-      </Modal>
+      </View>
+    </Modal>
     </View>
   );
 }

@@ -3517,16 +3517,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       <View style={styles.detailPrayerNamesList}>
                         {detailModal.prayer.prayed_by_names.map((name, index) => (
                           <View key={index} style={styles.detailPrayerNameRow}>
-                            <Image 
-                              source={{ 
-                                uri: detailModal.prayer.prayed_by_pictures?.[index] 
-                                  ? (detailModal.prayer.prayed_by_pictures[index].startsWith('http') 
-                                      ? detailModal.prayer.prayed_by_pictures[index]
-                                      : `https://shouldcallpaul.replit.app/${detailModal.prayer.prayed_by_pictures[index]}`)
-                                  : 'https://via.placeholder.com/32/e2e8f0/6366f1?text=' + name.charAt(0).toUpperCase()
-                              }}
-                              style={styles.detailPrayerNameAvatar}
-                            />
+                            <View style={styles.detailPrayerNameAvatar}>
+                              <Text style={styles.detailPrayerNameAvatarText}>
+                                {name.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
                             <Text style={styles.detailPrayerNameText}>{name}</Text>
                           </View>
                         ))}
@@ -4885,7 +4880,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailPrayerNameAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   detailPrayerNameText: {
     fontSize: 14,

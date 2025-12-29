@@ -3574,13 +3574,80 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         visible={detailModal.visible}
         transparent={false}
         animationType="slide"
-        statusBarTranslucent={true}
         onRequestClose={() => setDetailModal({ visible: false, prayer: null, prayerIndex: -1 })}
       >
         <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
-          {/* Scrollable content - render first so button is on top */}
+          {/* Fixed Header Bar with Close Button */}
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            paddingTop: 50, 
+            paddingHorizontal: 16, 
+            paddingBottom: 12,
+            backgroundColor: '#ffffff',
+            borderBottomWidth: 1,
+            borderBottomColor: '#e5e7eb',
+          }}>
+            {/* Left: Swipe navigation buttons */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  const filteredPrayers = getFilteredPrayers();
+                  if (detailModal.prayerIndex > 0) {
+                    const prevIndex = detailModal.prayerIndex - 1;
+                    setDetailModal({ visible: true, prayer: filteredPrayers[prevIndex], prayerIndex: prevIndex });
+                  }
+                }}
+                disabled={detailModal.prayerIndex <= 0}
+                style={{ 
+                  width: 36, height: 36, borderRadius: 18, 
+                  backgroundColor: detailModal.prayerIndex > 0 ? '#6366f1' : '#e5e7eb',
+                  justifyContent: 'center', alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: detailModal.prayerIndex > 0 ? '#fff' : '#9ca3af', fontSize: 18 }}>←</Text>
+              </TouchableOpacity>
+              
+              <Text style={{ fontSize: 14, color: '#6b7280' }}>
+                {detailModal.prayerIndex + 1} / {getFilteredPrayers().length}
+              </Text>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  const filteredPrayers = getFilteredPrayers();
+                  if (detailModal.prayerIndex < filteredPrayers.length - 1) {
+                    const nextIndex = detailModal.prayerIndex + 1;
+                    setDetailModal({ visible: true, prayer: filteredPrayers[nextIndex], prayerIndex: nextIndex });
+                  }
+                }}
+                disabled={detailModal.prayerIndex >= getFilteredPrayers().length - 1}
+                style={{ 
+                  width: 36, height: 36, borderRadius: 18, 
+                  backgroundColor: detailModal.prayerIndex < getFilteredPrayers().length - 1 ? '#6366f1' : '#e5e7eb',
+                  justifyContent: 'center', alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: detailModal.prayerIndex < getFilteredPrayers().length - 1 ? '#fff' : '#9ca3af', fontSize: 18 }}>→</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Right: Close button */}
+            <TouchableOpacity 
+              onPress={() => setDetailModal({ visible: false, prayer: null, prayerIndex: -1 })}
+              style={{ 
+                width: 36, height: 36, borderRadius: 18, 
+                backgroundColor: '#f3f4f6',
+                justifyContent: 'center', alignItems: 'center'
+              }}
+            >
+              <Text style={{ fontSize: 18, color: '#374151', fontWeight: '600' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Scrollable content */}
           <ScrollView 
-            style={{ flex: 1, marginTop: 100 }}
+            style={{ flex: 1 }}
             contentContainerStyle={[
               styles.detailScrollContent,
               !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
@@ -3673,54 +3740,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             </ScrollView>
-
-          {/* Close Button - rendered AFTER ScrollView so it's on top */}
-          <Pressable 
-            onPress={() => {
-              console.log('Close button pressed!');
-              setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
-            }} 
-            style={{
-              position: 'absolute',
-              top: 50,
-              right: 20,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 9999,
-              elevation: 10,
-            }}
-            data-testid="button-close-detail"
-          >
-            <Text style={{ fontSize: 22, color: '#ffffff', fontWeight: 'bold' }}>✕</Text>
-          </Pressable>
-
-          {/* Swipe indicator */}
-          {getFilteredPrayers().length > 1 && detailModal.prayerIndex >= 0 && (
-            <View style={{
-              position: 'absolute',
-              top: 54,
-              left: 0,
-              right: 0,
-              alignItems: 'center',
-              zIndex: 9998,
-            }}>
-              <Text style={{
-                fontSize: 14,
-                color: 'rgba(0, 0, 0, 0.5)',
-                fontWeight: '600',
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                paddingHorizontal: 12,
-                paddingVertical: 4,
-                borderRadius: 12,
-              }}>
-                {detailModal.prayerIndex + 1} / {getFilteredPrayers().length}
-              </Text>
-            </View>
-          )}
         </View>
       </Modal>
     </View>

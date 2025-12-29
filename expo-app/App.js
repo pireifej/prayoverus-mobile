@@ -1431,57 +1431,20 @@ Through Christ our Lord. Amen.`;
     ]).start();
   };
 
-  // Navigate to next prayer in detail view
-  const navigateToNextPrayer = () => {
-    const nextIndex = detailModal.prayerIndex + 1;
-    if (nextIndex < communityPrayers.length) {
-      // Animate swipe left
-      Animated.timing(detailSwipeAnim, {
-        toValue: -400,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => {
-        setDetailModal({
-          visible: true,
-          prayer: communityPrayers[nextIndex],
-          prayerIndex: nextIndex
-        });
-        detailSwipeAnim.setValue(400);
-        Animated.timing(detailSwipeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-      });
-    }
-  };
+  // Refs to hold current state for PanResponder (avoids stale closure)
+  const detailModalRef = useRef(detailModal);
+  const communityPrayersRef = useRef(communityPrayers);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    detailModalRef.current = detailModal;
+  }, [detailModal]);
+  
+  useEffect(() => {
+    communityPrayersRef.current = communityPrayers;
+  }, [communityPrayers]);
 
-  // Navigate to previous prayer in detail view
-  const navigateToPreviousPrayer = () => {
-    const prevIndex = detailModal.prayerIndex - 1;
-    if (prevIndex >= 0) {
-      // Animate swipe right
-      Animated.timing(detailSwipeAnim, {
-        toValue: 400,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => {
-        setDetailModal({
-          visible: true,
-          prayer: communityPrayers[prevIndex],
-          prayerIndex: prevIndex
-        });
-        detailSwipeAnim.setValue(-400);
-        Animated.timing(detailSwipeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-      });
-    }
-  };
-
-  // PanResponder for swipe gestures in detail modal
+  // PanResponder for swipe gestures in detail modal - defined inline to access refs
   const detailPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -1493,14 +1456,71 @@ Through Christ our Lord. Amen.`;
         detailSwipeAnim.setValue(gestureState.dx);
       },
       onPanResponderRelease: (evt, gestureState) => {
+        const currentIndex = detailModalRef.current.prayerIndex;
+        const prayers = communityPrayersRef.current;
+        
         if (gestureState.dx < -100) {
           // Swiped left - go to next
-          navigateToNextPrayer();
+          const nextIndex = currentIndex + 1;
+          if (nextIndex < prayers.length) {
+            Animated.timing(detailSwipeAnim, {
+              toValue: -400,
+              duration: 150,
+              useNativeDriver: true,
+            }).start(() => {
+              setDetailModal({
+                visible: true,
+                prayer: prayers[nextIndex],
+                prayerIndex: nextIndex
+              });
+              detailSwipeAnim.setValue(400);
+              Animated.timing(detailSwipeAnim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+              }).start();
+            });
+          } else {
+            // Bounce back - at last prayer
+            Animated.spring(detailSwipeAnim, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 10,
+            }).start();
+          }
         } else if (gestureState.dx > 100) {
           // Swiped right - go to previous
-          navigateToPreviousPrayer();
+          const prevIndex = currentIndex - 1;
+          if (prevIndex >= 0) {
+            Animated.timing(detailSwipeAnim, {
+              toValue: 400,
+              duration: 150,
+              useNativeDriver: true,
+            }).start(() => {
+              setDetailModal({
+                visible: true,
+                prayer: prayers[prevIndex],
+                prayerIndex: prevIndex
+              });
+              detailSwipeAnim.setValue(-400);
+              Animated.timing(detailSwipeAnim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+              }).start();
+            });
+          } else {
+            // Bounce back - at first prayer
+            Animated.spring(detailSwipeAnim, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 10,
+            }).start();
+          }
         } else {
-          // Return to center
+          // Return to center - not enough swipe
           Animated.spring(detailSwipeAnim, {
             toValue: 0,
             useNativeDriver: true,

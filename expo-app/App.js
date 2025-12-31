@@ -1465,106 +1465,119 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
   }, [communityPrayers, hideAlreadyPrayed]);
 
-  // PanResponder for swipe gestures in detail modal - captures horizontal swipes only
-  const detailPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond to horizontal swipes (10px threshold, more horizontal than vertical)
-        const isHorizontal = Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
-        return isHorizontal;
-      },
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        // Capture horizontal swipes more aggressively on Android
-        const isHorizontal = Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
-        return isHorizontal;
-      },
-      onPanResponderGrant: () => {
-        // Reset animation value when gesture starts
-        detailSwipeAnim.setOffset(0);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        // Limit the swipe range for visual feedback
-        const clampedDx = Math.max(-150, Math.min(150, gestureState.dx));
-        detailSwipeAnim.setValue(clampedDx);
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        detailSwipeAnim.flattenOffset();
-        const currentIndex = detailModalRef.current.prayerIndex;
-        const prayers = filteredPrayersRef.current;
-        
-        if (gestureState.dx < -80) {
-          // Swiped left - go to next
-          const nextIndex = currentIndex + 1;
-          if (nextIndex < prayers.length) {
-            Animated.timing(detailSwipeAnim, {
-              toValue: -400,
-              duration: 150,
-              useNativeDriver: true,
-            }).start(() => {
-              setDetailModal({
-                visible: true,
-                prayer: prayers[nextIndex],
-                prayerIndex: nextIndex
-              });
-              detailSwipeAnim.setValue(400);
-              Animated.timing(detailSwipeAnim, {
-                toValue: 0,
-                duration: 150,
-                useNativeDriver: true,
-              }).start();
-            });
-          } else {
-            // Bounce back - at last prayer
-            Animated.spring(detailSwipeAnim, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 10,
-            }).start();
-          }
-        } else if (gestureState.dx > 80) {
-          // Swiped right - go to previous
-          const prevIndex = currentIndex - 1;
-          if (prevIndex >= 0) {
-            Animated.timing(detailSwipeAnim, {
-              toValue: 400,
-              duration: 150,
-              useNativeDriver: true,
-            }).start(() => {
-              setDetailModal({
-                visible: true,
-                prayer: prayers[prevIndex],
-                prayerIndex: prevIndex
-              });
-              detailSwipeAnim.setValue(-400);
-              Animated.timing(detailSwipeAnim, {
-                toValue: 0,
-                duration: 150,
-                useNativeDriver: true,
-              }).start();
-            });
-          } else {
-            // Bounce back - at first prayer
-            Animated.spring(detailSwipeAnim, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 10,
-            }).start();
-          }
-        } else {
-          // Return to center - not enough swipe
-          Animated.spring(detailSwipeAnim, {
+  // Touch tracking state for swipe gestures
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwipeGesture = useRef(false);
+  
+  // Handle swipe navigation
+  const handleSwipeNavigation = (direction) => {
+    const currentIndex = detailModalRef.current.prayerIndex;
+    const prayers = filteredPrayersRef.current;
+    
+    if (direction === 'left') {
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < prayers.length) {
+        Animated.timing(detailSwipeAnim, {
+          toValue: -400,
+          duration: 150,
+          useNativeDriver: true,
+        }).start(() => {
+          setDetailModal({
+            visible: true,
+            prayer: prayers[nextIndex],
+            prayerIndex: nextIndex
+          });
+          detailSwipeAnim.setValue(400);
+          Animated.timing(detailSwipeAnim, {
             toValue: 0,
+            duration: 150,
             useNativeDriver: true,
-            tension: 100,
-            friction: 10,
           }).start();
-        }
-      },
-    })
-  ).current;
+        });
+      } else {
+        Animated.spring(detailSwipeAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 10,
+        }).start();
+      }
+    } else if (direction === 'right') {
+      const prevIndex = currentIndex - 1;
+      if (prevIndex >= 0) {
+        Animated.timing(detailSwipeAnim, {
+          toValue: 400,
+          duration: 150,
+          useNativeDriver: true,
+        }).start(() => {
+          setDetailModal({
+            visible: true,
+            prayer: prayers[prevIndex],
+            prayerIndex: prevIndex
+          });
+          detailSwipeAnim.setValue(-400);
+          Animated.timing(detailSwipeAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+        });
+      } else {
+        Animated.spring(detailSwipeAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 10,
+        }).start();
+      }
+    } else {
+      Animated.spring(detailSwipeAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 10,
+      }).start();
+    }
+  };
+  
+  // Touch event handlers for swipe detection
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.nativeEvent.pageX;
+    touchStartY.current = e.nativeEvent.pageY;
+    isSwipeGesture.current = false;
+  };
+  
+  const handleTouchMove = (e) => {
+    const dx = e.nativeEvent.pageX - touchStartX.current;
+    const dy = e.nativeEvent.pageY - touchStartY.current;
+    
+    // Check if this is a horizontal swipe (more horizontal than vertical)
+    if (Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      isSwipeGesture.current = true;
+      const clampedDx = Math.max(-150, Math.min(150, dx));
+      detailSwipeAnim.setValue(clampedDx);
+    }
+  };
+  
+  const handleTouchEnd = (e) => {
+    if (!isSwipeGesture.current) {
+      detailSwipeAnim.setValue(0);
+      return;
+    }
+    
+    const dx = e.nativeEvent.pageX - touchStartX.current;
+    
+    if (dx < -80) {
+      handleSwipeNavigation('left');
+    } else if (dx > 80) {
+      handleSwipeNavigation('right');
+    } else {
+      handleSwipeNavigation(null);
+    }
+    
+    isSwipeGesture.current = false;
+  };
 
   // Close prayer detail view
   const closeDetailModal = () => {
@@ -3678,7 +3691,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {/* Swipeable content container */}
           <Animated.View 
             style={{ flex: 1, transform: [{ translateX: detailSwipeAnim }] }}
-            {...detailPanResponder.panHandlers}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             <ScrollView 
               style={{ flex: 1 }}

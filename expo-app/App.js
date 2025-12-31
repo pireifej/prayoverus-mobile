@@ -142,7 +142,7 @@ function HtmlText({ html, style }) {
   };
   
   return (
-    <Text style={style}>
+    <Text style={style} selectable={true}>
       {splits.map((part, index) => (
         <Text key={index} style={part.bold ? { fontWeight: 'bold' } : {}}>
           {decodeHtml(part.text)}
@@ -4054,11 +4054,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
                 {/* Prayer Title */}
                 {detailModal.prayer?.title && (
-                  <Text style={styles.detailTitle}>{detailModal.prayer.title}</Text>
+                  <Text style={styles.detailTitle} selectable={true}>{detailModal.prayer.title}</Text>
                 )}
 
-                {/* Prayer Content - Full text */}
-                <Text style={styles.detailPrayerText}>{detailModal.prayer?.content}</Text>
+                {/* Prayer Content - Full text (selectable for copy/paste) */}
+                <Text style={styles.detailPrayerText} selectable={true}>{detailModal.prayer?.content}</Text>
 
                 {/* DISABLED: Collapsible Generated Prayer Section and Swipe Hint - keeping code for future use */}
 

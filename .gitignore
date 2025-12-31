@@ -97,4 +97,4 @@ temp/
 .local/
 
 # Attached assets (uploaded during Replit Agent conversations)
-attached_assets/
+attached_assets/expo-app/firebase-service-account.json

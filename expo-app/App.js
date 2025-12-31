@@ -746,8 +746,14 @@ function App() {
         console.log('📱 Found deep link prayer, opening full-screen detail view:', prayer.title);
         // Find the index in community prayers for swipe navigation
         const prayerIndex = communityPrayers.findIndex(p => p.id === pendingDeepLinkPrayerId);
+        
+        // Update refs IMMEDIATELY so swipe handlers have correct values
+        const newModalState = { visible: true, prayer: prayer, prayerIndex: prayerIndex };
+        detailModalRef.current = newModalState;
+        filteredPrayersRef.current = communityPrayers;
+        
         // Open the full-screen detail modal instead of generatePrayer
-        setDetailModal({ visible: true, prayer: prayer, prayerIndex: prayerIndex });
+        setDetailModal(newModalState);
         // Make sure we're on the home screen to see the modal
         setCurrentScreen('home');
         setPendingDeepLinkPrayerId(null);
@@ -1422,11 +1428,17 @@ Through Christ our Lord. Amen.`;
     // Find index in the FILTERED prayers list (what's currently displayed)
     const filtered = getFilteredPrayers();
     const index = filtered.findIndex(p => p.id === prayer.id);
-    setDetailModal({
+    
+    // Update refs IMMEDIATELY so swipe handlers have correct values
+    const newModalState = {
       visible: true,
       prayer: prayer,
       prayerIndex: index
-    });
+    };
+    detailModalRef.current = newModalState;
+    filteredPrayersRef.current = filtered;
+    
+    setDetailModal(newModalState);
     
     // Reset swipe animation
     detailSwipeAnim.setValue(0);

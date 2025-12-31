@@ -222,10 +222,28 @@ function AnimatedButton({ children, onPress, style, disabled, ...props }) {
   );
 }
 
+// Helper function for base64 encoding (used by PrayerOptionsMenu)
+const base64EncodeForMenu = (str) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  for (let i = 0; i < str.length; i += 3) {
+    const chr1 = str.charCodeAt(i);
+    const chr2 = str.charCodeAt(i + 1);
+    const chr3 = str.charCodeAt(i + 2);
+    const enc1 = chr1 >> 2;
+    const enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+    const enc3 = isNaN(chr2) ? 64 : ((chr2 & 15) << 2) | (chr3 >> 6);
+    const enc4 = isNaN(chr3) ? 64 : chr3 & 63;
+    output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
+  }
+  return output;
+};
+
 // Prayer Options Menu Component - Three dots menu for edit/delete/share
 function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, isProfileSection = false }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
   
   // Check if current user owns this prayer
   const isOwner = prayer.user_id && currentUserId && 
@@ -247,6 +265,54 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
       if (error.message !== 'User did not share') {
         console.log('Share error:', error);
       }
+    }
+  };
+  
+  const handleCopyRequestText = () => {
+    setMenuVisible(false);
+    const textToCopy = prayer.title 
+      ? `${prayer.title}\n\n${prayer.content}` 
+      : prayer.content;
+    Clipboard.setString(textToCopy);
+    Alert.alert('Copied', 'Request text copied to clipboard');
+  };
+  
+  const handleCopyPrayerText = async () => {
+    setIsCopyingPrayer(true);
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64EncodeForMenu('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ requestId: prayer.id }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === 0 && data.prayerText) {
+          // Strip HTML tags from prayer text
+          const plainText = data.prayerText.replace(/<[^>]*>/g, '');
+          Clipboard.setString(plainText);
+          setMenuVisible(false);
+          Alert.alert('Copied', 'Prayer text copied to clipboard');
+        } else {
+          setMenuVisible(false);
+          Alert.alert('Error', 'Could not fetch prayer text');
+        }
+      } else {
+        setMenuVisible(false);
+        Alert.alert('Error', 'Could not fetch prayer text');
+      }
+    } catch (error) {
+      console.log('Error fetching prayer text:', error);
+      setMenuVisible(false);
+      Alert.alert('Error', 'Could not fetch prayer text');
+    } finally {
+      setIsCopyingPrayer(false);
     }
   };
   
@@ -299,6 +365,29 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
             >
               <Text style={optionsMenuStyles.menuIcon}>🔗</Text>
               <Text style={optionsMenuStyles.menuItemText}>Share Prayer</Text>
+            </TouchableOpacity>
+            
+            {/* Copy Request Text - Always visible */}
+            <TouchableOpacity 
+              style={optionsMenuStyles.menuItem}
+              onPress={handleCopyRequestText}
+              data-testid={`button-copy-request-${prayer.id}`}
+            >
+              <Text style={optionsMenuStyles.menuIcon}>📋</Text>
+              <Text style={optionsMenuStyles.menuItemText}>Copy Request Text</Text>
+            </TouchableOpacity>
+            
+            {/* Copy Prayer Text - Always visible */}
+            <TouchableOpacity 
+              style={optionsMenuStyles.menuItem}
+              onPress={handleCopyPrayerText}
+              disabled={isCopyingPrayer}
+              data-testid={`button-copy-prayer-${prayer.id}`}
+            >
+              <Text style={optionsMenuStyles.menuIcon}>{isCopyingPrayer ? '⏳' : '🙏'}</Text>
+              <Text style={optionsMenuStyles.menuItemText}>
+                {isCopyingPrayer ? 'Loading...' : 'Copy Prayer Text'}
+              </Text>
             </TouchableOpacity>
             
             {/* Edit - Owner only */}

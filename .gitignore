@@ -95,3 +95,6 @@ temp/
 
 # Local development
 .local/
+
+# Attached assets (uploaded during Replit Agent conversations)
+attached_assets/

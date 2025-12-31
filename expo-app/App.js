@@ -3853,12 +3853,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           </View>
 
-          {/* Swipeable content container */}
+          {/* Swipeable content container - swipe handlers disabled for now */}
           <Animated.View 
             style={{ flex: 1, transform: [{ translateX: detailSwipeAnim }] }}
+            /* DISABLED: Swipe-to-pray feature (keeping code for future use)
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            */
           >
             <ScrollView 
               style={{ flex: 1 }}
@@ -3941,39 +3943,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 {/* Prayer Content - Full text */}
                 <Text style={styles.detailPrayerText}>{detailModal.prayer?.content}</Text>
 
-                {/* Collapsible Generated Prayer Section */}
-                <TouchableOpacity 
-                  style={styles.generatedPrayerToggle}
-                  onPress={() => setDetailGeneratedPrayer(prev => ({ ...prev, collapsed: !prev.collapsed }))}
-                  data-testid="button-toggle-generated-prayer"
-                >
-                  <Text style={styles.generatedPrayerToggleText}>
-                    {detailGeneratedPrayer.collapsed ? '📖 Show Prayer to Recite' : '📖 Hide Prayer'}
-                  </Text>
-                  <Text style={styles.generatedPrayerToggleArrow}>
-                    {detailGeneratedPrayer.collapsed ? '▼' : '▲'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {!detailGeneratedPrayer.collapsed && (
-                  <View style={styles.generatedPrayerContainer}>
-                    {detailGeneratedPrayer.loading ? (
-                      <View style={styles.generatedPrayerLoading}>
-                        <PrayerHandsLoader />
-                        <Text style={styles.generatedPrayerLoadingText}>Loading prayer...</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.generatedPrayerText}>{detailGeneratedPrayer.text}</Text>
-                    )}
-                  </View>
-                )}
-
-                {/* Swipe Hint */}
-                <View style={styles.swipeHintContainer}>
-                  <Text style={styles.swipeHintText}>
-                    ← Swipe left to skip • Swipe right to pray →
-                  </Text>
-                </View>
+                {/* DISABLED: Collapsible Generated Prayer Section and Swipe Hint - keeping code for future use */}
 
                 {/* Pray Button - flows with content */}
                 <View style={styles.detailActionContainer}>

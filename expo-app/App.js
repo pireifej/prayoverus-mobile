@@ -760,20 +760,15 @@ function App() {
     if (pendingDeepLinkPrayerId && communityPrayers.length > 0) {
       const prayer = communityPrayers.find(p => p.id === pendingDeepLinkPrayerId);
       if (prayer) {
-        console.log('📱 Found deep link prayer, opening full-screen detail view:', prayer.title);
-        // Find the index in community prayers for swipe navigation
-        const prayerIndex = communityPrayers.findIndex(p => p.id === pendingDeepLinkPrayerId);
-        
-        // Update refs IMMEDIATELY so swipe handlers have correct values
-        const newModalState = { visible: true, prayer: prayer, prayerIndex: prayerIndex };
-        detailModalRef.current = newModalState;
-        filteredPrayersRef.current = communityPrayers;
-        
-        // Open the full-screen detail modal instead of generatePrayer
-        setDetailModal(newModalState);
-        // Make sure we're on the home screen to see the modal
+        console.log('📱 Found deep link prayer, opening request detail view:', prayer.title);
+        // Make sure we're on the home screen first
         setCurrentScreen('home');
         setPendingDeepLinkPrayerId(null);
+        
+        // Small delay to ensure home screen is rendered, then open detail modal with animation
+        setTimeout(() => {
+          openDetailModal(prayer);
+        }, 100);
       } else {
         console.log('📱 Deep link prayer not found in current feed, ID:', pendingDeepLinkPrayerId);
         Alert.alert('Prayer Not Found', 'This prayer request may have been deleted or is no longer available.');

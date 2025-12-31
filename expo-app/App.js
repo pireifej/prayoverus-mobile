@@ -152,6 +152,58 @@ function HtmlText({ html, style }) {
   );
 }
 
+// Helper function to format relative time (e.g., "5 minutes ago", "4 hours ago")
+function getRelativeTime(dateString) {
+  if (!dateString) return '';
+  
+  // Parse different date formats
+  let date;
+  
+  // Check if it's already a relative format like "2 hours ago"
+  if (dateString.includes('ago') || dateString.includes('just now')) {
+    return dateString;
+  }
+  
+  // Try parsing as a date
+  if (dateString.includes('/')) {
+    // Format: MM/DD/YYYY or similar
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      date = new Date(parts[2], parts[0] - 1, parts[1]);
+    }
+  } else if (dateString.includes('-')) {
+    // Format: YYYY-MM-DD
+    date = new Date(dateString);
+  } else {
+    // Try natural language like "December 31, 2025"
+    date = new Date(dateString);
+  }
+  
+  if (!date || isNaN(date.getTime())) {
+    return dateString; // Return original if parsing failed
+  }
+  
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffSeconds < 60) {
+    return 'just now';
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  } else {
+    // Return original date for older dates
+    return dateString;
+  }
+}
+
 // Animated Prayer Hands Component
 function PrayerHandsLoader() {
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -3981,10 +4033,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           >
             <ScrollView 
               style={{ flex: 1 }}
-              contentContainerStyle={[
-                styles.detailScrollContent,
-                !(detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '') && styles.detailScrollContentCentered
-              ]}
+              contentContainerStyle={styles.detailScrollContent}
               showsVerticalScrollIndicator={true}
               bounces={false}
               alwaysBounceVertical={false}
@@ -3994,7 +4043,34 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
             >
-                {/* Image Header - Only if prayer has image (edge-to-edge) */}
+                {/* Prayer Content Container */}
+                <View style={styles.detailContentContainer}>
+                  {/* 1. Title - Large heading at top */}
+                  {detailModal.prayer?.title && (
+                    <Text style={styles.detailTitleLarge} selectable={true}>{detailModal.prayer.title}</Text>
+                  )}
+
+                  {/* 2. Author First Name + Relative Time */}
+                  <View style={styles.detailAuthorTimeRow}>
+                    <Text style={styles.detailAuthorFirstName}>
+                      {detailModal.prayer?.author?.split(' ')[0] || detailModal.prayer?.author}
+                    </Text>
+                    <Text style={styles.detailTimeDot}> • </Text>
+                    <Text style={styles.detailRelativeTime}>
+                      {getRelativeTime(detailModal.prayer?.date)}
+                    </Text>
+                    {detailModal.prayer?.category && (
+                      <>
+                        <Text style={styles.detailTimeDot}> • </Text>
+                        <View style={styles.detailCategoryBadgeSmall}>
+                          <Text style={styles.detailCategoryTextSmall}>{detailModal.prayer.category}</Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </View>
+
+                {/* 3. Image Banner - Full width (if exists) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (
                   <Image 
                     source={{ 
@@ -4002,85 +4078,66 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         ? detailModal.prayer.picture 
                         : `https://shouldcallpaul.replit.app/${detailModal.prayer.picture}` 
                     }}
-                    style={styles.detailImage}
+                    style={styles.detailImageBanner}
                     resizeMode="cover"
                   />
                 )}
 
-                {/* Prayer Content Container */}
                 <View style={styles.detailContentContainer}>
-                {/* Prayer Count Badge with Facebook-style names list */}
-                {detailModal.prayer?.prayer_count > 0 && (
-                  <View style={styles.detailPrayerCountBadge}>
-                    <Text style={styles.detailPrayerCountText}>
-                      🙏 {detailModal.prayer.prayer_count} {detailModal.prayer.prayer_count === 1 ? 'person' : 'people'} prayed
-                    </Text>
-                    {detailModal.prayer.prayed_by_people && detailModal.prayer.prayed_by_people.length > 0 && (
-                      <View style={styles.detailPrayerNamesList}>
-                        {detailModal.prayer.prayed_by_people.map((person, index) => (
-                          <View key={index} style={styles.detailPrayerNameRow}>
-                            {person.picture && person.picture.startsWith('http') ? (
-                              <Image 
-                                source={{ uri: person.picture }} 
-                                style={styles.detailPrayerNameAvatarImage}
-                              />
-                            ) : (
-                              <View style={styles.detailPrayerNameAvatar}>
-                                <Text style={styles.detailPrayerNameAvatarText}>
-                                  {person.name.charAt(0).toUpperCase()}
-                                </Text>
-                              </View>
-                            )}
-                            <Text style={styles.detailPrayerNameText}>{person.name}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Author Info */}
-                <View style={styles.detailAuthorRow}>
-                  <View style={styles.detailAuthorInfo}>
-                    <Text style={styles.detailAuthorName}>{detailModal.prayer?.author}</Text>
-                    <Text style={styles.detailDate}>{detailModal.prayer?.date}</Text>
-                  </View>
-                  {detailModal.prayer?.category && (
-                    <View style={styles.detailCategoryBadge}>
-                      <Text style={styles.detailCategoryText}>{detailModal.prayer.category}</Text>
+                  {/* 4. Prayer Count Badge with people who prayed */}
+                  {detailModal.prayer?.prayer_count > 0 && (
+                    <View style={styles.detailPrayerCountBadge}>
+                      <Text style={styles.detailPrayerCountText}>
+                        🙏 {detailModal.prayer.prayer_count} {detailModal.prayer.prayer_count === 1 ? 'person' : 'people'} prayed
+                      </Text>
+                      {detailModal.prayer.prayed_by_people && detailModal.prayer.prayed_by_people.length > 0 && (
+                        <View style={styles.detailPrayerNamesList}>
+                          {detailModal.prayer.prayed_by_people.map((person, index) => (
+                            <View key={index} style={styles.detailPrayerNameRow}>
+                              {person.picture && person.picture.startsWith('http') ? (
+                                <Image 
+                                  source={{ uri: person.picture }} 
+                                  style={styles.detailPrayerNameAvatarImage}
+                                />
+                              ) : (
+                                <View style={styles.detailPrayerNameAvatar}>
+                                  <Text style={styles.detailPrayerNameAvatarText}>
+                                    {person.name.charAt(0).toUpperCase()}
+                                  </Text>
+                                </View>
+                              )}
+                              <Text style={styles.detailPrayerNameText}>{person.name}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
+
+                  {/* 5. Prayer Content - Full text (selectable for copy/paste) */}
+                  <Text style={styles.detailPrayerText} selectable={true}>{detailModal.prayer?.content}</Text>
+
+                  {/* DISABLED: Collapsible Generated Prayer Section and Swipe Hint - keeping code for future use */}
+
+                  {/* 6. Pray Button - at bottom */}
+                  <View style={styles.detailActionContainer}>
+                    <AnimatedButton 
+                      style={[
+                        styles.detailPrayButton,
+                        detailModal.prayer?.user_has_prayed && styles.detailPrayButtonPrayed
+                      ]} 
+                      onPress={handlePrayFromDetailView}
+                      data-testid="button-pray-detail"
+                    >
+                      <Text style={[
+                        styles.detailPrayButtonText,
+                        detailModal.prayer?.user_has_prayed && styles.detailPrayButtonTextPrayed
+                      ]}>
+                        {detailModal.prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
+                      </Text>
+                    </AnimatedButton>
+                  </View>
                 </View>
-
-                {/* Prayer Title */}
-                {detailModal.prayer?.title && (
-                  <Text style={styles.detailTitle} selectable={true}>{detailModal.prayer.title}</Text>
-                )}
-
-                {/* Prayer Content - Full text (selectable for copy/paste) */}
-                <Text style={styles.detailPrayerText} selectable={true}>{detailModal.prayer?.content}</Text>
-
-                {/* DISABLED: Collapsible Generated Prayer Section and Swipe Hint - keeping code for future use */}
-
-                {/* Pray Button - flows with content */}
-                <View style={styles.detailActionContainer}>
-                  <AnimatedButton 
-                    style={[
-                      styles.detailPrayButton,
-                      detailModal.prayer?.user_has_prayed && styles.detailPrayButtonPrayed
-                    ]} 
-                    onPress={handlePrayFromDetailView}
-                    data-testid="button-pray-detail"
-                  >
-                    <Text style={[
-                      styles.detailPrayButtonText,
-                      detailModal.prayer?.user_has_prayed && styles.detailPrayButtonTextPrayed
-                    ]}>
-                      {detailModal.prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
-                    </Text>
-                  </AnimatedButton>
-                </View>
-              </View>
             </ScrollView>
           </Animated.View>
           
@@ -5495,6 +5552,49 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 12,
     lineHeight: 28,
+  },
+  // New layout styles
+  detailTitleLarge: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+    lineHeight: 32,
+  },
+  detailAuthorTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  detailAuthorFirstName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  detailTimeDot: {
+    fontSize: 15,
+    color: '#9ca3af',
+  },
+  detailRelativeTime: {
+    fontSize: 15,
+    color: '#6b7280',
+  },
+  detailCategoryBadgeSmall: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  detailCategoryTextSmall: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  detailImageBanner: {
+    width: '100%',
+    height: 220,
+    marginBottom: 16,
   },
   detailPrayerText: {
     fontSize: 17,

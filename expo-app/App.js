@@ -1414,6 +1414,15 @@ Through Christ our Lord. Amen.`;
   };
 
   const closePrayerModal = () => {
+    // Check if we should return to detail view
+    const shouldReturnToDetail = returnToDetailRef.current;
+    const prayerIdToReturn = shouldReturnToDetail?.prayerId;
+    
+    // Clear the ref (will be handled after animation)
+    if (shouldReturnToDetail) {
+      returnToDetailRef.current = null;
+    }
+    
     // Beautiful slide-down animation before closing!
     Animated.parallel([
       Animated.timing(modalSlideAnim, {
@@ -1428,6 +1437,16 @@ Through Christ our Lord. Amen.`;
       }),
     ]).start(() => {
       setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      
+      // Return to detail view if we came from there
+      if (prayerIdToReturn) {
+        setTimeout(() => {
+          const prayer = communityPrayersRef.current.find(p => p.id === prayerIdToReturn);
+          if (prayer) {
+            openDetailModal(prayer);
+          }
+        }, 100);
+      }
     });
   };
 
@@ -1982,26 +2001,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     
     // Close the modal after animation completes
     setTimeout(() => {
-      closePrayerModal();
+      closePrayerModal(); // This will also return to detail view if needed
       
       // Show interstitial ad after every 5th prayer
       if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
         console.log(`Showing interstitial ad after ${newPrayerCount} prayers (every 5th)`);
         showInterstitialAd();
-      }
-      
-      // Return to detail view if prayer was opened from there
-      if (returnToDetailRef.current) {
-        const prayerId = returnToDetailRef.current.prayerId;
-        returnToDetailRef.current = null; // Clear the ref
-        
-        // Find the updated prayer in the list (use ref to get latest state)
-        setTimeout(() => {
-          const updatedPrayer = communityPrayersRef.current.find(p => p.id === prayerId);
-          if (updatedPrayer) {
-            openDetailModal(updatedPrayer);
-          }
-        }, 400); // Small delay for prayer modal close animation
       }
     }, 2000); // 2 seconds to enjoy the celebration!
   };

@@ -554,6 +554,12 @@ function App() {
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
   const interstitialRef = useRef(null);
   
+  // Track if prayer modal was opened from detail view (to return after Amen)
+  const returnToDetailRef = useRef(null);
+  
+  // Ref to access latest communityPrayers in callbacks (avoids stale closure)
+  const communityPrayersRef = useRef(communityPrayers);
+  
   // Rosary state
   const [rosaryScreen, setRosaryScreen] = useState('lobby'); // 'lobby', 'session'
   const [rosaryRole, setRosaryRole] = useState(null); // 'host' or 'participant'
@@ -1536,6 +1542,11 @@ Through Christ our Lord. Amen.`;
     detailModalRef.current = detailModal;
   }, [detailModal]);
   
+  // Keep communityPrayersRef in sync with state
+  useEffect(() => {
+    communityPrayersRef.current = communityPrayers;
+  }, [communityPrayers]);
+  
   // Update filtered prayers ref when filters or prayers change
   useEffect(() => {
     let filtered = communityPrayers;
@@ -1769,6 +1780,9 @@ Through Christ our Lord. Amen.`;
     // Capture prayer reference before closing modal (modal state will be cleared)
     const prayerToOpen = detailModal.prayer;
     
+    // Store ref to return to detail view after Amen
+    returnToDetailRef.current = { prayerId: prayerToOpen.id };
+    
     // Close detail modal and open prayer modal
     closeDetailModal();
     
@@ -1974,6 +1988,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
         console.log(`Showing interstitial ad after ${newPrayerCount} prayers (every 5th)`);
         showInterstitialAd();
+      }
+      
+      // Return to detail view if prayer was opened from there
+      if (returnToDetailRef.current) {
+        const prayerId = returnToDetailRef.current.prayerId;
+        returnToDetailRef.current = null; // Clear the ref
+        
+        // Find the updated prayer in the list (use ref to get latest state)
+        setTimeout(() => {
+          const updatedPrayer = communityPrayersRef.current.find(p => p.id === prayerId);
+          if (updatedPrayer) {
+            openDetailModal(updatedPrayer);
+          }
+        }, 400); // Small delay for prayer modal close animation
       }
     }, 2000); // 2 seconds to enjoy the celebration!
   };

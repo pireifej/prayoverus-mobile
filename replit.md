@@ -31,6 +31,7 @@ shadcn/ui provides a consistent component library. Theming supports dark/light m
 ## Technical Implementations & Features
 
 *   **Full-Screen Prayer Detail View**: Instagram-style prayer viewing with image headers, scrollable text, prayer counts, author info, and a 'Pray' button.
+*   **Tinder-Style Swipe-to-Pray**: Swipe right to pray and advance to next request, swipe left to skip. Includes collapsible generated prayer text, "Prayed!" confirmation animation, and race-condition-safe fetch handling.
 *   **Ad Integration**: Google AdMob banner ads on the home screen and interstitial ads after every 5th prayer for monetization.
 *   **Android 15 & Large Screen Support**: Target SDK 35 with edge-to-edge and orientation support for diverse devices.
 *   **Prayer Options**: Facebook-style icon buttons for adding titles, pictures, or setting church-only visibility.

@@ -597,6 +597,17 @@ function App() {
   const detailModalOpacityAnim = useRef(new Animated.Value(0)).current;
   const detailSwipeAnim = useRef(new Animated.Value(0)).current;
   
+  // Detail view generated prayer state
+  const [detailGeneratedPrayer, setDetailGeneratedPrayer] = useState({
+    text: '',
+    loading: false,
+    collapsed: true
+  });
+  
+  // "Prayed!" swipe confirmation animation
+  const [showSwipePrayedConfirmation, setShowSwipePrayedConfirmation] = useState(false);
+  const swipePrayedAnim = useRef(new Animated.Value(0)).current;
+  
   // Prayer celebration animation state (BIG FIREWORKS!)
   const [showPrayerAnimation, setShowPrayerAnimation] = useState(false);
   const confettiCount = 40; // Way more confetti!
@@ -1423,6 +1434,60 @@ Through Christ our Lord. Amen.`;
     return filtered;
   };
 
+  // Track which prayer ID we're currently fetching for (to avoid race conditions)
+  const fetchingPrayerIdRef = useRef(null);
+  
+  // Fetch generated prayer for detail view
+  const fetchGeneratedPrayerForDetail = async (prayerRequest) => {
+    const requestId = prayerRequest.id;
+    fetchingPrayerIdRef.current = requestId;
+    
+    setDetailGeneratedPrayer({ text: '', loading: true, collapsed: true });
+    
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ requestId: requestId }),
+      });
+
+      // Guard: only update state if this is still the prayer we're viewing
+      if (fetchingPrayerIdRef.current !== requestId) {
+        console.log('Skipping stale fetch result for prayer:', requestId);
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === 0 && data.prayerText) {
+          setDetailGeneratedPrayer({ text: data.prayerText, loading: false, collapsed: true });
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Failed to fetch prayer for detail view:', error.message);
+      // Guard: check again after error
+      if (fetchingPrayerIdRef.current !== requestId) return;
+    }
+
+    // Guard: check before fallback
+    if (fetchingPrayerIdRef.current !== requestId) return;
+
+    // Fallback prayer if API fails
+    const fallbackPrayer = `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request. 
+
+Grant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.
+
+Through Christ our Lord. Amen.`;
+    
+    setDetailGeneratedPrayer({ text: fallbackPrayer, loading: false, collapsed: true });
+  };
+
   // Open prayer detail view (Instagram-style full-screen view)
   const openDetailModal = (prayer) => {
     // Find index in the FILTERED prayers list (what's currently displayed)
@@ -1439,6 +1504,9 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
     
     setDetailModal(newModalState);
+    
+    // Fetch generated prayer for this request
+    fetchGeneratedPrayerForDetail(prayer);
     
     // Reset swipe animation
     detailSwipeAnim.setValue(0);
@@ -1483,11 +1551,44 @@ Through Christ our Lord. Amen.`;
   const isSwipeGesture = useRef(false);
   
   // Handle swipe navigation
+  // Left = skip to next, Right = pray (if not already) + advance to next
   const handleSwipeNavigation = (direction) => {
     const currentIndex = detailModalRef.current.prayerIndex;
+    const currentPrayer = detailModalRef.current.prayer;
     const prayers = filteredPrayersRef.current;
     
+    // Helper to advance to next prayer
+    const advanceToNext = () => {
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < prayers.length) {
+        const nextPrayer = prayers[nextIndex];
+        // Update refs immediately
+        detailModalRef.current = { visible: true, prayer: nextPrayer, prayerIndex: nextIndex };
+        
+        setDetailModal({
+          visible: true,
+          prayer: nextPrayer,
+          prayerIndex: nextIndex
+        });
+        // Fetch generated prayer for the next one
+        fetchGeneratedPrayerForDetail(nextPrayer);
+        
+        detailSwipeAnim.setValue(400);
+        Animated.timing(detailSwipeAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        // No more prayers - close the modal and clear state
+        fetchingPrayerIdRef.current = null;
+        setDetailGeneratedPrayer({ text: '', loading: false, collapsed: true });
+        setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
+      }
+    };
+    
     if (direction === 'left') {
+      // Swipe left = skip to next (no prayer action)
       const nextIndex = currentIndex + 1;
       if (nextIndex < prayers.length) {
         Animated.timing(detailSwipeAnim, {
@@ -1495,19 +1596,10 @@ Through Christ our Lord. Amen.`;
           duration: 150,
           useNativeDriver: true,
         }).start(() => {
-          setDetailModal({
-            visible: true,
-            prayer: prayers[nextIndex],
-            prayerIndex: nextIndex
-          });
-          detailSwipeAnim.setValue(400);
-          Animated.timing(detailSwipeAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
+          advanceToNext();
         });
       } else {
+        // Bounce back if no more prayers
         Animated.spring(detailSwipeAnim, {
           toValue: 0,
           useNativeDriver: true,
@@ -1516,40 +1608,97 @@ Through Christ our Lord. Amen.`;
         }).start();
       }
     } else if (direction === 'right') {
-      const prevIndex = currentIndex - 1;
-      if (prevIndex >= 0) {
-        Animated.timing(detailSwipeAnim, {
-          toValue: 400,
-          duration: 150,
-          useNativeDriver: true,
-        }).start(() => {
-          setDetailModal({
-            visible: true,
-            prayer: prayers[prevIndex],
-            prayerIndex: prevIndex
+      // Swipe right = pray + advance to next
+      const nextIndex = currentIndex + 1;
+      
+      // Animate swipe out to the right
+      Animated.timing(detailSwipeAnim, {
+        toValue: 400,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        // If user hasn't prayed for this one yet, record the prayer
+        if (currentPrayer && !currentPrayer.user_has_prayed) {
+          // Show "Prayed!" confirmation
+          setShowSwipePrayedConfirmation(true);
+          swipePrayedAnim.setValue(0);
+          Animated.sequence([
+            Animated.spring(swipePrayedAnim, {
+              toValue: 1,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }),
+            Animated.delay(400),
+            Animated.timing(swipePrayedAnim, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            setShowSwipePrayedConfirmation(false);
           });
-          detailSwipeAnim.setValue(-400);
-          Animated.timing(detailSwipeAnim, {
-            toValue: 0,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-        });
-      } else {
-        Animated.spring(detailSwipeAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 100,
-          friction: 10,
-        }).start();
-      }
+          
+          // Record the prayer in the backend
+          recordSwipePrayer(currentPrayer);
+          
+          // Update local state immediately
+          setCommunityPrayers(prevPrayers =>
+            prevPrayers.map(p =>
+              p.id === currentPrayer.id
+                ? { 
+                    ...p, 
+                    prayedFor: true,
+                    user_has_prayed: true,
+                    prayer_count: (p.prayer_count || 0) + 1,
+                    prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You'],
+                    prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null }]
+                  }
+                : p
+            )
+          );
+          
+          // Count prayer for interstitial ads
+          const newPrayerCount = prayerCount + 1;
+          setPrayerCount(newPrayerCount);
+          if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
+            showInterstitialAd();
+          }
+        }
+        
+        // Advance to next prayer
+        advanceToNext();
+      });
     } else {
+      // No valid swipe - bounce back
       Animated.spring(detailSwipeAnim, {
         toValue: 0,
         useNativeDriver: true,
         tension: 100,
         friction: 10,
       }).start();
+    }
+  };
+  
+  // Record swipe prayer to backend (fire and forget)
+  const recordSwipePrayer = async (prayer) => {
+    try {
+      const endpoint = 'https://shouldcallpaul.replit.app/prayFor';
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({
+          userId: currentUser?.id,
+          requestId: prayer.id
+        })
+      });
+      console.log('Prayer recorded via swipe for request:', prayer.id);
+    } catch (error) {
+      console.log('Failed to record swipe prayer:', error.message);
     }
   };
   
@@ -1593,6 +1742,10 @@ Through Christ our Lord. Amen.`;
 
   // Close prayer detail view
   const closeDetailModal = () => {
+    // Clear fetch tracking and generated prayer state
+    fetchingPrayerIdRef.current = null;
+    setDetailGeneratedPrayer({ text: '', loading: false, collapsed: true });
+    
     Animated.parallel([
       Animated.timing(detailModalSlideAnim, {
         toValue: 1000,
@@ -3788,6 +3941,40 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 {/* Prayer Content - Full text */}
                 <Text style={styles.detailPrayerText}>{detailModal.prayer?.content}</Text>
 
+                {/* Collapsible Generated Prayer Section */}
+                <TouchableOpacity 
+                  style={styles.generatedPrayerToggle}
+                  onPress={() => setDetailGeneratedPrayer(prev => ({ ...prev, collapsed: !prev.collapsed }))}
+                  data-testid="button-toggle-generated-prayer"
+                >
+                  <Text style={styles.generatedPrayerToggleText}>
+                    {detailGeneratedPrayer.collapsed ? '📖 Show Prayer to Recite' : '📖 Hide Prayer'}
+                  </Text>
+                  <Text style={styles.generatedPrayerToggleArrow}>
+                    {detailGeneratedPrayer.collapsed ? '▼' : '▲'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {!detailGeneratedPrayer.collapsed && (
+                  <View style={styles.generatedPrayerContainer}>
+                    {detailGeneratedPrayer.loading ? (
+                      <View style={styles.generatedPrayerLoading}>
+                        <PrayerHandsLoader />
+                        <Text style={styles.generatedPrayerLoadingText}>Loading prayer...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.generatedPrayerText}>{detailGeneratedPrayer.text}</Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Swipe Hint */}
+                <View style={styles.swipeHintContainer}>
+                  <Text style={styles.swipeHintText}>
+                    ← Swipe left to skip • Swipe right to pray →
+                  </Text>
+                </View>
+
                 {/* Pray Button - flows with content */}
                 <View style={styles.detailActionContainer}>
                   <AnimatedButton 
@@ -3809,6 +3996,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
             </ScrollView>
           </Animated.View>
+          
+          {/* "Prayed!" Confirmation Overlay */}
+          {showSwipePrayedConfirmation && (
+            <Animated.View 
+              style={[
+                styles.swipePrayedOverlay,
+                {
+                  opacity: swipePrayedAnim,
+                  transform: [{
+                    scale: swipePrayedAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 1],
+                    })
+                  }]
+                }
+              ]}
+            >
+              <Text style={styles.swipePrayedCheckmark}>✓</Text>
+              <Text style={styles.swipePrayedText}>Prayed!</Text>
+            </Animated.View>
+          )}
         </View>
       </Modal>
     </View>
@@ -5229,6 +5437,90 @@ const styles = StyleSheet.create({
   },
   detailPrayButtonTextPrayed: {
     color: '#ffffff',
+  },
+  // Generated Prayer Collapsible Styles
+  generatedPrayerToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  generatedPrayerToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  generatedPrayerToggleArrow: {
+    fontSize: 14,
+    color: '#6366f1',
+  },
+  generatedPrayerContainer: {
+    backgroundColor: '#fef3c7',
+    padding: 16,
+    borderRadius: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+  },
+  generatedPrayerLoading: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  generatedPrayerLoadingText: {
+    fontSize: 14,
+    color: '#92400e',
+    marginTop: 10,
+  },
+  generatedPrayerText: {
+    fontSize: 16,
+    color: '#92400e',
+    lineHeight: 24,
+    fontStyle: 'italic',
+  },
+  // Swipe Hint Styles
+  swipeHintContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingVertical: 8,
+  },
+  swipeHintText: {
+    fontSize: 13,
+    color: '#9ca3af',
+    textAlign: 'center',
+  },
+  // Swipe Prayed Confirmation Overlay
+  swipePrayedOverlay: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    marginLeft: -60,
+    width: 120,
+    height: 120,
+    backgroundColor: '#10b981',
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  swipePrayedCheckmark: {
+    fontSize: 48,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  swipePrayedText: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '600',
+    marginTop: 4,
   },
   // Rosary Styles
   rosaryButton: {

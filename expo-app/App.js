@@ -1470,21 +1470,30 @@ Through Christ our Lord. Amen.`;
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond to clear horizontal swipes (not taps or vertical scrolls)
-        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
+        // Only respond to horizontal swipes (10px threshold, more horizontal than vertical)
+        const isHorizontal = Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
+        return isHorizontal;
       },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        // Capture horizontal swipes (more than 15px horizontal, clearly more than vertical)
-        return Math.abs(gestureState.dx) > 15 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
+        // Capture horizontal swipes more aggressively on Android
+        const isHorizontal = Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
+        return isHorizontal;
+      },
+      onPanResponderGrant: () => {
+        // Reset animation value when gesture starts
+        detailSwipeAnim.setOffset(0);
       },
       onPanResponderMove: (evt, gestureState) => {
-        detailSwipeAnim.setValue(gestureState.dx);
+        // Limit the swipe range for visual feedback
+        const clampedDx = Math.max(-150, Math.min(150, gestureState.dx));
+        detailSwipeAnim.setValue(clampedDx);
       },
       onPanResponderRelease: (evt, gestureState) => {
+        detailSwipeAnim.flattenOffset();
         const currentIndex = detailModalRef.current.prayerIndex;
         const prayers = filteredPrayersRef.current;
         
-        if (gestureState.dx < -100) {
+        if (gestureState.dx < -80) {
           // Swiped left - go to next
           const nextIndex = currentIndex + 1;
           if (nextIndex < prayers.length) {
@@ -1514,7 +1523,7 @@ Through Christ our Lord. Amen.`;
               friction: 10,
             }).start();
           }
-        } else if (gestureState.dx > 100) {
+        } else if (gestureState.dx > 80) {
           // Swiped right - go to previous
           const prevIndex = currentIndex - 1;
           if (prevIndex >= 0) {
@@ -3679,8 +3688,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               ]}
               showsVerticalScrollIndicator={true}
               bounces={false}
+              alwaysBounceVertical={false}
+              alwaysBounceHorizontal={false}
               overScrollMode="never"
               nestedScrollEnabled={false}
+              scrollEventThrottle={16}
+              keyboardShouldPersistTaps="handled"
             >
                 {/* Image Header - Only if prayer has image (edge-to-edge) */}
                 {detailModal.prayer?.picture && detailModal.prayer.picture.trim() !== '' && (

@@ -21,7 +21,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "35",
+      "buildNumber": "36",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",

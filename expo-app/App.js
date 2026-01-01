@@ -733,6 +733,8 @@ function App() {
   
   // Deep link pending prayer ID (to open after prayers load)
   const [pendingDeepLinkPrayerId, setPendingDeepLinkPrayerId] = useState(null);
+  // Store initial deep link URL to process after auth check completes
+  const [pendingInitialUrl, setPendingInitialUrl] = useState(null);
   
   // Prayer Detail View Modal state (Instagram-style full-screen view)
   const [detailModal, setDetailModal] = useState({
@@ -849,10 +851,10 @@ function App() {
 
   // Deep linking support for password reset and prayer sharing
   useEffect(() => {
-    const handleDeepLink = ({ url }) => {
+    const handleDeepLink = ({ url }, isInitialUrl = false) => {
       const route = url.replace(/.*?:\/\//g, '');
       
-      // Check for password reset link
+      // Check for password reset link (can be processed immediately)
       const resetMatch = route.match(/reset-password\?token=([^&]+)/);
       if (resetMatch && resetMatch[1]) {
         console.log('📱 Deep link detected: Password reset with token');
@@ -867,12 +869,19 @@ function App() {
         const prayerId = parseInt(prayerMatch[1], 10);
         console.log('📱 Deep link detected: Prayer ID', prayerId);
         
+        // If this is the initial URL and auth check hasn't completed yet, store it for later
+        if (isInitialUrl && isCheckingAuth) {
+          console.log('📱 Auth check in progress, storing URL for later processing');
+          setPendingInitialUrl(url);
+          return;
+        }
+        
         // If user is logged in, store the prayer ID and navigate to home
         if (currentUser) {
           setPendingDeepLinkPrayerId(prayerId);
           setCurrentScreen('home');
         } else {
-          // Save the prayer ID to navigate after login
+          // User is truly not logged in (auth check completed)
           console.log('📱 User not logged in, will navigate after login');
           setPendingDeepLinkPrayerId(prayerId);
           Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
@@ -884,17 +893,43 @@ function App() {
     // Handle initial URL if app opened from link
     Linking.getInitialURL().then(url => {
       if (url) {
-        handleDeepLink({ url });
+        handleDeepLink({ url }, true); // Pass flag indicating this is initial URL
       }
     });
 
-    // Listen for deep links while app is running
-    const subscription = Linking.addEventListener('url', handleDeepLink);
+    // Listen for deep links while app is running (not initial, so auth is already checked)
+    const subscription = Linking.addEventListener('url', ({ url }) => handleDeepLink({ url }, false));
 
     return () => {
       subscription?.remove();
     };
-  }, [currentUser]);
+  }, [currentUser, isCheckingAuth]);
+  
+  // Process pending initial URL after auth check completes
+  useEffect(() => {
+    if (!isCheckingAuth && pendingInitialUrl) {
+      console.log('📱 Auth check complete, processing pending deep link URL');
+      const route = pendingInitialUrl.replace(/.*?:\/\//g, '');
+      const prayerMatch = route.match(/requestId=(\d+)/);
+      
+      if (prayerMatch && prayerMatch[1]) {
+        const prayerId = parseInt(prayerMatch[1], 10);
+        
+        if (currentUser) {
+          console.log('📱 User is logged in, setting pending prayer ID:', prayerId);
+          setPendingDeepLinkPrayerId(prayerId);
+          setCurrentScreen('home');
+        } else {
+          console.log('📱 User not logged in after auth check, showing sign in alert');
+          setPendingDeepLinkPrayerId(prayerId);
+          Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
+        }
+      }
+      
+      // Clear the pending URL
+      setPendingInitialUrl(null);
+    }
+  }, [isCheckingAuth, pendingInitialUrl, currentUser]);
   
   // Handle pending deep link prayer after community prayers are loaded
   useEffect(() => {

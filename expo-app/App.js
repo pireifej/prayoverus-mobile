@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, Text
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 import { Buffer } from 'buffer';
@@ -789,19 +790,32 @@ function App() {
   useEffect(() => {
     checkStoredAuth();
     
-    // Initialize AdMob (only if available - not in Expo Go)
-    if (isAdMobAvailable && mobileAds) {
-      mobileAds()
-        .initialize()
-        .then(adapterStatuses => {
-          console.log('AdMob initialized:', adapterStatuses);
-          // Load the first interstitial ad after initialization
-          loadInterstitialAd();
-        })
-        .catch(error => {
-          console.log('AdMob initialization error:', error);
-        });
-    }
+    // Request App Tracking Transparency permission (iOS) before initializing ads
+    const initializeAds = async () => {
+      if (isAdMobAvailable && mobileAds) {
+        try {
+          // Request ATT permission on iOS - must be done before AdMob init for personalized ads
+          const { status } = await requestTrackingPermissionsAsync();
+          console.log('Tracking permission status:', status);
+        } catch (error) {
+          console.log('Tracking permission request error:', error);
+        }
+        
+        // Initialize AdMob after ATT request
+        mobileAds()
+          .initialize()
+          .then(adapterStatuses => {
+            console.log('AdMob initialized:', adapterStatuses);
+            // Load the first interstitial ad after initialization
+            loadInterstitialAd();
+          })
+          .catch(error => {
+            console.log('AdMob initialization error:', error);
+          });
+      }
+    };
+    
+    initializeAds();
   }, []);
   
   // Function to load interstitial ad

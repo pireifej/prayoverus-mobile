@@ -1,8 +1,4 @@
 {
-  "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-3440306279423513~2757859969",
-    "ios_app_id": "ca-app-pub-3440306279423513~2757859969"
-  },
   "expo": {
     "name": "PrayOverUs",
     "slug": "pray-over-us",
@@ -21,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "38",
+      "buildNumber": "39",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",
@@ -32,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 38,
+      "versionCode": 39,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"

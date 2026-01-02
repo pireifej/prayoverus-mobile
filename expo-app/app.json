@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "40",
+      "buildNumber": "41",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 40,
+      "versionCode": 41,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -39,8 +39,7 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "NOTIFICATIONS",
-        "com.google.android.gms.permission.AD_ID"
+        "NOTIFICATIONS"
       ],
       "intentFilters": [
         {
@@ -64,7 +63,6 @@
       ]
     },
     "plugins": [
-      "./withADIDPermission.js",
       "expo-notifications",
       [
         "expo-build-properties",

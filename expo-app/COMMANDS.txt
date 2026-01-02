@@ -1,0 +1,17 @@
+# Test on Android phone (using Expo Go app)
+npx expo start --tunnel --go
+
+# Test on iPad (using development build)
+npx expo start --tunnel
+
+# Build for Android (production)
+eas build --platform android
+
+# Build for iOS (production)
+eas build --platform ios
+
+# Submit to Google Play Store
+eas submit --platform android
+
+# Submit to Apple App Store
+eas submit --platform ios

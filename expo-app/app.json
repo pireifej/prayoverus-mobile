@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "39",
+      "buildNumber": "40",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 39,
+      "versionCode": 40,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -85,12 +85,6 @@
         {
           "androidAppId": "ca-app-pub-3440306279423513~2757859969",
           "iosAppId": "ca-app-pub-3440306279423513~2757859969"
-        }
-      ],
-      [
-        "expo-tracking-transparency",
-        {
-          "userTrackingPermission": "This app uses tracking to show you relevant ads."
         }
       ]
     ],

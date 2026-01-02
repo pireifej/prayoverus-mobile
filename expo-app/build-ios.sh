@@ -1,1 +1,0 @@
-eas build --platform ios

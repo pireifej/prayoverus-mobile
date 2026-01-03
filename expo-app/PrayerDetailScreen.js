@@ -531,6 +531,20 @@ export default function PrayerDetailScreen({
           )}
           
           <View style={styles.authorTimeRow}>
+            {prayer?.user_picture && prayer.user_picture.startsWith('http') ? (
+              <Image 
+                source={{ uri: prayer.user_picture }} 
+                style={styles.authorAvatar}
+              />
+            ) : (
+              <View style={styles.authorAvatarPlaceholder}>
+                <Text style={styles.authorAvatarText}>
+                  {prayer?.author ? prayer.author.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.authorName}>{prayer?.author}</Text>
+            <Text style={styles.timeDot}> • </Text>
             <Text style={styles.relativeTime}>
               {getRelativeTime(prayer?.date)}
             </Text>
@@ -723,6 +737,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     flexWrap: 'wrap',
+  },
+  authorAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
+  },
+  authorAvatarPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  authorAvatarText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  authorName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
   },
   authorFirstName: {
     fontSize: 15,

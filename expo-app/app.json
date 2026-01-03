@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "41",
+      "buildNumber": "42",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "associatedDomains": [
         "applinks:prayoverus.com",
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 41,
+      "versionCode": 42,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -63,6 +63,7 @@
       ]
     },
     "plugins": [
+      "react-native-edge-to-edge",
       "expo-notifications",
       [
         "expo-build-properties",
@@ -84,7 +85,8 @@
           "androidAppId": "ca-app-pub-3440306279423513~2757859969",
           "iosAppId": "ca-app-pub-3440306279423513~2757859969"
         }
-      ]
+      ],
+      "react-native-edge-to-edge"
     ],
     "extra": {
       "eas": {

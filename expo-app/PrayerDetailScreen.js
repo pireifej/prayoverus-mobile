@@ -130,7 +130,6 @@ export default function PrayerDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -245,44 +244,33 @@ export default function PrayerDetailScreen({
   ).current;
   
   const fetchPrayerById = async (id, useTransition = false) => {
+    console.log('📍 fetchPrayerById called with id:', id, 'useTransition:', useTransition);
+    
     // Check cache first
     if (prayerCacheRef.current[id]) {
       console.log('📍 Using cached prayer for ID:', id);
+      setPrayer(prayerCacheRef.current[id]);
+      setLoading(false);
+      // Quick fade in for cached content
       if (useTransition) {
-        // Fade out, set prayer, fade in
-        setIsTransitioning(true);
+        contentOpacity.setValue(0.5);
         Animated.timing(contentOpacity, {
-          toValue: 0,
+          toValue: 1,
           duration: 150,
           useNativeDriver: true,
-        }).start(() => {
-          setPrayer(prayerCacheRef.current[id]);
-          setLoading(false);
-          Animated.timing(contentOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => setIsTransitioning(false));
-        });
-      } else {
-        setPrayer(prayerCacheRef.current[id]);
-        setLoading(false);
+        }).start();
       }
       return;
     }
     
-    // Show transition animation if swiping
-    if (useTransition) {
-      setIsTransitioning(true);
-      Animated.timing(contentOpacity, {
-        toValue: 0.3,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      setLoading(true);
-    }
+    // Show loading state
+    setLoading(true);
     setError(null);
+    
+    // Dim content while loading
+    if (useTransition) {
+      contentOpacity.setValue(0.4);
+    }
     
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -311,6 +299,7 @@ export default function PrayerDetailScreen({
       }
       
       const data = await response.json();
+      console.log('📍 Got response for prayer ID:', id);
       
       // API returns { error: 0, request: {...} } format
       if (data.error === 0 && data.request) {
@@ -340,6 +329,7 @@ export default function PrayerDetailScreen({
         console.log('📍 Cached prayer for ID:', id);
         
         setPrayer(prayerData);
+        setLoading(false);
         
         // Fade in after loading
         if (useTransition) {
@@ -347,7 +337,7 @@ export default function PrayerDetailScreen({
             toValue: 1,
             duration: 200,
             useNativeDriver: true,
-          }).start(() => setIsTransitioning(false));
+          }).start();
         }
       } else {
         throw new Error('Prayer not found or invalid response');
@@ -355,12 +345,8 @@ export default function PrayerDetailScreen({
     } catch (err) {
       console.error('Error fetching prayer:', err);
       setError(err.message);
-      if (useTransition) {
-        contentOpacity.setValue(1);
-        setIsTransitioning(false);
-      }
-    } finally {
       setLoading(false);
+      contentOpacity.setValue(1);
     }
   };
   

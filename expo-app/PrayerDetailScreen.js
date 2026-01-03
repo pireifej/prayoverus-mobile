@@ -526,23 +526,27 @@ export default function PrayerDetailScreen({
           bounces={false}
         >
         <View style={styles.contentContainer}>
-          {prayer?.title && (
-            <Text style={styles.titleLarge} selectable={true}>{prayer.title}</Text>
-          )}
-          
-          <View style={styles.authorTimeRow}>
+          <View style={styles.titleRow}>
             {prayer?.user_picture && prayer.user_picture.startsWith('http') ? (
               <Image 
                 source={{ uri: prayer.user_picture }} 
-                style={styles.authorAvatar}
+                style={styles.authorAvatarLarge}
               />
             ) : (
-              <View style={styles.authorAvatarPlaceholder}>
-                <Text style={styles.authorAvatarText}>
+              <View style={styles.authorAvatarPlaceholderLarge}>
+                <Text style={styles.authorAvatarTextLarge}>
                   {prayer?.author ? prayer.author.charAt(0).toUpperCase() : '?'}
                 </Text>
               </View>
             )}
+            {prayer?.title && (
+              <Text style={styles.titleLarge} selectable={true}>{prayer.title}</Text>
+            )}
+          </View>
+          
+          <View style={styles.authorTimeRow}>
+            <Text style={styles.authorName}>{prayer?.author}</Text>
+            <Text style={styles.timeDot}> • </Text>
             <Text style={styles.relativeTime}>
               {getRelativeTime(prayer?.date)}
             </Text>
@@ -723,18 +727,45 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 20,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   titleLarge: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 8,
-    lineHeight: 32,
+    lineHeight: 30,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   authorTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
     flexWrap: 'wrap',
+    marginLeft: 60,
+  },
+  authorAvatarLarge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  authorAvatarPlaceholderLarge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  authorAvatarTextLarge: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
   authorAvatar: {
     width: 40,
@@ -759,7 +790,7 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: '#6b7280',
   },
   authorFirstName: {
     fontSize: 15,

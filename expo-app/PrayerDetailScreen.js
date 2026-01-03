@@ -130,12 +130,17 @@ export default function PrayerDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
   
+  // Cache for loaded prayers (persists across swipes)
+  const prayerCacheRef = useRef({});
+  
   // Swipe animation
   const swipeAnim = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useRef(new Animated.Value(1)).current;
   const isSwipingRef = useRef(false);
   
   // Refs to track current values for PanResponder (avoids stale closure)
@@ -239,8 +244,44 @@ export default function PrayerDetailScreen({
     })
   ).current;
   
-  const fetchPrayerById = async (id) => {
-    setLoading(true);
+  const fetchPrayerById = async (id, useTransition = false) => {
+    // Check cache first
+    if (prayerCacheRef.current[id]) {
+      console.log('📍 Using cached prayer for ID:', id);
+      if (useTransition) {
+        // Fade out, set prayer, fade in
+        setIsTransitioning(true);
+        Animated.timing(contentOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start(() => {
+          setPrayer(prayerCacheRef.current[id]);
+          setLoading(false);
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => setIsTransitioning(false));
+        });
+      } else {
+        setPrayer(prayerCacheRef.current[id]);
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Show transition animation if swiping
+    if (useTransition) {
+      setIsTransitioning(true);
+      Animated.timing(contentOpacity, {
+        toValue: 0.3,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -253,7 +294,6 @@ export default function PrayerDetailScreen({
       };
       
       console.log('📍 Fetching prayer by ID:', id);
-      console.log('📍 Request payload:', JSON.stringify(payload, null, 2));
       
       const response = await fetch(`${API_BASE_URL}/getRequestById`, {
         method: 'POST',
@@ -265,17 +305,12 @@ export default function PrayerDetailScreen({
         body: JSON.stringify(payload),
       });
       
-      console.log('📍 Response status:', response.status);
-      
-      const responseText = await response.text();
-      console.log('📍 Response body:', responseText);
-      
       if (!response.ok) {
+        const responseText = await response.text();
         throw new Error(`Failed to fetch prayer details: ${response.status} - ${responseText}`);
       }
       
-      const data = JSON.parse(responseText);
-      console.log('📍 Parsed prayer data:', data);
+      const data = await response.json();
       
       // API returns { error: 0, request: {...} } format
       if (data.error === 0 && data.request) {
@@ -290,7 +325,6 @@ export default function PrayerDetailScreen({
           category: null,
           prayer_count: data.request.prayer_count || 0,
           user_has_prayed: false,
-          // Use prayed_by_people (with pictures) if available, fallback to prayed_by_names
           prayed_by_people: data.request.prayed_by_people || 
             (data.request.prayed_by_names || []).map(name => ({
               name: name,
@@ -300,24 +334,46 @@ export default function PrayerDetailScreen({
           church_id: data.request.church_id,
           my_church_only: data.request.my_church_only
         };
-        console.log('📍 Mapped prayer data:', prayerData);
+        
+        // Cache the prayer
+        prayerCacheRef.current[id] = prayerData;
+        console.log('📍 Cached prayer for ID:', id);
+        
         setPrayer(prayerData);
+        
+        // Fade in after loading
+        if (useTransition) {
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => setIsTransitioning(false));
+        }
       } else {
         throw new Error('Prayer not found or invalid response');
       }
     } catch (err) {
       console.error('Error fetching prayer:', err);
       setError(err.message);
+      if (useTransition) {
+        contentOpacity.setValue(1);
+        setIsTransitioning(false);
+      }
     } finally {
       setLoading(false);
     }
   };
   
+  // Track if this is the initial load
+  const isInitialLoadRef = useRef(true);
+  
   useEffect(() => {
-    if (requestId) {
-      fetchPrayerById(requestId);
-    } else if (prayerIds.length > 0 && prayerIds[index]) {
-      fetchPrayerById(prayerIds[index]);
+    const idToFetch = requestId || (prayerIds.length > 0 ? prayerIds[index] : null);
+    if (idToFetch) {
+      // Use transition animation for subsequent loads (not initial)
+      const useTransition = !isInitialLoadRef.current;
+      fetchPrayerById(idToFetch, useTransition);
+      isInitialLoadRef.current = false;
     }
   }, [requestId, index]);
   
@@ -453,9 +509,15 @@ export default function PrayerDetailScreen({
         </TouchableOpacity>
       </View>
       
-      {/* Swipeable content area */}
+      {/* Swipeable content area with fade animation */}
       <Animated.View 
-        style={[styles.swipeContainer, { transform: [{ translateX: swipeAnim }] }]}
+        style={[
+          styles.swipeContainer, 
+          { 
+            transform: [{ translateX: swipeAnim }],
+            opacity: contentOpacity
+          }
+        ]}
         {...panResponder.panHandlers}
       >
         <ScrollView 

@@ -364,11 +364,24 @@ export default function PrayerDetailScreen({
     }
   };
   
-  // Track if this is the initial load
+  // Track if this is the initial load and the initial requestId
   const isInitialLoadRef = useRef(true);
+  const initialRequestIdRef = useRef(requestId);
   
   useEffect(() => {
-    const idToFetch = requestId || (prayerIds.length > 0 ? prayerIds[index] : null);
+    let idToFetch;
+    
+    // On initial load, use the requestId prop if provided
+    if (isInitialLoadRef.current && requestId) {
+      idToFetch = requestId;
+    } else if (prayerIds.length > 0 && index >= 0 && prayerIds[index] !== undefined) {
+      // For subsequent navigations, use the prayer ID at current index
+      idToFetch = prayerIds[index];
+    } else if (requestId) {
+      // Fallback to requestId if no prayerIds
+      idToFetch = requestId;
+    }
+    
     if (idToFetch) {
       // Use transition animation for subsequent loads (not initial)
       const useTransition = !isInitialLoadRef.current;

@@ -11,10 +11,21 @@ import {
   Alert,
   Dimensions,
   PanResponder,
-  Platform
+  Platform,
+  StatusBar as RNStatusBar
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+
+// Calculate safe top padding based on platform
+const getStatusBarHeight = () => {
+  if (Platform.OS === 'ios') {
+    // Use Constants.statusBarHeight for iOS (accounts for notch)
+    return Constants.statusBarHeight || 44;
+  }
+  // Android status bar height
+  return RNStatusBar.currentHeight || 24;
+};
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80;
@@ -120,8 +131,8 @@ export default function PrayerDetailScreen({
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
   
-  // Safe area insets for proper top padding
-  const insets = useSafeAreaInsets();
+  // Safe top padding based on platform
+  const safeTopPadding = getStatusBarHeight();
   
   // Swipe animation
   const swipeAnim = useRef(new Animated.Value(0)).current;
@@ -345,10 +356,10 @@ export default function PrayerDetailScreen({
   const canGoPrevious = isInFeedList && index > 0;
   const canGoNext = isInFeedList && index < prayerIds.length - 1;
   
-  // Dynamic header style with safe area insets
+  // Dynamic header style with safe area padding
   const headerStyle = {
     ...styles.header,
-    paddingTop: insets.top + 16, // Safe area + extra padding
+    paddingTop: safeTopPadding + 16, // Safe area + extra padding
   };
 
   if (loading) {

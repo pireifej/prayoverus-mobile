@@ -545,8 +545,6 @@ export default function PrayerDetailScreen({
           </View>
           
           <View style={styles.authorTimeRow}>
-            <Text style={styles.authorName}>{prayer?.author}</Text>
-            <Text style={styles.timeDot}> • </Text>
             <Text style={styles.relativeTime}>
               {getRelativeTime(prayer?.date)}
             </Text>

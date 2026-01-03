@@ -14,6 +14,31 @@ import { StatusBar } from 'expo-status-bar';
 
 const API_BASE_URL = 'https://shouldcallpaul.replit.app';
 
+// Base64 encode for Basic Auth
+const base64Encode = (str) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  for (let i = 0; i < str.length; i += 3) {
+    const byte1 = str.charCodeAt(i);
+    const byte2 = str.charCodeAt(i + 1);
+    const byte3 = str.charCodeAt(i + 2);
+    const enc1 = byte1 >> 2;
+    const enc2 = ((byte1 & 3) << 4) | (byte2 >> 4);
+    const enc3 = ((byte2 & 15) << 2) | (byte3 >> 6);
+    const enc4 = byte3 & 63;
+    if (isNaN(byte2)) {
+      output += chars.charAt(enc1) + chars.charAt(enc2) + '==';
+    } else if (isNaN(byte3)) {
+      output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + '=';
+    } else {
+      output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
+    }
+  }
+  return output;
+};
+
+const API_AUTH = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
+
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
   
@@ -108,6 +133,8 @@ export default function PrayerDetailScreen({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': API_AUTH,
         },
         body: JSON.stringify(payload),
       });

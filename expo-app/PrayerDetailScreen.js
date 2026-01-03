@@ -543,8 +543,6 @@ export default function PrayerDetailScreen({
                 </Text>
               </View>
             )}
-            <Text style={styles.authorName}>{prayer?.author}</Text>
-            <Text style={styles.timeDot}> • </Text>
             <Text style={styles.relativeTime}>
               {getRelativeTime(prayer?.date)}
             </Text>
@@ -739,23 +737,23 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   authorAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginRight: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   authorAvatarPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   authorAvatarText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
   },
   authorName: {

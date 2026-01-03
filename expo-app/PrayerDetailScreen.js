@@ -10,9 +10,11 @@ import {
   Animated,
   Alert,
   Dimensions,
-  PanResponder
+  PanResponder,
+  Platform
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80;
@@ -118,20 +120,29 @@ export default function PrayerDetailScreen({
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
   
+  // Safe area insets for proper top padding
+  const insets = useSafeAreaInsets();
+  
   // Swipe animation
   const swipeAnim = useRef(new Animated.Value(0)).current;
   const isSwipingRef = useRef(false);
+  
+  // Refs to track current values for PanResponder (avoids stale closure)
+  const indexRef = useRef(index);
+  const prayerIdsRef = useRef(prayerIds);
   
   // Navigation is only available when index >= 0 (prayer is in the feed list)
   const isInFeedList = index >= 0 && prayerIds.length > 0;
   const canGoPreviousRef = useRef(false);
   const canGoNextRef = useRef(false);
   
-  // Update refs when navigation state changes
+  // Update refs when state changes (critical for PanResponder)
   useEffect(() => {
+    indexRef.current = index;
+    prayerIdsRef.current = prayerIds;
     canGoPreviousRef.current = isInFeedList && index > 0;
     canGoNextRef.current = isInFeedList && index < prayerIds.length - 1;
-  }, [isInFeedList, index, prayerIds.length]);
+  }, [isInFeedList, index, prayerIds]);
   
   // PanResponder for swipe gestures
   const panResponder = useRef(
@@ -171,11 +182,13 @@ export default function PrayerDetailScreen({
             useNativeDriver: true,
           }).start(() => {
             swipeAnim.setValue(0);
-            // Navigate to previous
-            const newIndex = index - 1;
+            // Navigate to previous - use refs to get current values
+            const currentIdx = indexRef.current;
+            const ids = prayerIdsRef.current;
+            const newIndex = currentIdx - 1;
             setIndex(newIndex);
-            if (onNavigate) {
-              onNavigate(prayerIds[newIndex], newIndex);
+            if (onNavigate && ids[newIndex] !== undefined) {
+              onNavigate(ids[newIndex], newIndex);
             }
           });
         } else if (gestureState.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
@@ -186,11 +199,13 @@ export default function PrayerDetailScreen({
             useNativeDriver: true,
           }).start(() => {
             swipeAnim.setValue(0);
-            // Navigate to next
-            const newIndex = index + 1;
+            // Navigate to next - use refs to get current values
+            const currentIdx = indexRef.current;
+            const ids = prayerIdsRef.current;
+            const newIndex = currentIdx + 1;
             setIndex(newIndex);
-            if (onNavigate) {
-              onNavigate(prayerIds[newIndex], newIndex);
+            if (onNavigate && ids[newIndex] !== undefined) {
+              onNavigate(ids[newIndex], newIndex);
             }
           });
         } else {
@@ -330,11 +345,17 @@ export default function PrayerDetailScreen({
   const canGoPrevious = isInFeedList && index > 0;
   const canGoNext = isInFeedList && index < prayerIds.length - 1;
   
+  // Dynamic header style with safe area insets
+  const headerStyle = {
+    ...styles.header,
+    paddingTop: insets.top + 16, // Safe area + extra padding
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
         <StatusBar style="dark" />
-        <View style={styles.header}>
+        <View style={headerStyle}>
           <View style={styles.navButtonsContainer}>
             <View style={[styles.navButton, styles.navButtonDisabled]}>
               <Text style={styles.navButtonTextDisabled}>←</Text>
@@ -360,7 +381,7 @@ export default function PrayerDetailScreen({
     return (
       <View style={styles.container}>
         <StatusBar style="dark" />
-        <View style={styles.header}>
+        <View style={headerStyle}>
           <View style={styles.navButtonsContainer} />
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
@@ -383,7 +404,7 @@ export default function PrayerDetailScreen({
     <View style={styles.container}>
       <StatusBar style="dark" />
       
-      <View style={styles.header}>
+      <View style={headerStyle}>
         <View style={styles.navButtonsContainer}>
           <TouchableOpacity
             onPress={handlePrevious}
@@ -533,7 +554,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 70,
     paddingHorizontal: 24,
     paddingBottom: 18,
     backgroundColor: '#ffffff',

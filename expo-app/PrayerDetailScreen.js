@@ -130,6 +130,7 @@ export default function PrayerDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
+  const [isLoadingNewPrayer, setIsLoadingNewPrayer] = useState(false);
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -140,7 +141,10 @@ export default function PrayerDetailScreen({
   // Swipe animation
   const swipeAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const isSwipingRef = useRef(false);
+  const isLoadingRef = useRef(false);
+  const loadingTimeoutRef = useRef(null);
   
   // Refs to track current values for PanResponder (avoids stale closure)
   const indexRef = useRef(index);
@@ -164,6 +168,10 @@ export default function PrayerDetailScreen({
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Block swipes while loading to prevent race conditions
+        if (isLoadingRef.current) {
+          return false;
+        }
         // Only respond to horizontal swipes (more horizontal than vertical)
         const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
         const isSignificantMove = Math.abs(gestureState.dx) > 10;
@@ -190,13 +198,15 @@ export default function PrayerDetailScreen({
         isSwipingRef.current = false;
         
         if (gestureState.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
-          // Swipe right - go to previous
+          // Swipe right - go to previous (slide off to right)
           Animated.timing(swipeAnim, {
             toValue: SCREEN_WIDTH,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
+            // Reset position and prepare for slide-in from left
             swipeAnim.setValue(0);
+            slideAnim.setValue(-SCREEN_WIDTH * 0.3);
             // Navigate to previous - use refs to get current values
             const currentIdx = indexRef.current;
             const ids = prayerIdsRef.current;
@@ -207,13 +217,15 @@ export default function PrayerDetailScreen({
             }
           });
         } else if (gestureState.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
-          // Swipe left - go to next
+          // Swipe left - go to next (slide off to left)
           Animated.timing(swipeAnim, {
             toValue: -SCREEN_WIDTH,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
+            // Reset position and prepare for slide-in from right
             swipeAnim.setValue(0);
+            slideAnim.setValue(SCREEN_WIDTH * 0.3);
             // Navigate to next - use refs to get current values
             const currentIdx = indexRef.current;
             const ids = prayerIdsRef.current;
@@ -243,34 +255,80 @@ export default function PrayerDetailScreen({
     })
   ).current;
   
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Handle close with error message
+  const handleErrorClose = (message) => {
+    console.log('📍 Error closing prayer detail:', message);
+    Alert.alert(
+      'Unable to load prayer',
+      message || 'Please try again later.',
+      [{ text: 'OK', onPress: onClose }]
+    );
+  };
+  
   const fetchPrayerById = async (id, useTransition = false) => {
     console.log('📍 fetchPrayerById called with id:', id, 'useTransition:', useTransition);
+    
+    // Clear any existing timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
     
     // Check cache first
     if (prayerCacheRef.current[id]) {
       console.log('📍 Using cached prayer for ID:', id);
+      isLoadingRef.current = false;
+      setIsLoadingNewPrayer(false);
       setPrayer(prayerCacheRef.current[id]);
       setLoading(false);
-      // Quick fade in for cached content
+      // Quick slide and fade in for cached content
       if (useTransition) {
-        contentOpacity.setValue(0.5);
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
+        contentOpacity.setValue(0.7);
+        Animated.parallel([
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 80,
+            friction: 12,
+            useNativeDriver: true,
+          })
+        ]).start();
       }
       return;
     }
     
-    // Show loading state
+    // Mark as loading to block swipes
+    isLoadingRef.current = true;
+    setIsLoadingNewPrayer(useTransition);
     setLoading(true);
     setError(null);
     
-    // Dim content while loading
+    // Start loading animation
     if (useTransition) {
-      contentOpacity.setValue(0.4);
+      contentOpacity.setValue(0.5);
     }
+    
+    // Set timeout - if loading takes too long, close and go back
+    loadingTimeoutRef.current = setTimeout(() => {
+      console.log('📍 Loading timeout reached for prayer ID:', id);
+      isLoadingRef.current = false;
+      setIsLoadingNewPrayer(false);
+      contentOpacity.setValue(1);
+      slideAnim.setValue(0);
+      handleErrorClose('The prayer took too long to load.');
+    }, 5000);
     
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -293,9 +351,15 @@ export default function PrayerDetailScreen({
         body: JSON.stringify(payload),
       });
       
+      // Clear timeout on successful response
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      
       if (!response.ok) {
         const responseText = await response.text();
-        throw new Error(`Failed to fetch prayer details: ${response.status} - ${responseText}`);
+        throw new Error(`Failed to fetch prayer: ${response.status}`);
       }
       
       const data = await response.json();
@@ -329,25 +393,49 @@ export default function PrayerDetailScreen({
         prayerCacheRef.current[id] = prayerData;
         console.log('📍 Cached prayer for ID:', id);
         
+        // Update state
+        isLoadingRef.current = false;
+        setIsLoadingNewPrayer(false);
         setPrayer(prayerData);
         setLoading(false);
         
-        // Fade in after loading
+        // Slide and fade in after loading
         if (useTransition) {
-          Animated.timing(contentOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }).start();
+          Animated.parallel([
+            Animated.timing(contentOpacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+              toValue: 0,
+              tension: 80,
+              friction: 12,
+              useNativeDriver: true,
+            })
+          ]).start();
         }
       } else {
-        throw new Error('Prayer not found or invalid response');
+        throw new Error('Prayer not found');
       }
     } catch (err) {
       console.error('Error fetching prayer:', err);
-      setError(err.message);
+      
+      // Clear timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      
+      // Reset state
+      isLoadingRef.current = false;
+      setIsLoadingNewPrayer(false);
       setLoading(false);
       contentOpacity.setValue(1);
+      slideAnim.setValue(0);
+      
+      // Show error and close
+      handleErrorClose(err.message);
     }
   };
   
@@ -509,12 +597,22 @@ export default function PrayerDetailScreen({
         </TouchableOpacity>
       </View>
       
-      {/* Swipeable content area with fade animation */}
+      {/* Loading overlay during transitions */}
+      {isLoadingNewPrayer && (
+        <View style={styles.transitionOverlay}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.transitionText}>Loading...</Text>
+        </View>
+      )}
+      
+      {/* Swipeable content area with slide and fade animation */}
       <Animated.View 
         style={[
           styles.swipeContainer, 
           { 
-            transform: [{ translateX: swipeAnim }],
+            transform: [
+              { translateX: Animated.add(swipeAnim, slideAnim) }
+            ],
             opacity: contentOpacity
           }
         ]}
@@ -651,6 +749,22 @@ const styles = StyleSheet.create({
   },
   swipeContainer: {
     flex: 1,
+  },
+  transitionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  transitionText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6b7280',
   },
   navButtonsContainer: {
     flexDirection: 'row',

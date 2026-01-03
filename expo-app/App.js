@@ -944,20 +944,31 @@ function App() {
   useEffect(() => {
     if (pendingDeepLinkPrayerId && communityPrayers.length > 0) {
       const prayer = communityPrayers.find(p => p.id === pendingDeepLinkPrayerId);
+      const prayerId = pendingDeepLinkPrayerId;
+      setPendingDeepLinkPrayerId(null);
+      
       if (prayer) {
         console.log('📱 Found deep link prayer, opening request detail view:', prayer.title);
         // Make sure we're on the home screen first
         setCurrentScreen('home');
-        setPendingDeepLinkPrayerId(null);
         
-        // Small delay to ensure home screen is rendered, then open detail modal with animation
+        // Small delay to ensure home screen is rendered, then open detail screen
         setTimeout(() => {
           openDetailModal(prayer);
         }, 100);
       } else {
-        console.log('📱 Deep link prayer not found in current feed, ID:', pendingDeepLinkPrayerId);
-        Alert.alert('Prayer Not Found', 'This prayer request may have been deleted or is no longer available.');
-        setPendingDeepLinkPrayerId(null);
+        console.log('📱 Deep link prayer not found in feed, opening directly by ID:', prayerId);
+        // Open directly by ID even if not in feed - the detail screen fetches by ID
+        setCurrentScreen('home');
+        setTimeout(() => {
+          const prayerIds = communityPrayers.map(p => p.id);
+          setDetailScreenProps({
+            requestId: prayerId,
+            prayerIds: prayerIds,
+            currentIndex: 0
+          });
+          setShowDetailScreen(true);
+        }, 100);
       }
     }
   }, [communityPrayers, pendingDeepLinkPrayerId]);

@@ -198,15 +198,20 @@ export default function PrayerDetailScreen({
         isSwipingRef.current = false;
         
         if (gestureState.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
-          // Swipe right - go to previous (slide off to right)
+          // Swipe right - go to previous
+          // Show loading overlay immediately
+          setIsLoadingNewPrayer(true);
+          isLoadingRef.current = true;
+          
           Animated.timing(swipeAnim, {
             toValue: SCREEN_WIDTH,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
-            // Reset position and prepare for slide-in from left
+            // Reset all animations to default
             swipeAnim.setValue(0);
-            slideAnim.setValue(-SCREEN_WIDTH * 0.3);
+            slideAnim.setValue(0);
+            contentOpacity.setValue(1);
             // Navigate to previous - use refs to get current values
             const currentIdx = indexRef.current;
             const ids = prayerIdsRef.current;
@@ -217,15 +222,20 @@ export default function PrayerDetailScreen({
             }
           });
         } else if (gestureState.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
-          // Swipe left - go to next (slide off to left)
+          // Swipe left - go to next
+          // Show loading overlay immediately
+          setIsLoadingNewPrayer(true);
+          isLoadingRef.current = true;
+          
           Animated.timing(swipeAnim, {
             toValue: -SCREEN_WIDTH,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
-            // Reset position and prepare for slide-in from right
+            // Reset all animations to default
             swipeAnim.setValue(0);
-            slideAnim.setValue(SCREEN_WIDTH * 0.3);
+            slideAnim.setValue(0);
+            contentOpacity.setValue(1);
             // Navigate to next - use refs to get current values
             const currentIdx = indexRef.current;
             const ids = prayerIdsRef.current;
@@ -285,48 +295,35 @@ export default function PrayerDetailScreen({
     // Check cache first
     if (prayerCacheRef.current[id]) {
       console.log('📍 Using cached prayer for ID:', id);
+      // Reset all state and animations
       isLoadingRef.current = false;
       setIsLoadingNewPrayer(false);
       setPrayer(prayerCacheRef.current[id]);
       setLoading(false);
-      // Quick slide and fade in for cached content
-      if (useTransition) {
-        contentOpacity.setValue(0.7);
-        Animated.parallel([
-          Animated.timing(contentOpacity, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            tension: 80,
-            friction: 12,
-            useNativeDriver: true,
-          })
-        ]).start();
-      }
+      // Ensure animations are reset
+      contentOpacity.setValue(1);
+      slideAnim.setValue(0);
+      swipeAnim.setValue(0);
       return;
     }
     
-    // Mark as loading to block swipes
+    // Mark as loading to block swipes (overlay already shown from swipe handler)
     isLoadingRef.current = true;
-    setIsLoadingNewPrayer(useTransition);
+    if (!isLoadingNewPrayer) {
+      setIsLoadingNewPrayer(true);
+    }
     setLoading(true);
     setError(null);
-    
-    // Start loading animation
-    if (useTransition) {
-      contentOpacity.setValue(0.5);
-    }
     
     // Set timeout - if loading takes too long, close and go back
     loadingTimeoutRef.current = setTimeout(() => {
       console.log('📍 Loading timeout reached for prayer ID:', id);
       isLoadingRef.current = false;
       setIsLoadingNewPrayer(false);
+      setLoading(false);
       contentOpacity.setValue(1);
       slideAnim.setValue(0);
+      swipeAnim.setValue(0);
       handleErrorClose('The prayer took too long to load.');
     }, 5000);
     
@@ -393,28 +390,15 @@ export default function PrayerDetailScreen({
         prayerCacheRef.current[id] = prayerData;
         console.log('📍 Cached prayer for ID:', id);
         
-        // Update state
+        // Update state - reset everything cleanly
         isLoadingRef.current = false;
         setIsLoadingNewPrayer(false);
         setPrayer(prayerData);
         setLoading(false);
-        
-        // Slide and fade in after loading
-        if (useTransition) {
-          Animated.parallel([
-            Animated.timing(contentOpacity, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            Animated.spring(slideAnim, {
-              toValue: 0,
-              tension: 80,
-              friction: 12,
-              useNativeDriver: true,
-            })
-          ]).start();
-        }
+        // Ensure all animations are reset
+        contentOpacity.setValue(1);
+        slideAnim.setValue(0);
+        swipeAnim.setValue(0);
       } else {
         throw new Error('Prayer not found');
       }
@@ -427,12 +411,13 @@ export default function PrayerDetailScreen({
         loadingTimeoutRef.current = null;
       }
       
-      // Reset state
+      // Reset all state and animations
       isLoadingRef.current = false;
       setIsLoadingNewPrayer(false);
       setLoading(false);
       contentOpacity.setValue(1);
       slideAnim.setValue(0);
+      swipeAnim.setValue(0);
       
       // Show error and close
       handleErrorClose(err.message);

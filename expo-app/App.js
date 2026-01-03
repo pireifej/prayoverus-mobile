@@ -940,38 +940,38 @@ function App() {
     }
   }, [isCheckingAuth, pendingInitialUrl, currentUser]);
   
-  // Handle pending deep link prayer after community prayers are loaded
+  // Handle pending deep link prayer - open immediately without waiting for feed
   useEffect(() => {
-    if (pendingDeepLinkPrayerId && communityPrayers.length > 0) {
-      const prayer = communityPrayers.find(p => p.id === pendingDeepLinkPrayerId);
+    if (pendingDeepLinkPrayerId && currentUser) {
       const prayerId = pendingDeepLinkPrayerId;
       setPendingDeepLinkPrayerId(null);
       
+      // Check if prayer is in current feed
+      const prayer = communityPrayers.find(p => p.id === prayerId);
+      
       if (prayer) {
-        console.log('📱 Found deep link prayer, opening request detail view:', prayer.title);
-        // Make sure we're on the home screen first
+        console.log('📱 Found deep link prayer in feed, opening:', prayer.title);
         setCurrentScreen('home');
-        
-        // Small delay to ensure home screen is rendered, then open detail screen
         setTimeout(() => {
           openDetailModal(prayer);
         }, 100);
       } else {
-        console.log('📱 Deep link prayer not found in feed, opening directly by ID:', prayerId);
-        // Open directly by ID even if not in feed - the detail screen fetches by ID
+        console.log('📱 Opening deep link prayer directly by ID:', prayerId);
+        // Open directly by ID - the detail screen will fetch data
         setCurrentScreen('home');
         setTimeout(() => {
+          // Pass available prayer IDs for navigation, or empty array if none
           const prayerIds = communityPrayers.map(p => p.id);
           setDetailScreenProps({
             requestId: prayerId,
             prayerIds: prayerIds,
-            currentIndex: 0
+            currentIndex: -1  // -1 indicates prayer is not in the current feed list
           });
           setShowDetailScreen(true);
         }, 100);
       }
     }
-  }, [communityPrayers, pendingDeepLinkPrayerId]);
+  }, [pendingDeepLinkPrayerId, currentUser, communityPrayers]);
 
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {

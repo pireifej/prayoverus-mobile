@@ -161,8 +161,10 @@ export default function PrayerDetailScreen({
     }
   };
   
-  const canGoPrevious = prayerIds.length > 0 && index > 0;
-  const canGoNext = prayerIds.length > 0 && index < prayerIds.length - 1;
+  // Navigation is only available when index >= 0 (prayer is in the feed list)
+  const isInFeedList = index >= 0 && prayerIds.length > 0;
+  const canGoPrevious = isInFeedList && index > 0;
+  const canGoNext = isInFeedList && index < prayerIds.length - 1;
   
   if (loading) {
     return (
@@ -230,10 +232,12 @@ export default function PrayerDetailScreen({
             <Text style={canGoPrevious ? styles.navButtonText : styles.navButtonTextDisabled}>←</Text>
           </TouchableOpacity>
           
-          {prayerIds.length > 0 && (
+          {isInFeedList ? (
             <Text style={styles.navCounter}>
               {index + 1} / {prayerIds.length}
             </Text>
+          ) : (
+            <Text style={styles.navCounter}>Prayer Details</Text>
           )}
           
           <TouchableOpacity

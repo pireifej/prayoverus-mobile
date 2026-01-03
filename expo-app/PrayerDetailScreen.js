@@ -150,7 +150,33 @@ export default function PrayerDetailScreen({
       
       const data = JSON.parse(responseText);
       console.log('📍 Parsed prayer data:', data);
-      setPrayer(data);
+      
+      // API returns { error: 0, request: {...} } format
+      if (data.error === 0 && data.request) {
+        // Map API response fields to our prayer format
+        const prayerData = {
+          id: data.request.request_id,
+          title: data.request.request_title,
+          content: data.request.request_text,
+          author: data.request.user_name || data.request.real_name,
+          picture: data.request.request_picture,
+          date: data.request.timestamp,
+          category: null,
+          prayer_count: data.request.prayer_count || 0,
+          user_has_prayed: false,
+          prayed_by_people: (data.request.prayed_by_names || []).map(name => ({
+            name: name,
+            picture: null
+          })),
+          user_picture: data.request.user_picture,
+          church_id: data.request.church_id,
+          my_church_only: data.request.my_church_only
+        };
+        console.log('📍 Mapped prayer data:', prayerData);
+        setPrayer(prayerData);
+      } else {
+        throw new Error('Prayer not found or invalid response');
+      }
     } catch (err) {
       console.error('Error fetching prayer:', err);
       setError(err.message);

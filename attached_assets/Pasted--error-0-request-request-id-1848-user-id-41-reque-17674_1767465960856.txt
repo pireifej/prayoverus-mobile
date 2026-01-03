@@ -1,0 +1,30 @@
+{
+    "error": 0,
+    "request": {
+        "request_id": 1848,
+        "user_id": 41,
+        "request_text": "Please pray for Gianna who is 4 months pregnant for the safety and good health for both mother and baby.",
+        "request_title": "Singwala's Prayer Request",
+        "request_picture": null,
+        "my_church_only": false,
+        "active": 1,
+        "fk_prayer_id": 557,
+        "other_person_email": null,
+        "use_alias": null,
+        "allow_comments": null,
+        "timestamp": "2026-01-02T19:18:32.334Z",
+        "user_name": "Singwala",
+        "real_name": "Singwala",
+        "user_picture": "dIb7Yxut.jpg",
+        "church_id": 4,
+        "prayer_title": "openAI-generated",
+        "prayer_text": "Dear Heavenly Father,<br><br>We humbly come before You to lift up <strong>Gianna</strong>, who is four months pregnant, seeking Your divine intervention for the safety and good health of both mother and baby.<br><br>Gracious God, we ask for Your loving touch to surround <strong>Gianna</strong> with Your divine protection. Watch over her as she carries this precious life within her womb, guiding her every step of the way. May Your healing presence be felt, bringing strength and comfort to her heart and body.<br><br>Blessed Mother Mary, we seek your intercession to shower <strong>Gianna</strong> with your maternal care. Help her find peace and solace in your loving embrace, knowing that you are always by her side.<br><br>Heavenly Father, we entrust <strong>Gianna</strong> and her unborn child into Your merciful hands, asking for Your wisdom and guidance to lead them towards a safe delivery and a healthy journey ahead.<br><br>May Your grace and love fill <strong>Gianna</strong>’s womb, nurturing the precious life growing inside her. Grant her the courage, patience, and faith to embrace this beautiful gift of motherhood with hope and joy.<br><br>In Your infinite wisdom and boundless mercy, we place our trust, knowing that You hear our prayers and will guide <strong>Gianna</strong> on this sacred path. May Your divine providence be her constant companion, now and always.",
+        "prayed_by_names": [
+            "Singwala",
+            "Jiri",
+            "Paul",
+            "George"
+        ],
+        "prayer_count": 4
+    }
+}

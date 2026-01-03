@@ -309,6 +309,7 @@ export default function PrayerDetailScreen({
           title: data.request.request_title,
           content: data.request.request_text,
           author: data.request.user_name || data.request.real_name,
+          real_name: data.request.real_name,
           picture: data.request.request_picture,
           date: data.request.timestamp,
           category: null,
@@ -545,6 +546,12 @@ export default function PrayerDetailScreen({
           </View>
           
           <View style={styles.authorTimeRow}>
+            {prayer?.real_name && (
+              <>
+                <Text style={styles.realName}>{prayer.real_name}</Text>
+                <Text style={styles.timeDot}> • </Text>
+              </>
+            )}
             <Text style={styles.relativeTime}>
               {getRelativeTime(prayer?.date)}
             </Text>
@@ -789,6 +796,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#6b7280',
+  },
+  realName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
   },
   authorFirstName: {
     fontSize: 15,

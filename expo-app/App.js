@@ -5,6 +5,7 @@ import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
+import PrayerDetailScreen from './PrayerDetailScreen';
 import { Buffer } from 'buffer';
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
@@ -736,7 +737,7 @@ function App() {
   // Store initial deep link URL to process after auth check completes
   const [pendingInitialUrl, setPendingInitialUrl] = useState(null);
   
-  // Prayer Detail View Modal state (Instagram-style full-screen view)
+  // Prayer Detail View Modal state (Instagram-style full-screen view) - DEPRECATED, using PrayerDetailScreen now
   const [detailModal, setDetailModal] = useState({
     visible: false,
     prayer: null,
@@ -745,6 +746,14 @@ function App() {
   const detailModalSlideAnim = useRef(new Animated.Value(1000)).current;
   const detailModalOpacityAnim = useRef(new Animated.Value(0)).current;
   const detailSwipeAnim = useRef(new Animated.Value(0)).current;
+  
+  // NEW: Prayer Detail Screen state (replaces modal)
+  const [showDetailScreen, setShowDetailScreen] = useState(false);
+  const [detailScreenProps, setDetailScreenProps] = useState({
+    requestId: null,
+    prayerIds: [],
+    currentIndex: 0
+  });
   
   // Detail view generated prayer state
   const [detailGeneratedPrayer, setDetailGeneratedPrayer] = useState({
@@ -1684,43 +1693,22 @@ Through Christ our Lord. Amen.`;
     setDetailGeneratedPrayer({ text: fallbackPrayer, loading: false, collapsed: true });
   };
 
-  // Open prayer detail view (Instagram-style full-screen view)
+  // Open prayer detail view (now uses PrayerDetailScreen instead of modal)
   const openDetailModal = (prayer) => {
     // Find index in the FILTERED prayers list (what's currently displayed)
     const filtered = getFilteredPrayers();
     const index = filtered.findIndex(p => p.id === prayer.id);
     
-    // Update refs IMMEDIATELY so swipe handlers have correct values
-    const newModalState = {
-      visible: true,
-      prayer: prayer,
-      prayerIndex: index
-    };
-    detailModalRef.current = newModalState;
-    filteredPrayersRef.current = filtered;
+    // Get array of prayer IDs for navigation
+    const prayerIds = filtered.map(p => p.id);
     
-    setDetailModal(newModalState);
-    
-    // Fetch generated prayer for this request
-    fetchGeneratedPrayerForDetail(prayer);
-    
-    // Reset swipe animation
-    detailSwipeAnim.setValue(0);
-    
-    // Slide-up animation
-    Animated.parallel([
-      Animated.spring(detailModalSlideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }),
-      Animated.timing(detailModalOpacityAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Set props and show the detail screen
+    setDetailScreenProps({
+      requestId: prayer.id,
+      prayerIds: prayerIds,
+      currentIndex: index >= 0 ? index : 0
+    });
+    setShowDetailScreen(true);
   };
 
   // Refs to hold current state for PanResponder (avoids stale closure)
@@ -1943,24 +1931,36 @@ Through Christ our Lord. Amen.`;
 
   // Close prayer detail view
   const closeDetailModal = () => {
-    // Clear fetch tracking and generated prayer state
+    // Close the new detail screen
+    setShowDetailScreen(false);
+    setDetailScreenProps({ requestId: null, prayerIds: [], currentIndex: 0 });
+    
+    // Clear fetch tracking and generated prayer state (for old modal, kept for compatibility)
     fetchingPrayerIdRef.current = null;
     setDetailGeneratedPrayer({ text: '', loading: false, collapsed: true });
+    setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
+  };
+  
+  // Handler for when user presses "Pray" on the detail screen
+  const handlePrayFromDetailScreen = (prayer) => {
+    if (!prayer) return;
     
-    Animated.parallel([
-      Animated.timing(detailModalSlideAnim, {
-        toValue: 1000,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(detailModalOpacityAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setDetailModal({ visible: false, prayer: null, prayerIndex: -1 });
-    });
+    // Close detail screen and open prayer modal
+    closeDetailModal();
+    
+    // Small delay to let detail screen close, then open prayer modal
+    setTimeout(() => {
+      generatePrayer(prayer);
+    }, 100);
+  };
+  
+  // Handler for navigation between prayers in detail screen
+  const handleDetailNavigate = (prayerId, newIndex) => {
+    setDetailScreenProps(prev => ({
+      ...prev,
+      requestId: prayerId,
+      currentIndex: newIndex
+    }));
   };
 
   // Handle praying from the detail view
@@ -2529,6 +2529,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <ActivityIndicator size="large" color="#6366f1" />
         <Text style={{ marginTop: 10, color: '#6366f1' }}>Loading...</Text>
       </View>
+    );
+  }
+
+  // Show Prayer Detail Screen (full-screen, replaces modal)
+  if (showDetailScreen && detailScreenProps.requestId) {
+    return (
+      <PrayerDetailScreen
+        requestId={detailScreenProps.requestId}
+        prayerIds={detailScreenProps.prayerIds}
+        currentIndex={detailScreenProps.currentIndex}
+        userId={currentUser?.id}
+        onClose={closeDetailModal}
+        onPray={handlePrayFromDetailScreen}
+        onNavigate={handleDetailNavigate}
+      />
     );
   }
 

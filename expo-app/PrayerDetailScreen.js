@@ -95,23 +95,34 @@ export default function PrayerDetailScreen({
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
+      const payload = {
+        requestId: id,
+        tz: timezone,
+        userId: userId
+      };
+      
+      console.log('📍 Fetching prayer by ID:', id);
+      console.log('📍 Request payload:', JSON.stringify(payload, null, 2));
+      
       const response = await fetch(`${API_BASE_URL}/getRequestById`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          requestId: id,
-          tz: timezone,
-          userId: userId
-        }),
+        body: JSON.stringify(payload),
       });
       
+      console.log('📍 Response status:', response.status);
+      
+      const responseText = await response.text();
+      console.log('📍 Response body:', responseText);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch prayer details');
+        throw new Error(`Failed to fetch prayer details: ${response.status} - ${responseText}`);
       }
       
-      const data = await response.json();
+      const data = JSON.parse(responseText);
+      console.log('📍 Parsed prayer data:', data);
       setPrayer(data);
     } catch (err) {
       console.error('Error fetching prayer:', err);

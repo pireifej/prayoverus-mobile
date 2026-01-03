@@ -15,3 +15,5 @@ eas submit --platform android
 
 # Submit to Apple App Store
 eas submit --platform ios
+
+Le_PY_Ar49n%Ux.

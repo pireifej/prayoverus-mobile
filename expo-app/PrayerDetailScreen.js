@@ -164,10 +164,12 @@ export default function PrayerDetailScreen({
           category: null,
           prayer_count: data.request.prayer_count || 0,
           user_has_prayed: false,
-          prayed_by_people: (data.request.prayed_by_names || []).map(name => ({
-            name: name,
-            picture: null
-          })),
+          // Use prayed_by_people (with pictures) if available, fallback to prayed_by_names
+          prayed_by_people: data.request.prayed_by_people || 
+            (data.request.prayed_by_names || []).map(name => ({
+              name: name,
+              picture: null
+            })),
           user_picture: data.request.user_picture,
           church_id: data.request.church_id,
           my_church_only: data.request.my_church_only

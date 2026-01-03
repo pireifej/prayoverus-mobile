@@ -8,9 +8,14 @@ import {
   Image, 
   ActivityIndicator,
   Animated,
-  Alert
+  Alert,
+  Dimensions,
+  PanResponder
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 80;
 
 const API_BASE_URL = 'https://shouldcallpaul.replit.app';
 
@@ -112,6 +117,101 @@ export default function PrayerDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
+  
+  // Swipe animation
+  const swipeAnim = useRef(new Animated.Value(0)).current;
+  const isSwipingRef = useRef(false);
+  
+  // Navigation is only available when index >= 0 (prayer is in the feed list)
+  const isInFeedList = index >= 0 && prayerIds.length > 0;
+  const canGoPreviousRef = useRef(false);
+  const canGoNextRef = useRef(false);
+  
+  // Update refs when navigation state changes
+  useEffect(() => {
+    canGoPreviousRef.current = isInFeedList && index > 0;
+    canGoNextRef.current = isInFeedList && index < prayerIds.length - 1;
+  }, [isInFeedList, index, prayerIds.length]);
+  
+  // PanResponder for swipe gestures
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to horizontal swipes (more horizontal than vertical)
+        const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
+        const isSignificantMove = Math.abs(gestureState.dx) > 10;
+        return isHorizontalSwipe && isSignificantMove;
+      },
+      onPanResponderGrant: () => {
+        isSwipingRef.current = true;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Limit swipe distance and add resistance at edges
+        let dx = gestureState.dx;
+        
+        // Add resistance if can't navigate in that direction
+        if (dx > 0 && !canGoPreviousRef.current) {
+          dx = dx * 0.3; // Resistance when swiping right but can't go previous
+        }
+        if (dx < 0 && !canGoNextRef.current) {
+          dx = dx * 0.3; // Resistance when swiping left but can't go next
+        }
+        
+        swipeAnim.setValue(dx);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        isSwipingRef.current = false;
+        
+        if (gestureState.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
+          // Swipe right - go to previous
+          Animated.timing(swipeAnim, {
+            toValue: SCREEN_WIDTH,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            swipeAnim.setValue(0);
+            // Navigate to previous
+            const newIndex = index - 1;
+            setIndex(newIndex);
+            if (onNavigate) {
+              onNavigate(prayerIds[newIndex], newIndex);
+            }
+          });
+        } else if (gestureState.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
+          // Swipe left - go to next
+          Animated.timing(swipeAnim, {
+            toValue: -SCREEN_WIDTH,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            swipeAnim.setValue(0);
+            // Navigate to next
+            const newIndex = index + 1;
+            setIndex(newIndex);
+            if (onNavigate) {
+              onNavigate(prayerIds[newIndex], newIndex);
+            }
+          });
+        } else {
+          // Snap back
+          Animated.spring(swipeAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        isSwipingRef.current = false;
+        Animated.spring(swipeAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
   
   const fetchPrayerById = async (id) => {
     setLoading(true);
@@ -227,8 +327,6 @@ export default function PrayerDetailScreen({
     }
   };
   
-  // Navigation is only available when index >= 0 (prayer is in the feed list)
-  const isInFeedList = index >= 0 && prayerIds.length > 0;
   const canGoPrevious = isInFeedList && index > 0;
   const canGoNext = isInFeedList && index < prayerIds.length - 1;
   
@@ -323,12 +421,17 @@ export default function PrayerDetailScreen({
         </TouchableOpacity>
       </View>
       
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-        bounces={false}
+      {/* Swipeable content area */}
+      <Animated.View 
+        style={[styles.swipeContainer, { transform: [{ translateX: swipeAnim }] }]}
+        {...panResponder.panHandlers}
       >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          bounces={false}
+        >
         <View style={styles.contentContainer}>
           {prayer?.title && (
             <Text style={styles.titleLarge} selectable={true}>{prayer.title}</Text>
@@ -416,6 +519,7 @@ export default function PrayerDetailScreen({
           </View>
         </View>
       </ScrollView>
+      </Animated.View>
     </View>
   );
 }
@@ -429,12 +533,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingTop: 70,
+    paddingHorizontal: 24,
+    paddingBottom: 18,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  swipeContainer: {
+    flex: 1,
   },
   navButtonsContainer: {
     flexDirection: 'row',

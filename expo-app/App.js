@@ -701,7 +701,6 @@ function App() {
   
   // Track detail screen context for auto-advance after praying
   const detailScreenContextRef = useRef(null);
-  const [showPrayedConfirmation, setShowPrayedConfirmation] = useState(false);
   
   // Ref to access latest communityPrayers in callbacks (avoids stale closure)
   const communityPrayersRef = useRef(communityPrayers);
@@ -1977,9 +1976,13 @@ Through Christ our Lord. Amen.`;
       detailScreenContextRef.current = null;
     }
     
-    // DON'T close detail screen - keep it behind the modal
-    // Open prayer modal on top
-    generatePrayer(prayer);
+    // Close detail screen first, then open prayer modal
+    closeDetailModal();
+    
+    // Small delay to let detail screen close, then open prayer modal
+    setTimeout(() => {
+      generatePrayer(prayer);
+    }, 100);
   };
   
   // Handler for navigation between prayers in detail screen
@@ -2200,10 +2203,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
-      // Close the prayer modal first
-      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-      modalSlideAnim.setValue(0);
-      modalOpacityAnim.setValue(1);
+      closePrayerModal();
       
       // Show interstitial ad after every 5th prayer
       if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
@@ -2211,37 +2211,30 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         showInterstitialAd();
       }
       
-      // Get the detail screen context
+      // Get the detail screen context for auto-advance
       const context = detailScreenContextRef.current;
       detailScreenContextRef.current = null;
       
-      // Show "Prayed!" confirmation
-      setShowPrayedConfirmation(true);
+      // Determine what to do next
+      const isFromDeepLink = !context || !context.isInFeedList;
+      const hasNextPrayer = context && context.isInFeedList && context.index < context.prayerIds.length - 1;
       
-      setTimeout(() => {
-        setShowPrayedConfirmation(false);
+      if (hasNextPrayer) {
+        // From community wall with more prayers - reopen detail screen at next prayer
+        const newIndex = context.index + 1;
+        const nextPrayerId = context.prayerIds[newIndex];
         
-        // Determine what to do next
-        const isFromDeepLink = !context || !context.isInFeedList;
-        const hasNextPrayer = context && context.isInFeedList && context.index < context.prayerIds.length - 1;
-        
-        if (isFromDeepLink) {
-          // From deep link - close detail screen and go to community wall
-          closeDetailModal();
-        } else if (hasNextPrayer) {
-          // From community wall with more prayers - advance to next prayer
-          const newIndex = context.index + 1;
-          const nextPrayerId = context.prayerIds[newIndex];
-          setDetailScreenProps(prev => ({
-            ...prev,
+        // Small delay then open next prayer
+        setTimeout(() => {
+          setDetailScreenProps({
             requestId: nextPrayerId,
+            prayerIds: context.prayerIds,
             currentIndex: newIndex
-          }));
-        } else {
-          // From community wall but no more prayers - close
-          closeDetailModal();
-        }
-      }, 1200); // Show "Prayed!" for 1.2 seconds
+          });
+          setShowDetailScreen(true);
+        }, 300);
+      }
+      // Otherwise (deep link or last prayer) - just stay on community wall
     }, 2000); // 2 seconds to enjoy the celebration!
   };
 
@@ -2598,117 +2591,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Show Prayer Detail Screen (full-screen, replaces modal)
   if (showDetailScreen && detailScreenProps.requestId) {
     return (
-      <View style={{ flex: 1 }}>
-        <PrayerDetailScreen
-          requestId={detailScreenProps.requestId}
-          prayerIds={detailScreenProps.prayerIds}
-          currentIndex={detailScreenProps.currentIndex}
-          userId={currentUser?.id}
-          onClose={closeDetailModal}
-          onPray={handlePrayFromDetailScreen}
-          onNavigate={handleDetailNavigate}
-        />
-        
-        {/* Prayer Modal on top of detail screen */}
-        <Modal
-          visible={prayerModal.visible}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closePrayerModal}
-        >
-          <View style={styles.fullScreenPrayerContainer}>
-            <View style={styles.fullScreenPrayerHeader}>
-              <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
-                <Text style={styles.fullScreenCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {prayerModal.loading ? (
-              <View style={styles.fullScreenPrayerContent}>
-                <ActivityIndicator size="large" color="#6366f1" />
-                <Text style={styles.fullScreenLoadingText}>Generating prayer...</Text>
-              </View>
-            ) : (
-              <ScrollView style={styles.fullScreenPrayerScroll}>
-                <View style={styles.fullScreenPrayerContent}>
-                  <Text style={styles.fullScreenPrayerTitle}>Prayer for {prayerModal.prayer?.author}</Text>
-                  <Text style={styles.fullScreenPrayerText}>{prayerModal.generatedPrayer}</Text>
-                  <TouchableOpacity style={styles.fullScreenAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.fullScreenAmenButtonText}>Amen 🙏</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </Modal>
-        
-        {/* Prayed! confirmation overlay */}
-        {showPrayedConfirmation && (
-          <View style={styles.prayedConfirmationOverlay}>
-            <View style={styles.prayedConfirmationContent}>
-              <Text style={styles.prayedConfirmationIcon}>🙏</Text>
-              <Text style={styles.prayedConfirmationText}>Prayed!</Text>
-            </View>
-          </View>
-        )}
-        
-        {/* Prayer animation overlay */}
-        {showPrayerAnimation && (
-          <View style={styles.celebrationContainer} pointerEvents="none">
-            {confettiAnims.map((anim, index) => {
-              const randomAngle = (Math.random() * Math.PI * 2);
-              const randomDistance = 100 + Math.random() * 150;
-              const x = Math.cos(randomAngle) * randomDistance;
-              const y = Math.sin(randomAngle) * randomDistance - 50;
-              const randomRotation = Math.random() * 720 - 360;
-              const emoji = ['✨', '🙏', '💫', '⭐', '🌟', '💖', '✝️', '🕊️'][index % 8];
-              
-              return (
-                <Animated.View
-                  key={index}
-                  style={[
-                    styles.confettiPiece,
-                    {
-                      transform: [
-                        {
-                          translateX: anim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0, x],
-                          }),
-                        },
-                        {
-                          translateY: anim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0, y],
-                          }),
-                        },
-                        {
-                          rotate: anim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0deg', `${randomRotation}deg`],
-                          }),
-                        },
-                        {
-                          scale: anim.interpolate({
-                            inputRange: [0, 0.3, 0.7, 1],
-                            outputRange: [0, 1.8, 1.5, 0.5],
-                          }),
-                        },
-                      ],
-                      opacity: anim.interpolate({
-                        inputRange: [0, 0.2, 0.8, 1],
-                        outputRange: [0, 1, 1, 0],
-                      }),
-                    },
-                  ]}
-                >
-                  <Text style={styles.confettiEmoji}>{emoji}</Text>
-                </Animated.View>
-              );
-            })}
-          </View>
-        )}
-      </View>
+      <PrayerDetailScreen
+        requestId={detailScreenProps.requestId}
+        prayerIds={detailScreenProps.prayerIds}
+        currentIndex={detailScreenProps.currentIndex}
+        userId={currentUser?.id}
+        onClose={closeDetailModal}
+        onPray={handlePrayFromDetailScreen}
+        onNavigate={handleDetailNavigate}
+      />
     );
   }
 
@@ -4817,34 +4708,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#6366f1',
     textAlign: 'center',
-  },
-  // Prayed! confirmation overlay styles
-  prayedConfirmationOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(99, 102, 241, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  prayedConfirmationContent: {
-    alignItems: 'center',
-  },
-  prayedConfirmationIcon: {
-    fontSize: 80,
-    marginBottom: 20,
-  },
-  prayedConfirmationText: {
-    fontSize: 42,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   // Profile and Settings styles
   settingsButton: {

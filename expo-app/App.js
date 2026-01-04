@@ -964,6 +964,9 @@ function App() {
         // Open directly by ID - the detail screen will fetch data
         setCurrentScreen('home');
         setTimeout(() => {
+          // Reset prayer modal state to prevent it from showing as overlay
+          setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+          
           // Pass available prayer IDs for navigation, or empty array if none
           const prayerIds = communityPrayers.map(p => p.id);
           setDetailScreenProps({
@@ -1716,6 +1719,9 @@ Through Christ our Lord. Amen.`;
     
     // Get array of prayer IDs for navigation
     const prayerIds = filtered.map(p => p.id);
+    
+    // Reset prayer modal state to prevent it from showing as overlay
+    setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
     
     // Set props and show the detail screen
     setDetailScreenProps({

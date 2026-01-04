@@ -131,6 +131,7 @@ export default function PrayerDetailScreen({
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
   const [isLoadingNewPrayer, setIsLoadingNewPrayer] = useState(false);
+  const [showPrayedConfirmation, setShowPrayedConfirmation] = useState(false);
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -473,6 +474,38 @@ export default function PrayerDetailScreen({
   const handlePray = () => {
     if (prayer && onPray) {
       onPray(prayer);
+      
+      // Show "Prayed!" confirmation
+      setShowPrayedConfirmation(true);
+      
+      // Determine what happens after confirmation
+      const isFromDeepLink = !isInFeedList;
+      const hasNextPrayer = isInFeedList && index < prayerIds.length - 1;
+      
+      setTimeout(() => {
+        setShowPrayedConfirmation(false);
+        
+        if (isFromDeepLink) {
+          // From deep link - close and go back to community wall
+          if (onClose) {
+            onClose();
+          }
+        } else if (hasNextPrayer) {
+          // From community wall with more prayers - auto-advance to next
+          const newIndex = index + 1;
+          setIsLoadingNewPrayer(true);
+          isLoadingRef.current = true;
+          setIndex(newIndex);
+          if (onNavigate) {
+            onNavigate(prayerIds[newIndex], newIndex);
+          }
+        } else {
+          // From community wall but no more prayers - close
+          if (onClose) {
+            onClose();
+          }
+        }
+      }, 1200); // Show confirmation for 1.2 seconds
     }
   };
   
@@ -587,6 +620,16 @@ export default function PrayerDetailScreen({
         <View style={styles.transitionOverlay}>
           <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.transitionText}>Loading...</Text>
+        </View>
+      )}
+      
+      {/* Prayed! confirmation overlay */}
+      {showPrayedConfirmation && (
+        <View style={styles.prayedConfirmationOverlay}>
+          <View style={styles.prayedConfirmationContent}>
+            <Text style={styles.prayedConfirmationIcon}>🙏</Text>
+            <Text style={styles.prayedConfirmationText}>Prayed!</Text>
+          </View>
         </View>
       )}
       
@@ -750,6 +793,30 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6b7280',
+  },
+  prayedConfirmationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(99, 102, 241, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  prayedConfirmationContent: {
+    alignItems: 'center',
+  },
+  prayedConfirmationIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  prayedConfirmationText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1,
   },
   navButtonsContainer: {
     flexDirection: 'row',

@@ -332,8 +332,8 @@ export default function PrayerDetailScreen({
       
       const payload = {
         requestId: id,
-        tz: timezone,
-        userId: userId
+        userId: userId,
+        tz: timezone
       };
       
       console.log('📍 Fetching prayer by ID:', id);

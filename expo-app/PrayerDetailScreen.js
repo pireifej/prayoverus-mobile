@@ -375,7 +375,7 @@ export default function PrayerDetailScreen({
           date: data.request.timestamp,
           category: null,
           prayer_count: data.request.prayer_count || 0,
-          user_has_prayed: false,
+          user_has_prayed: data.request.user_has_prayed || false,
           prayed_by_people: data.request.prayed_by_people || 
             (data.request.prayed_by_names || []).map(name => ({
               name: name,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Buffer } from 'buffer';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -971,6 +972,10 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             : 'Need an account? Sign Up'}
         </Text>
       </TouchableOpacity>
+      
+      <Text style={styles.versionText}>
+        v{Constants.expoConfig?.version || '1.0.0'}
+      </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -1303,5 +1308,12 @@ const styles = StyleSheet.create({
   churchOptionTextSelected: {
     color: '#8B5CF6',
     fontWeight: '600',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 30,
+    paddingRight: 5,
   },
 });

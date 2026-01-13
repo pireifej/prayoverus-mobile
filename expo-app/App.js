@@ -3698,15 +3698,40 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={[styles.iconButtonLabel, prayerImage && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Picture</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              style={[styles.iconButton, !newPrayer.isPublic && styles.iconButtonActive]}
-              onPress={() => setNewPrayer({...newPrayer, isPublic: !newPrayer.isPublic})}
-              disabled={isPosting}
-              data-testid="button-toggle-church"
-            >
-              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>⛪</Text>
-              <Text style={[styles.iconButtonLabel, !newPrayer.isPublic && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>My Church</Text>
-            </TouchableOpacity>
+          </View>
+          
+          {/* Who can see this prayer - Clear radio-style selection */}
+          <View style={styles.visibilitySection}>
+            <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
+            <View style={styles.visibilityOptions}>
+              <TouchableOpacity 
+                style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
+                onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
+                disabled={isPosting}
+                data-testid="button-visibility-all"
+              >
+                <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
+                  {newPrayer.isPublic && <View style={styles.radioInner} />}
+                </View>
+                <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                  🌍 All Churches
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
+                onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
+                disabled={isPosting}
+                data-testid="button-visibility-church"
+              >
+                <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
+                  {!newPrayer.isPublic && <View style={styles.radioInner} />}
+                </View>
+                <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                  ⛪ {currentUser?.churchName ? `${currentUser.churchName} Only` : 'My Church Only'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           <TouchableOpacity 
@@ -3765,12 +3790,22 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.filterButton, showChurchOnly && styles.filterButtonActive]}
-              onPress={() => setShowChurchOnly(!showChurchOnly)}
-              data-testid="button-filter-church"
+              style={[styles.churchFilterButton, styles.churchFilterButtonFirst, !showChurchOnly && styles.churchFilterButtonActive]}
+              onPress={() => setShowChurchOnly(false)}
+              data-testid="button-filter-all-churches"
             >
-              <Text style={[styles.filterButtonText, showChurchOnly && styles.filterButtonTextActive]}>
-                {showChurchOnly ? '⛪ Church' : '🌍 All'}
+              <Text style={[styles.churchFilterButtonText, !showChurchOnly && styles.churchFilterButtonTextActive]}>
+                🌍 All Churches
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.churchFilterButton, showChurchOnly && styles.churchFilterButtonActive]}
+              onPress={() => setShowChurchOnly(true)}
+              data-testid="button-filter-my-church"
+            >
+              <Text style={[styles.churchFilterButtonText, showChurchOnly && styles.churchFilterButtonTextActive]}>
+                ⛪ {currentUser?.churchName ? currentUser.churchName : 'My Church'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -5302,6 +5337,93 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: '#ffffff',
+  },
+  churchFilterButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    marginLeft: 8,
+    justifyContent: 'center',
+  },
+  churchFilterButtonFirst: {
+    marginLeft: 0,
+  },
+  churchFilterButtonActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  churchFilterButtonText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  churchFilterButtonTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  visibilitySection: {
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  visibilityLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  visibilityOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  visibilityOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    minHeight: 52,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+  },
+  visibilityOptionActive: {
+    backgroundColor: '#ede9fe',
+    borderColor: '#6366f1',
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleActive: {
+    borderColor: '#6366f1',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#6366f1',
+  },
+  visibilityOptionText: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+    flex: 1,
+  },
+  visibilityOptionTextActive: {
+    color: '#4f46e5',
+    fontWeight: '600',
   },
   personalRequestsSection: {
     marginTop: 20,

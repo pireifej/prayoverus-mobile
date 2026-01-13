@@ -16,4 +16,6 @@ eas submit --platform android
 # Submit to Apple App Store
 eas submit --platform ios
 
-Le_PY_Ar49n%Ux.
+# Push OTA update to all users (no app store review needed)
+# Use this for JavaScript-only changes (bug fixes, UI tweaks)
+cd expo-app && npx eas update --branch production

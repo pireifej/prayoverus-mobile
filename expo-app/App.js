@@ -854,10 +854,14 @@ function App() {
   
   // Function to show interstitial ad (call after every 5th prayer)
   const showInterstitialAd = () => {
+    console.log('🎬 showInterstitialAd called - interstitialLoaded:', interstitialLoaded, 'ref exists:', !!interstitialRef.current);
     if (interstitialLoaded && interstitialRef.current) {
+      console.log('🎬 Showing interstitial ad NOW');
       interstitialRef.current.show();
       return true;
     }
+    console.log('🎬 Interstitial not ready - loading a new one');
+    loadInterstitialAd();
     return false;
   };
 
@@ -2200,6 +2204,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     // Increment prayer count and show interstitial ad every 5th prayer
     const newPrayerCount = prayerCount + 1;
     setPrayerCount(newPrayerCount);
+    console.log(`🙏 Prayer count: ${newPrayerCount} (show ad at 5, 10, 15...) isAdMobAvailable: ${isAdMobAvailable}`);
     
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
@@ -2207,7 +2212,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       // Show interstitial ad after every 5th prayer
       if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
-        console.log(`Showing interstitial ad after ${newPrayerCount} prayers (every 5th)`);
+        console.log(`🎬 Triggering interstitial ad after ${newPrayerCount} prayers`);
         showInterstitialAd();
       }
       

@@ -10,9 +10,17 @@ import { z } from "zod";
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Current app version - update this when releasing new versions
+const CURRENT_APP_VERSION = '1.0.20';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // App version endpoint for update checking
+  app.get('/api/app-version', (req, res) => {
+    res.json({ version: CURRENT_APP_VERSION });
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

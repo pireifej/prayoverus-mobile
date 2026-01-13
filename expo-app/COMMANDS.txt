@@ -19,3 +19,7 @@ eas submit --platform ios
 # Push OTA update to all users (no app store review needed)
 # Use this for JavaScript-only changes (bug fixes, UI tweaks)
 cd expo-app && npx eas update --branch production
+
+# IMPORTANT: After releasing a new app version to the stores,
+# update CURRENT_APP_VERSION in server/routes.ts to notify users
+# Example: const CURRENT_APP_VERSION = '1.0.21';

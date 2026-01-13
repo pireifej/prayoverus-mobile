@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, Text
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 import PrayerDetailScreen from './PrayerDetailScreen';
@@ -696,6 +697,10 @@ function App() {
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
   const interstitialRef = useRef(null);
   
+  // App update checker state
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [latestVersion, setLatestVersion] = useState(null);
+  
   // Track if prayer modal was opened from detail view (to return after Amen)
   const returnToDetailRef = useRef(null);
   
@@ -814,7 +819,63 @@ function App() {
           console.log('AdMob initialization error:', error);
         });
     }
+    
+    // Check for app updates
+    checkForAppUpdate();
   }, []);
+  
+  // Check for app updates from server
+  const checkForAppUpdate = async () => {
+    try {
+      const currentVersion = Constants.expoConfig?.version || '1.0.0';
+      console.log('📱 Current app version:', currentVersion);
+      
+      const response = await fetch('https://shouldcallpaul.replit.app/api/app-version', {
+        headers: {
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const serverVersion = data.version;
+        console.log('📱 Latest version from server:', serverVersion);
+        
+        if (serverVersion && isNewerVersion(serverVersion, currentVersion)) {
+          console.log('📱 Update available!');
+          setLatestVersion(serverVersion);
+          setShowUpdateModal(true);
+        }
+      }
+    } catch (error) {
+      console.log('Version check failed:', error.message);
+    }
+  };
+  
+  // Compare version strings (e.g., "1.0.21" > "1.0.20")
+  const isNewerVersion = (latest, current) => {
+    const latestParts = latest.split('.').map(Number);
+    const currentParts = current.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+      const latestPart = latestParts[i] || 0;
+      const currentPart = currentParts[i] || 0;
+      
+      if (latestPart > currentPart) return true;
+      if (latestPart < currentPart) return false;
+    }
+    return false;
+  };
+  
+  // Open app store for update
+  const openAppStore = () => {
+    const storeUrl = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/app/id6744257880'
+      : 'https://play.google.com/store/apps/details?id=com.pireifej.prayoverus';
+    
+    Linking.openURL(storeUrl);
+    setShowUpdateModal(false);
+  };
   
   // Function to load interstitial ad
   const loadInterstitialAd = () => {
@@ -4058,6 +4119,36 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       </Modal>
 
       {/* NOTE: Prayer Detail View now uses PrayerDetailScreen component instead of a modal */}
+
+      {/* App Update Modal */}
+      <Modal
+        visible={showUpdateModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUpdateModal(false)}
+      >
+        <View style={styles.updateModalOverlay}>
+          <View style={styles.updateModalContent}>
+            <Text style={styles.updateModalIcon}>🎉</Text>
+            <Text style={styles.updateModalTitle}>Update Available!</Text>
+            <Text style={styles.updateModalMessage}>
+              A new version ({latestVersion}) of PrayOverUs is available with improvements and bug fixes.
+            </Text>
+            <TouchableOpacity 
+              style={styles.updateModalButton}
+              onPress={openAppStore}
+            >
+              <Text style={styles.updateModalButtonText}>Update Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.updateModalLaterButton}
+              onPress={() => setShowUpdateModal(false)}
+            >
+              <Text style={styles.updateModalLaterText}>Maybe Later</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -5276,6 +5367,65 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
+  },
+  updateModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  updateModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    width: '90%',
+    maxWidth: 340,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  updateModalIcon: {
+    fontSize: 48,
+    marginBottom: 15,
+  },
+  updateModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  updateModalMessage: {
+    fontSize: 15,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 25,
+  },
+  updateModalButton: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+    marginBottom: 12,
+  },
+  updateModalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  updateModalLaterButton: {
+    paddingVertical: 10,
+  },
+  updateModalLaterText: {
+    color: '#94a3b8',
+    fontSize: 14,
   },
   editModalCancelText: {
     fontSize: 16,

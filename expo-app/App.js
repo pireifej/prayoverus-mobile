@@ -3356,6 +3356,140 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  // NEW PRAYER REQUEST SCREEN
+  if (currentScreen === 'newPrayer') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+            <Text style={styles.backText}>← Cancel</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Prayer Request</Text>
+          <View style={{width: 60}} />
+        </View>
+        
+        <ScrollView style={styles.newPrayerContainer} keyboardShouldPersistTaps="handled">
+          <View style={styles.newPrayerForm}>
+            {showTitleInput && (
+              <>
+                <Text style={styles.inputLabel}>Prayer Title (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={`${currentUser?.firstName}'s Prayer Request`}
+                  value={newPrayer.title}
+                  onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+                  editable={!isPosting}
+                />
+              </>
+            )}
+            
+            <Text style={styles.inputLabel}>Prayer Request</Text>
+            <TextInput
+              style={[styles.input, styles.newPrayerTextArea]}
+              placeholder="What would you like prayer for?"
+              multiline
+              numberOfLines={6}
+              value={newPrayer.content}
+              onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
+              editable={!isPosting}
+            />
+            
+            {/* Image Preview */}
+            {prayerImage && (
+              <View style={styles.imagePreviewContainer}>
+                <Image 
+                  source={{ uri: prayerImage }}
+                  style={styles.imagePreview}
+                />
+                <TouchableOpacity 
+                  style={styles.removeImageButton}
+                  onPress={() => setPrayerImage(null)}
+                >
+                  <Text style={styles.removeImageText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
+            {/* Options buttons */}
+            <View style={styles.iconButtonRow}>
+              <TouchableOpacity 
+                style={[styles.iconButton, showTitleInput && styles.iconButtonActive]}
+                onPress={() => setShowTitleInput(!showTitleInput)}
+                disabled={isPosting}
+              >
+                <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📝</Text>
+                <Text style={[styles.iconButtonLabel, showTitleInput && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Title</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.iconButton, prayerImage && styles.iconButtonActive]}
+                onPress={pickPrayerImage}
+                disabled={isPosting}
+              >
+                <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📷</Text>
+                <Text style={[styles.iconButtonLabel, prayerImage && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Picture</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Who can see this prayer - Only show if user has a church assigned */}
+            {currentUser?.churchName && currentUser.churchName !== 'None' && (
+              <View style={styles.visibilitySection}>
+                <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
+                <View style={styles.visibilityOptions}>
+                  <TouchableOpacity 
+                    style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
+                    onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
+                    disabled={isPosting}
+                  >
+                    <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
+                      {newPrayer.isPublic && <View style={styles.radioInner} />}
+                    </View>
+                    <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                      🌍 All Churches
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
+                    onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
+                    disabled={isPosting}
+                  >
+                    <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
+                      {!newPrayer.isPublic && <View style={styles.radioInner} />}
+                    </View>
+                    <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                      ⛪ {currentUser.churchName} Only
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            
+            {/* Post Button */}
+            <TouchableOpacity 
+              style={[
+                styles.newPrayerPostButton, 
+                (!newPrayer.content.trim() || isPosting) && styles.postButtonDisabled
+              ]}
+              onPress={async () => {
+                await addPrayer();
+                setCurrentScreen('home');
+              }}
+              disabled={!newPrayer.content.trim() || isPosting}
+            >
+              {isPosting ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <Text style={styles.postButtonText}>Post Prayer Request</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   // ROSARY SCREENS
   if (currentScreen === 'rosary') {
     // Mock data for development
@@ -3631,136 +3765,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           />
         }
       >
-        {/* Compact Post Prayer Widget */}
-        <View style={styles.compactPostWidget}>
-          <Text style={styles.widgetTitle}>Share a Prayer Request</Text>
-          
-          {showTitleInput && (
-            <>
-              <Text style={styles.inputLabel}>Prayer Title (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={`${currentUser?.firstName}'s Prayer Request`}
-                value={newPrayer.title}
-                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
-                editable={!isPosting}
-              />
-            </>
-          )}
-          
-          <Text style={styles.inputLabel}>Prayer Request</Text>
-          <TextInput
-            style={[styles.input, styles.compactTextArea]}
-            placeholder="What would you like prayer for?"
-            multiline
-            numberOfLines={3}
-            value={newPrayer.content}
-            onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
-            editable={!isPosting}
-          />
-          
-          {/* Image Preview and Picker */}
-          {prayerImage && (
-            <View style={styles.imagePreviewContainer}>
-              <Image 
-                source={{ uri: prayerImage }}
-                style={styles.imagePreview}
-              />
-              <TouchableOpacity 
-                style={styles.removeImageButton}
-                onPress={() => setPrayerImage(null)}
-                data-testid="button-remove-prayer-image"
-              >
-                <Text style={styles.removeImageText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          
-          {/* Facebook-style icon buttons */}
-          <View style={styles.iconButtonRow}>
-            <TouchableOpacity 
-              style={[styles.iconButton, showTitleInput && styles.iconButtonActive]}
-              onPress={() => setShowTitleInput(!showTitleInput)}
-              disabled={isPosting}
-              data-testid="button-toggle-title"
-            >
-              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📝</Text>
-              <Text style={[styles.iconButtonLabel, showTitleInput && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Title</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.iconButton, prayerImage && styles.iconButtonActive]}
-              onPress={pickPrayerImage}
-              disabled={isPosting}
-              data-testid="button-add-prayer-image"
-            >
-              <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📷</Text>
-              <Text style={[styles.iconButtonLabel, prayerImage && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Picture</Text>
-            </TouchableOpacity>
-            
-          </View>
-          
-          {/* Who can see this prayer - Only show if user has a church assigned */}
-          {currentUser?.churchName && currentUser.churchName !== 'None' && (
-            <View style={styles.visibilitySection}>
-              <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
-              <View style={styles.visibilityOptions}>
-                <TouchableOpacity 
-                  style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
-                  onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
-                  disabled={isPosting}
-                  data-testid="button-visibility-all"
-                >
-                  <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
-                    {newPrayer.isPublic && <View style={styles.radioInner} />}
-                  </View>
-                  <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                    🌍 All Churches
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
-                  onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
-                  disabled={isPosting}
-                  data-testid="button-visibility-church"
-                >
-                  <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
-                    {!newPrayer.isPublic && <View style={styles.radioInner} />}
-                  </View>
-                  <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                    ⛪ {currentUser.churchName} Only
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-          
-          <TouchableOpacity 
-            style={[
-              styles.postButton, 
-              isPosting && styles.postButtonDisabled,
-              postSuccess && styles.postButtonSuccess
-            ]} 
-            onPress={addPrayer}
-            disabled={isPosting}
-            activeOpacity={0.7}
-          >
-            {isPosting ? (
-              <View style={styles.postButtonLoading}>
-                <PrayerHandsLoader />
-                <Text style={styles.postButtonText}>Posting...</Text>
-              </View>
-            ) : postSuccess ? (
-              <View style={styles.postButtonLoading}>
-                <Text style={styles.successCheckmark}>✓</Text>
-                <Text style={styles.postButtonText}>Posted!</Text>
-              </View>
-            ) : (
-              <Text style={styles.postButtonText}>Post Request</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Share Prayer Request Button - Opens dedicated screen */}
+        <TouchableOpacity 
+          style={styles.sharePrayerButton}
+          onPress={() => setCurrentScreen('newPrayer')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.sharePrayerButtonIcon}>✏️</Text>
+          <Text style={styles.sharePrayerButtonText}>Share a Prayer Request</Text>
+        </TouchableOpacity>
 
         {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}
         {isAdMobAvailable && BannerAd && BANNER_AD_UNIT_ID && (
@@ -3777,11 +3790,55 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         )}
 
-        {/* DEMO: Filter Options - Remove after testing */}
+        {/* Community Wall Feed */}
+        <View style={styles.feedHeaderSection}>
+          <Text style={styles.feedTitle}>Community Prayers</Text>
+          
+          {/* Prayer Filter - Option D Pill Style */}
+          <View style={styles.pillFilterContainer}>
+            <TouchableOpacity 
+              onPress={() => setHideAlreadyPrayed(false)}
+              style={[styles.pillFilterOption, !hideAlreadyPrayed && styles.pillFilterOptionActive]}
+            >
+              <Text style={[styles.pillFilterText, !hideAlreadyPrayed && styles.pillFilterTextActive]}>All Requests</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setHideAlreadyPrayed(true)}
+              style={[styles.pillFilterOption, hideAlreadyPrayed && styles.pillFilterOptionActive]}
+            >
+              <Text style={[styles.pillFilterText, hideAlreadyPrayed && styles.pillFilterTextActive]}>Not Yet Prayed</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Church Filter - Only show if user has a church assigned */}
+          {currentUser?.churchName && currentUser.churchName !== 'None' && (
+            <View style={styles.churchFilterRow}>
+              <TouchableOpacity 
+                style={[styles.churchFilterButton, styles.churchFilterButtonFirst, !showChurchOnly && styles.churchFilterButtonActive]}
+                onPress={() => setShowChurchOnly(false)}
+              >
+                <Text style={[styles.churchFilterButtonText, !showChurchOnly && styles.churchFilterButtonTextActive]}>
+                  🌍 All Churches
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.churchFilterButton, showChurchOnly && styles.churchFilterButtonActive]}
+                onPress={() => setShowChurchOnly(true)}
+              >
+                <Text style={[styles.churchFilterButtonText, showChurchOnly && styles.churchFilterButtonTextActive]}>
+                  ⛪ {currentUser.churchName}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        
+        {/* DEMO OPTIONS - Hidden but preserved for reference
         <View style={{backgroundColor: '#fef3c7', margin: 15, padding: 15, borderRadius: 12, borderWidth: 2, borderColor: '#f59e0b'}}>
           <Text style={{fontSize: 14, fontWeight: 'bold', color: '#92400e', marginBottom: 12}}>🧪 DEMO: Pick your favorite filter style!</Text>
           
-          {/* Option A: Toggle Switch with Labels on sides */}
+          Option A: Toggle Switch with Labels on sides
           <View style={{marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8}}>
             <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option A: Toggle with labels on sides</Text>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
@@ -3796,7 +3853,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
           
-          {/* Option B: Two Clear Buttons */}
+          Option B: Two Clear Buttons
           <View style={{marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8}}>
             <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option B: Two separate buttons</Text>
             <View style={{flexDirection: 'row', gap: 10}}>
@@ -3815,7 +3872,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
           
-          {/* Option C: Toggle with description */}
+          Option C: Toggle with description
           <View style={{marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8}}>
             <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option C: Toggle with description</Text>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
@@ -3828,62 +3885,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
             </View>
           </View>
-          
-          {/* Option D: Segmented Pill */}
-          <View style={{padding: 12, backgroundColor: 'white', borderRadius: 8}}>
-            <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option D: Connected pill buttons</Text>
-            <View style={{flexDirection: 'row', backgroundColor: '#e2e8f0', borderRadius: 10, padding: 4}}>
-              <TouchableOpacity 
-                onPress={() => setHideAlreadyPrayed(false)}
-                style={{flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: !hideAlreadyPrayed ? 'white' : 'transparent', alignItems: 'center', shadowColor: !hideAlreadyPrayed ? '#000' : 'transparent', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, shadowRadius: 2, elevation: !hideAlreadyPrayed ? 2 : 0}}
-              >
-                <Text style={{fontSize: 14, fontWeight: '600', color: !hideAlreadyPrayed ? '#374151' : '#6b7280'}}>All Requests</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => setHideAlreadyPrayed(true)}
-                style={{flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: hideAlreadyPrayed ? 'white' : 'transparent', alignItems: 'center', shadowColor: hideAlreadyPrayed ? '#000' : 'transparent', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, shadowRadius: 2, elevation: hideAlreadyPrayed ? 2 : 0}}
-              >
-                <Text style={{fontSize: 14, fontWeight: '600', color: hideAlreadyPrayed ? '#374151' : '#6b7280'}}>Not Yet Prayed</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
-
-        {/* Community Wall Feed */}
-        <View style={styles.feedHeaderSection}>
-          <Text style={styles.feedTitle}>Community Prayers</Text>
-          <View style={styles.filterButtonsContainer}>
-            <TouchableOpacity 
-              style={[styles.filterButton, hideAlreadyPrayed && styles.filterButtonActive]}
-              onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
-              data-testid="button-filter-prayed"
-            >
-              <Text style={[styles.filterButtonText, hideAlreadyPrayed && styles.filterButtonTextActive]}>
-                ✓ Prayed
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.churchFilterButton, styles.churchFilterButtonFirst, !showChurchOnly && styles.churchFilterButtonActive]}
-              onPress={() => setShowChurchOnly(false)}
-              data-testid="button-filter-all-churches"
-            >
-              <Text style={[styles.churchFilterButtonText, !showChurchOnly && styles.churchFilterButtonTextActive]}>
-                🌍 All Churches
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.churchFilterButton, showChurchOnly && styles.churchFilterButtonActive]}
-              onPress={() => setShowChurchOnly(true)}
-              data-testid="button-filter-my-church"
-            >
-              <Text style={[styles.churchFilterButtonText, showChurchOnly && styles.churchFilterButtonTextActive]}>
-                ⛪ {currentUser?.churchName ? currentUser.churchName : 'My Church'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        */}
         {(() => {
           let filteredPrayers = communityPrayers;
           
@@ -5202,6 +5205,90 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  sharePrayerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366f1',
+    margin: 15,
+    marginTop: 10,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  sharePrayerButtonIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  sharePrayerButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  newPrayerContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  newPrayerForm: {
+    backgroundColor: 'white',
+    margin: 15,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  newPrayerTextArea: {
+    minHeight: 150,
+    textAlignVertical: 'top',
+  },
+  newPrayerPostButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  pillFilterContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 12,
+  },
+  pillFilterOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  pillFilterOptionActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  pillFilterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  pillFilterTextActive: {
+    color: '#374151',
+  },
+  churchFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
   widgetTitle: {
     fontSize: 16,

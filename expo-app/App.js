@@ -3700,39 +3700,41 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
           </View>
           
-          {/* Who can see this prayer - Clear radio-style selection */}
-          <View style={styles.visibilitySection}>
-            <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
-            <View style={styles.visibilityOptions}>
-              <TouchableOpacity 
-                style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
-                onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
-                disabled={isPosting}
-                data-testid="button-visibility-all"
-              >
-                <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
-                  {newPrayer.isPublic && <View style={styles.radioInner} />}
-                </View>
-                <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                  🌍 All Churches
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
-                onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
-                disabled={isPosting}
-                data-testid="button-visibility-church"
-              >
-                <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
-                  {!newPrayer.isPublic && <View style={styles.radioInner} />}
-                </View>
-                <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                  ⛪ {currentUser?.churchName ? `${currentUser.churchName} Only` : 'My Church Only'}
-                </Text>
-              </TouchableOpacity>
+          {/* Who can see this prayer - Only show if user has a church assigned */}
+          {currentUser?.churchName && currentUser.churchName !== 'None' && (
+            <View style={styles.visibilitySection}>
+              <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
+              <View style={styles.visibilityOptions}>
+                <TouchableOpacity 
+                  style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
+                  onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
+                  disabled={isPosting}
+                  data-testid="button-visibility-all"
+                >
+                  <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
+                    {newPrayer.isPublic && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                    🌍 All Churches
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
+                  onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
+                  disabled={isPosting}
+                  data-testid="button-visibility-church"
+                >
+                  <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
+                    {!newPrayer.isPublic && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
+                    ⛪ {currentUser.churchName} Only
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
           
           <TouchableOpacity 
             style={[
@@ -5120,6 +5122,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     margin: 15,
     marginTop: 10,
+    marginBottom: 24,
     padding: 15,
     borderRadius: 12,
     shadowColor: '#000',
@@ -5304,7 +5307,8 @@ const styles = StyleSheet.create({
   },
   feedHeaderSection: {
     marginHorizontal: 15,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 12,
   },
   feedTitle: {
     fontSize: 18,

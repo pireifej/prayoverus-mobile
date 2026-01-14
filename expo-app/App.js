@@ -3785,14 +3785,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <View style={{marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8}}>
             <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option A: Toggle with labels on sides</Text>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
-              <Text style={{fontSize: 14, color: hideAlreadyPrayed ? '#9ca3af' : '#374151', fontWeight: hideAlreadyPrayed ? '400' : '600', marginRight: 12}}>All Prayers</Text>
+              <Text style={{fontSize: 14, color: !hideAlreadyPrayed ? '#374151' : '#9ca3af', fontWeight: !hideAlreadyPrayed ? '600' : '400', marginRight: 12}}>All Requests</Text>
               <TouchableOpacity 
                 onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
                 style={{width: 56, height: 32, borderRadius: 16, backgroundColor: hideAlreadyPrayed ? '#6366f1' : '#d1d5db', padding: 3}}
               >
                 <View style={{width: 26, height: 26, borderRadius: 13, backgroundColor: 'white', marginLeft: hideAlreadyPrayed ? 24 : 0}} />
               </TouchableOpacity>
-              <Text style={{fontSize: 14, color: hideAlreadyPrayed ? '#374151' : '#9ca3af', fontWeight: hideAlreadyPrayed ? '600' : '400', marginLeft: 12}}>Already Prayed</Text>
+              <Text style={{fontSize: 14, color: hideAlreadyPrayed ? '#374151' : '#9ca3af', fontWeight: hideAlreadyPrayed ? '600' : '400', marginLeft: 12}}>Not Yet Prayed</Text>
             </View>
           </View>
           
@@ -3804,13 +3804,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 onPress={() => setHideAlreadyPrayed(false)}
                 style={{flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 10, backgroundColor: !hideAlreadyPrayed ? '#6366f1' : '#f1f5f9', borderWidth: 2, borderColor: !hideAlreadyPrayed ? '#6366f1' : '#e2e8f0', alignItems: 'center'}}
               >
-                <Text style={{fontSize: 14, fontWeight: '600', color: !hideAlreadyPrayed ? 'white' : '#374151'}}>🙏 All Prayers</Text>
+                <Text style={{fontSize: 14, fontWeight: '600', color: !hideAlreadyPrayed ? 'white' : '#374151'}}>🙏 All Requests</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setHideAlreadyPrayed(true)}
                 style={{flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 10, backgroundColor: hideAlreadyPrayed ? '#6366f1' : '#f1f5f9', borderWidth: 2, borderColor: hideAlreadyPrayed ? '#6366f1' : '#e2e8f0', alignItems: 'center'}}
               >
-                <Text style={{fontSize: 14, fontWeight: '600', color: hideAlreadyPrayed ? 'white' : '#374151'}}>✓ Already Prayed</Text>
+                <Text style={{fontSize: 14, fontWeight: '600', color: hideAlreadyPrayed ? 'white' : '#374151'}}>🆕 Not Yet Prayed</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3819,7 +3819,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <View style={{marginBottom: 16, padding: 12, backgroundColor: 'white', borderRadius: 8}}>
             <Text style={{fontSize: 12, color: '#6b7280', marginBottom: 8}}>Option C: Toggle with description</Text>
             <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
-              <Text style={{fontSize: 14, color: '#374151', fontWeight: '500', flex: 1}}>Show only prayers I've prayed for:</Text>
+              <Text style={{fontSize: 14, color: '#374151', fontWeight: '500', flex: 1}}>Hide requests I've already prayed for:</Text>
               <TouchableOpacity 
                 onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
                 style={{width: 56, height: 32, borderRadius: 16, backgroundColor: hideAlreadyPrayed ? '#6366f1' : '#d1d5db', padding: 3}}
@@ -3837,13 +3837,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 onPress={() => setHideAlreadyPrayed(false)}
                 style={{flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: !hideAlreadyPrayed ? 'white' : 'transparent', alignItems: 'center', shadowColor: !hideAlreadyPrayed ? '#000' : 'transparent', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, shadowRadius: 2, elevation: !hideAlreadyPrayed ? 2 : 0}}
               >
-                <Text style={{fontSize: 14, fontWeight: '600', color: !hideAlreadyPrayed ? '#374151' : '#6b7280'}}>All Prayers</Text>
+                <Text style={{fontSize: 14, fontWeight: '600', color: !hideAlreadyPrayed ? '#374151' : '#6b7280'}}>All Requests</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => setHideAlreadyPrayed(true)}
                 style={{flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: hideAlreadyPrayed ? 'white' : 'transparent', alignItems: 'center', shadowColor: hideAlreadyPrayed ? '#000' : 'transparent', shadowOffset: {width: 0, height: 1}, shadowOpacity: 0.1, shadowRadius: 2, elevation: hideAlreadyPrayed ? 2 : 0}}
               >
-                <Text style={{fontSize: 14, fontWeight: '600', color: hideAlreadyPrayed ? '#374151' : '#6b7280'}}>Already Prayed ✓</Text>
+                <Text style={{fontSize: 14, fontWeight: '600', color: hideAlreadyPrayed ? '#374151' : '#6b7280'}}>Not Yet Prayed</Text>
               </TouchableOpacity>
             </View>
           </View>

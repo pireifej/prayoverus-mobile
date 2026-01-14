@@ -3824,7 +3824,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <View style={styles.feedHeaderSection}>
           <Text style={styles.feedTitle}>Community Prayers</Text>
           
-          {/* Prayer Filter - Option D Pill Style */}
+          {/* Prayer Filter - Option C Toggle Style */}
+          <View style={styles.toggleFilterContainer}>
+            <Text style={styles.toggleFilterLabel}>Hide requests I've already prayed for:</Text>
+            <TouchableOpacity 
+              onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+              style={[styles.toggleSwitch, hideAlreadyPrayed && styles.toggleSwitchActive]}
+            >
+              <View style={[styles.toggleKnob, hideAlreadyPrayed && styles.toggleKnobActive]} />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Prayer Filter - Option D Pill Style (hidden)
           <View style={styles.pillFilterContainer}>
             <TouchableOpacity 
               onPress={() => setHideAlreadyPrayed(false)}
@@ -3839,6 +3850,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={[styles.pillFilterText, hideAlreadyPrayed && styles.pillFilterTextActive]}>Not Yet Prayed</Text>
             </TouchableOpacity>
           </View>
+          */}
           
           {/* Church Filter - Only show if user has a church assigned */}
           {currentUser?.churchName && currentUser.churchName !== 'None' && (
@@ -5295,6 +5307,48 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
+  },
+  toggleFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  toggleFilterLabel: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+  toggleSwitch: {
+    width: 56,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#d1d5db',
+    padding: 3,
+    justifyContent: 'center',
+  },
+  toggleSwitchActive: {
+    backgroundColor: '#6366f1',
+  },
+  toggleKnob: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleKnobActive: {
+    marginLeft: 24,
   },
   pillFilterContainer: {
     flexDirection: 'row',

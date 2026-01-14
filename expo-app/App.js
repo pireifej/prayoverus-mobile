@@ -3358,15 +3358,45 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // NEW PRAYER REQUEST SCREEN
   if (currentScreen === 'newPrayer') {
+    const hasContent = newPrayer.title.trim() || newPrayer.content.trim() || prayerImage;
+    
+    const handleCancelDraft = () => {
+      if (hasContent) {
+        Alert.alert('Draft Saved', 'Your prayer request has been saved as a draft.');
+      }
+      setCurrentScreen('home');
+    };
+    
+    const handleClearForm = () => {
+      Alert.alert(
+        'Clear Form',
+        'Are you sure you want to clear everything?',
+        [
+          { text: 'No', style: 'cancel' },
+          { 
+            text: 'Yes, Clear', 
+            style: 'destructive',
+            onPress: () => {
+              setNewPrayer({ title: '', content: '', isPublic: true });
+              setPrayerImage(null);
+              setShowTitleInput(false);
+            }
+          }
+        ]
+      );
+    };
+    
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
+          <TouchableOpacity onPress={handleCancelDraft} style={styles.backButton}>
             <Text style={styles.backText}>← Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Prayer Request</Text>
-          <View style={{width: 60}} />
+          <TouchableOpacity onPress={handleClearForm} style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>Clear</Text>
+          </TouchableOpacity>
         </View>
         
         <ScrollView style={styles.newPrayerContainer} keyboardShouldPersistTaps="handled">
@@ -4382,6 +4412,15 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 16,
     color: '#6366f1',
+    fontWeight: '600',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    color: '#ef4444',
     fontWeight: '600',
   },
   headerTitle: {

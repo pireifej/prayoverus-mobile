@@ -3954,7 +3954,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 }}
               >
                 <Text style={[styles.filterPillText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillTextActive]}>
-                  🌍 All
+                  🌍 All Requests
                 </Text>
               </TouchableOpacity>
               
@@ -3968,7 +3968,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 }}
               >
                 <Text style={[styles.filterPillText, showMyRequestsOnly && styles.filterPillTextActive]}>
-                  ✍️ Mine
+                  ✍️ My Requests
                 </Text>
               </TouchableOpacity>
               

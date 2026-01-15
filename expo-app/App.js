@@ -3124,32 +3124,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
           </TouchableOpacity>
 
-          {/* Personal Requests Section */}
-          <View style={styles.personalRequestsSection}>
-            <Text style={styles.sectionTitle}>Personal Requests</Text>
-            {prayers.length === 0 ? (
-              <Text style={styles.emptyText}>No prayer requests yet. Share one on the home feed!</Text>
-            ) : (
-              prayers.map((prayer) => (
-                <View key={prayer.id} style={styles.prayerCard}>
-                  {/* Options Menu - User owns all prayers in profile */}
-                  <PrayerOptionsMenu 
-                    prayer={{ ...prayer, user_id: currentUser?.id }}
-                    currentUserId={currentUser?.id}
-                    onEdit={handleEditPrayer}
-                    onDelete={handleDeletePrayer}
-                    isProfileSection={true}
-                  />
-                  
-                  <Text style={styles.prayerTitle}>{prayer.title}</Text>
-                  <Text style={styles.prayerContent}>{prayer.content}</Text>
-                  <Text style={styles.prayerTime}>
-                    {prayer.date} • {prayer.isPublic ? 'Public' : 'Private'}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
+          {/* Personal Requests Section - REMOVED: Now using "My Requests" filter on home screen */}
 
           {/* Test Notification Button - Hidden for now */}
           {false && (
@@ -4097,7 +4072,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           }
           
           if (filteredPrayers.length === 0) {
-            return <Text style={styles.emptyText}>All caught up! 🙏 Tap '✓ Prayed' to show all prayers.</Text>;
+            if (showMyRequestsOnly) {
+              return <Text style={styles.emptyText}>You haven't shared any prayer requests yet. Tap "Share a Prayer Request" above!</Text>;
+            }
+            return <Text style={styles.emptyText}>All caught up! 🙏 Tap the toggle above to show all prayers.</Text>;
           }
           
           return filteredPrayers.map((prayer) => (

@@ -2314,7 +2314,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       content: prayer.content || '',
       isPublic: prayer.isPublic !== false // Default to true if not specified
     });
-    const existingImage = prayer.imageUrl || null;
+    // Use 'picture' field (from API) - may need to construct full URL
+    let existingImage = prayer.picture || null;
+    if (existingImage && !existingImage.startsWith('http')) {
+      existingImage = `https://shouldcallpaul.replit.app/uploads/${existingImage}`;
+    }
+    console.log('📷 Edit prayer - existing image:', existingImage);
     setPrayerImage(existingImage);
     setOriginalPrayerImage(existingImage); // Track original for removePicture detection
     setShowTitleInput(!!prayer.title); // Show title input if prayer has a title
@@ -3470,7 +3475,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               ...editingPrayer,
               content: newPrayer.content.trim(),
               title: newPrayer.title.trim() || null,
-              imageUrl: shouldRemovePicture ? null : (isNewImage ? prayerImage : originalPrayerImage)
+              picture: shouldRemovePicture ? null : (isNewImage ? prayerImage : editingPrayer.picture)
             };
             
             setCommunityPrayers(prevPrayers =>

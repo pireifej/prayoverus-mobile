@@ -693,6 +693,7 @@ function App() {
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [showChurchOnly, setShowChurchOnly] = useState(false);
+  const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
   // AdMob interstitial state
   const [prayerCount, setPrayerCount] = useState(0);
@@ -3964,45 +3965,55 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           </View>
           
-          {/* Prayer Filter - Option D Pill Style (hidden)
-          <View style={styles.pillFilterContainer}>
-            <TouchableOpacity 
-              onPress={() => setHideAlreadyPrayed(false)}
-              style={[styles.pillFilterOption, !hideAlreadyPrayed && styles.pillFilterOptionActive]}
-            >
-              <Text style={[styles.pillFilterText, !hideAlreadyPrayed && styles.pillFilterTextActive]}>All Requests</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setHideAlreadyPrayed(true)}
-              style={[styles.pillFilterOption, hideAlreadyPrayed && styles.pillFilterOptionActive]}
-            >
-              <Text style={[styles.pillFilterText, hideAlreadyPrayed && styles.pillFilterTextActive]}>Not Yet Prayed</Text>
-            </TouchableOpacity>
-          </View>
-          */}
-          
-          {/* Church Filter - Only show if user has a church assigned */}
+          {/* Church Filter Card - Only show if user has a church assigned */}
           {currentUser?.churchName && currentUser.churchName !== 'None' && (
-            <View style={styles.churchFilterRow}>
+            <View style={styles.filterCard}>
+              <Text style={styles.filterCardLabel}>Filter by Church:</Text>
+              <View style={styles.filterCardButtons}>
+                <TouchableOpacity 
+                  style={[styles.filterCardButton, !showChurchOnly && styles.filterCardButtonActive]}
+                  onPress={() => setShowChurchOnly(false)}
+                >
+                  <Text style={[styles.filterCardButtonText, !showChurchOnly && styles.filterCardButtonTextActive]}>
+                    🌍 All Churches
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterCardButton, showChurchOnly && styles.filterCardButtonActive]}
+                  onPress={() => setShowChurchOnly(true)}
+                >
+                  <Text style={[styles.filterCardButtonText, showChurchOnly && styles.filterCardButtonTextActive]}>
+                    ⛪ {currentUser.churchName}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          
+          {/* Requests Filter Card - Always show */}
+          <View style={styles.filterCard}>
+            <Text style={styles.filterCardLabel}>Show:</Text>
+            <View style={styles.filterCardButtons}>
               <TouchableOpacity 
-                style={[styles.churchFilterButton, styles.churchFilterButtonFirst, !showChurchOnly && styles.churchFilterButtonActive]}
-                onPress={() => setShowChurchOnly(false)}
+                style={[styles.filterCardButton, !showMyRequestsOnly && styles.filterCardButtonActive]}
+                onPress={() => setShowMyRequestsOnly(false)}
               >
-                <Text style={[styles.churchFilterButtonText, !showChurchOnly && styles.churchFilterButtonTextActive]}>
-                  🌍 All Churches
+                <Text style={[styles.filterCardButtonText, !showMyRequestsOnly && styles.filterCardButtonTextActive]}>
+                  📋 All Requests
                 </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.churchFilterButton, showChurchOnly && styles.churchFilterButtonActive]}
-                onPress={() => setShowChurchOnly(true)}
+                style={[styles.filterCardButton, showMyRequestsOnly && styles.filterCardButtonActive]}
+                onPress={() => setShowMyRequestsOnly(true)}
               >
-                <Text style={[styles.churchFilterButtonText, showChurchOnly && styles.churchFilterButtonTextActive]}>
-                  ⛪ {currentUser.churchName}
+                <Text style={[styles.filterCardButtonText, showMyRequestsOnly && styles.filterCardButtonTextActive]}>
+                  ✍️ My Requests
                 </Text>
               </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
         
         {/* DEMO OPTIONS - Hidden but preserved for reference
@@ -4064,6 +4075,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           // Apply "Hide Prayed" filter (client-side only)
           if (hideAlreadyPrayed) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
+          }
+          
+          // Apply "My Requests" filter (client-side)
+          if (showMyRequestsOnly) {
+            filteredPrayers = filteredPrayers.filter(prayer => prayer.userId === currentUser?.id);
           }
           
           // Church filter is now handled by backend via filterByChurch parameter
@@ -5512,6 +5528,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
+  },
+  filterCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 12,
+    marginBottom: 12,
+  },
+  filterCardLabel: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  filterCardButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterCardButton: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCardButtonActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  filterCardButtonText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  filterCardButtonTextActive: {
+    color: 'white',
   },
   widgetTitle: {
     fontSize: 16,

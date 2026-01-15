@@ -4060,7 +4060,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           // Apply "My Requests" filter (client-side)
           if (showMyRequestsOnly) {
-            filteredPrayers = filteredPrayers.filter(prayer => prayer.userId === currentUser?.id);
+            filteredPrayers = filteredPrayers.filter(prayer => 
+              prayer.user_id && currentUser?.id && 
+              prayer.user_id.toString() === currentUser.id.toString()
+            );
           }
           
           // Church filter is now handled by backend via filterByChurch parameter

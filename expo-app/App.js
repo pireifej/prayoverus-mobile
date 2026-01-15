@@ -3974,7 +3974,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 style={[styles.filterCardButton, !showMyRequestsOnly && styles.filterCardButtonActive]}
                 onPress={() => {
                   setShowMyRequestsOnly(false);
-                  fetchCommunityPrayers();
+                  loadCommunityPrayers(true);
                 }}
               >
                 <Text style={[styles.filterCardButtonText, !showMyRequestsOnly && styles.filterCardButtonTextActive]}>

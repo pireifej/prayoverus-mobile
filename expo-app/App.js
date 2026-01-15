@@ -672,6 +672,7 @@ function App() {
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerImage, setPrayerImage] = useState(null);
+  const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
@@ -2304,15 +2305,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }, 2000); // 2 seconds to enjoy the celebration!
   };
 
-  // Open Edit Prayer Modal
+  // Open Edit Prayer Screen (reuses new prayer form)
   const handleEditPrayer = (prayer) => {
-    setEditPrayerModal({
-      visible: true,
-      prayer: prayer,
+    // Pre-populate form with existing prayer data
+    setNewPrayer({
       title: prayer.title || '',
       content: prayer.content || '',
-      isLoading: false
+      isPublic: prayer.isPublic !== false // Default to true if not specified
     });
+    setPrayerImage(prayer.imageUrl || null);
+    setShowTitleInput(!!prayer.title); // Show title input if prayer has a title
+    setEditingPrayer(prayer); // Store the prayer being edited
+    setCurrentScreen('newPrayer');
   };
 
   // Save edited prayer - calls editRequest endpoint
@@ -3356,12 +3360,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
-  // NEW PRAYER REQUEST SCREEN
+  // NEW PRAYER REQUEST SCREEN (also used for editing)
   if (currentScreen === 'newPrayer') {
+    const isEditing = editingPrayer !== null;
     const hasContent = newPrayer.title.trim() || newPrayer.content.trim() || prayerImage;
     
     const handleCancelDraft = () => {
-      if (hasContent) {
+      if (isEditing) {
+        // When editing, just go back without saving draft message
+        setEditingPrayer(null);
+        setNewPrayer({ title: '', content: '', isPublic: true });
+        setPrayerImage(null);
+        setShowTitleInput(false);
+      } else if (hasContent) {
         Alert.alert('Draft Saved', 'Your prayer request has been saved as a draft.');
       }
       setCurrentScreen('home');
@@ -3386,6 +3397,79 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       );
     };
     
+    // Update existing prayer via API
+    const handleUpdatePrayer = async () => {
+      if (!newPrayer.content.trim()) {
+        Alert.alert('Error', 'Please enter your prayer request');
+        return;
+      }
+      
+      setIsPosting(true);
+      
+      try {
+        const endpoint = 'https://shouldcallpaul.replit.app/editRequest';
+        const requestPayload = {
+          requestId: editingPrayer.id,
+          userId: currentUser?.id,
+          requestText: newPrayer.content.trim(),
+          requestTitle: newPrayer.title.trim() || null,
+          imageUrl: prayerImage || null
+        };
+        
+        console.log('📱 MOBILE APP API CALL (Update Prayer):');
+        console.log('POST ' + endpoint);
+        console.log(JSON.stringify(requestPayload, null, 2));
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          },
+          body: JSON.stringify(requestPayload)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.error === 0) {
+            // Update local state with new values
+            const updatedPrayer = {
+              ...editingPrayer,
+              content: newPrayer.content.trim(),
+              title: newPrayer.title.trim() || null,
+              imageUrl: prayerImage || null
+            };
+            
+            setCommunityPrayers(prevPrayers =>
+              prevPrayers.map(p => p.id === editingPrayer.id ? updatedPrayer : p)
+            );
+            setPrayers(prevPrayers =>
+              prevPrayers.map(p => p.id === editingPrayer.id ? updatedPrayer : p)
+            );
+            
+            // Reset form and go back
+            setEditingPrayer(null);
+            setNewPrayer({ title: '', content: '', isPublic: true });
+            setPrayerImage(null);
+            setShowTitleInput(false);
+            setCurrentScreen('home');
+            
+            Alert.alert('Success', 'Prayer request updated successfully');
+          } else {
+            Alert.alert('Error', data.result || 'Failed to update prayer');
+          }
+        } else {
+          throw new Error('Server error');
+        }
+      } catch (error) {
+        Alert.alert('Error', error.message || 'Failed to update prayer request. Please try again.');
+      } finally {
+        setIsPosting(false);
+      }
+    };
+    
     return (
       <View style={styles.container}>
         <StatusBar style="auto" />
@@ -3393,7 +3477,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <TouchableOpacity onPress={handleCancelDraft} style={styles.backButton}>
             <Text style={styles.backText}>← Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>New Prayer Request</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Edit Prayer Request' : 'New Prayer Request'}</Text>
           <TouchableOpacity onPress={handleClearForm} style={styles.clearButton}>
             <Text style={styles.clearButtonText}>Clear</Text>
           </TouchableOpacity>
@@ -3496,22 +3580,26 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
             )}
             
-            {/* Post Button */}
+            {/* Post/Update Button */}
             <TouchableOpacity 
               style={[
                 styles.newPrayerPostButton, 
                 (!newPrayer.content.trim() || isPosting) && styles.postButtonDisabled
               ]}
               onPress={async () => {
-                await addPrayer();
-                setCurrentScreen('home');
+                if (isEditing) {
+                  await handleUpdatePrayer();
+                } else {
+                  await addPrayer();
+                  setCurrentScreen('home');
+                }
               }}
               disabled={!newPrayer.content.trim() || isPosting}
             >
               {isPosting ? (
                 <ActivityIndicator color="white" size="small" />
               ) : (
-                <Text style={styles.postButtonText}>Post Prayer Request</Text>
+                <Text style={styles.postButtonText}>{isEditing ? 'Update Prayer Request' : 'Post Prayer Request'}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -3798,7 +3886,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         {/* Share Prayer Request Button - Opens dedicated screen */}
         <TouchableOpacity 
           style={styles.sharePrayerButton}
-          onPress={() => setCurrentScreen('newPrayer')}
+          onPress={() => {
+            setEditingPrayer(null); // Ensure we're creating new, not editing
+            setCurrentScreen('newPrayer');
+          }}
           activeOpacity={0.7}
         >
           <Text style={styles.sharePrayerButtonIcon}>✏️</Text>

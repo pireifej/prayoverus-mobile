@@ -3940,59 +3940,52 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           </View>
           
-          {/* Church Filter Card - Only show if user has a church assigned */}
-          {currentUser?.churchName && currentUser.churchName !== 'None' && (
-            <View style={styles.filterCard}>
-              <Text style={styles.filterCardLabel}>Filter by Church:</Text>
-              <View style={styles.filterCardButtons}>
-                <TouchableOpacity 
-                  style={[styles.filterCardButton, !showChurchOnly && styles.filterCardButtonActive]}
-                  onPress={() => setShowChurchOnly(false)}
-                >
-                  <Text style={[styles.filterCardButtonText, !showChurchOnly && styles.filterCardButtonTextActive]}>
-                    🌍 All Churches
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterCardButton, showChurchOnly && styles.filterCardButtonActive]}
-                  onPress={() => setShowChurchOnly(true)}
-                >
-                  <Text style={[styles.filterCardButtonText, showChurchOnly && styles.filterCardButtonTextActive]}>
-                    ⛪ {currentUser.churchName}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-          
-          {/* Requests Filter Card - Always show */}
+          {/* Unified Filter Pills - Trinary: All / My Requests / My Church (if applicable) */}
           <View style={styles.filterCard}>
             <Text style={styles.filterCardLabel}>Show:</Text>
-            <View style={styles.filterCardButtons}>
+            <View style={styles.filterPillRow}>
+              {/* All Requests */}
               <TouchableOpacity 
-                style={[styles.filterCardButton, !showMyRequestsOnly && styles.filterCardButtonActive]}
+                style={[styles.filterPill, !showMyRequestsOnly && !showChurchOnly && styles.filterPillActive]}
                 onPress={() => {
                   setShowMyRequestsOnly(false);
+                  setShowChurchOnly(false);
                   loadCommunityPrayers(true);
                 }}
               >
-                <Text style={[styles.filterCardButtonText, !showMyRequestsOnly && styles.filterCardButtonTextActive]}>
-                  📋 All Requests
+                <Text style={[styles.filterPillText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillTextActive]}>
+                  🌍 All
                 </Text>
               </TouchableOpacity>
               
+              {/* My Requests */}
               <TouchableOpacity 
-                style={[styles.filterCardButton, showMyRequestsOnly && styles.filterCardButtonActive]}
+                style={[styles.filterPill, showMyRequestsOnly && styles.filterPillActive]}
                 onPress={() => {
                   setShowMyRequestsOnly(true);
+                  setShowChurchOnly(false);
                   setHideAlreadyPrayed(false);
                 }}
               >
-                <Text style={[styles.filterCardButtonText, showMyRequestsOnly && styles.filterCardButtonTextActive]}>
-                  ✍️ My Requests
+                <Text style={[styles.filterPillText, showMyRequestsOnly && styles.filterPillTextActive]}>
+                  ✍️ Mine
                 </Text>
               </TouchableOpacity>
+              
+              {/* My Church - Only show if user has a church */}
+              {currentUser?.churchName && currentUser.churchName !== 'None' && (
+                <TouchableOpacity 
+                  style={[styles.filterPill, styles.filterPillChurch, showChurchOnly && styles.filterPillActive]}
+                  onPress={() => {
+                    setShowChurchOnly(true);
+                    setShowMyRequestsOnly(false);
+                  }}
+                >
+                  <Text style={[styles.filterPillText, showChurchOnly && styles.filterPillTextActive]} numberOfLines={1}>
+                    ⛪ {currentUser.churchName}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -5556,6 +5549,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterCardButtonTextActive: {
+    color: 'white',
+  },
+  filterPillRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterPillChurch: {
+    flex: 1,
+    maxWidth: 160,
+  },
+  filterPillActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  filterPillText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  filterPillTextActive: {
     color: 'white',
   },
   widgetTitle: {

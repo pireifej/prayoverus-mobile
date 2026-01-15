@@ -5263,8 +5263,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#6366f1',
     margin: 15,
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 24,
     padding: 16,
     borderRadius: 12,
     shadowColor: '#6366f1',
@@ -5382,6 +5382,7 @@ const styles = StyleSheet.create({
   churchFilterRow: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 16,
   },
   widgetTitle: {
     fontSize: 16,
@@ -5559,7 +5560,7 @@ const styles = StyleSheet.create({
   },
   feedHeaderSection: {
     marginHorizontal: 15,
-    marginTop: 8,
+    marginTop: 20,
     marginBottom: 12,
   },
   feedTitle: {

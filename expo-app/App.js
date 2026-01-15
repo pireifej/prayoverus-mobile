@@ -673,6 +673,7 @@ function App() {
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
+  const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
@@ -2313,7 +2314,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       content: prayer.content || '',
       isPublic: prayer.isPublic !== false // Default to true if not specified
     });
-    setPrayerImage(prayer.imageUrl || null);
+    const existingImage = prayer.imageUrl || null;
+    setPrayerImage(existingImage);
+    setOriginalPrayerImage(existingImage); // Track original for removePicture detection
     setShowTitleInput(!!prayer.title); // Show title input if prayer has a title
     setEditingPrayer(prayer); // Store the prayer being edited
     setCurrentScreen('newPrayer');
@@ -3369,6 +3372,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (isEditing) {
         // When editing, just go back without saving draft message
         setEditingPrayer(null);
+        setOriginalPrayerImage(null);
         setNewPrayer({ title: '', content: '', isPublic: true });
         setPrayerImage(null);
         setShowTitleInput(false);
@@ -3408,26 +3412,53 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       try {
         const endpoint = 'https://shouldcallpaul.replit.app/editRequest';
-        const requestPayload = {
-          requestId: editingPrayer.id,
-          userId: currentUser?.id,
-          requestText: newPrayer.content.trim(),
-          requestTitle: newPrayer.title.trim() || null,
-          imageUrl: prayerImage || null
-        };
+        
+        // Determine if we need to remove the picture
+        const hadOriginalImage = originalPrayerImage !== null;
+        const hasCurrentImage = prayerImage !== null;
+        const isNewImage = hasCurrentImage && prayerImage !== originalPrayerImage;
+        const shouldRemovePicture = hadOriginalImage && !hasCurrentImage;
+        
+        // Use FormData for multipart/form-data (supports file upload)
+        const formData = new FormData();
+        formData.append('requestId', editingPrayer.id);
+        formData.append('userId', currentUser?.id);
+        formData.append('requestText', newPrayer.content.trim());
+        
+        if (newPrayer.title.trim()) {
+          formData.append('requestTitle', newPrayer.title.trim());
+        }
+        
+        if (shouldRemovePicture) {
+          formData.append('removePicture', 'true');
+        } else if (isNewImage && prayerImage) {
+          // New image selected - upload it
+          const imageUri = prayerImage;
+          const filename = imageUri.split('/').pop();
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          
+          formData.append('picture', {
+            uri: imageUri,
+            name: filename,
+            type: type,
+          });
+        }
         
         console.log('📱 MOBILE APP API CALL (Update Prayer):');
         console.log('POST ' + endpoint);
-        console.log(JSON.stringify(requestPayload, null, 2));
+        console.log('FormData fields: requestId, userId, requestText' + 
+          (newPrayer.title.trim() ? ', requestTitle' : '') +
+          (shouldRemovePicture ? ', removePicture' : '') +
+          (isNewImage ? ', picture (file)' : ''));
         
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
           },
-          body: JSON.stringify(requestPayload)
+          body: formData
         });
         
         if (response.ok) {
@@ -3439,7 +3470,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               ...editingPrayer,
               content: newPrayer.content.trim(),
               title: newPrayer.title.trim() || null,
-              imageUrl: prayerImage || null
+              imageUrl: shouldRemovePicture ? null : (isNewImage ? prayerImage : originalPrayerImage)
             };
             
             setCommunityPrayers(prevPrayers =>
@@ -3451,6 +3482,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             // Reset form and go back
             setEditingPrayer(null);
+            setOriginalPrayerImage(null);
             setNewPrayer({ title: '', content: '', isPublic: true });
             setPrayerImage(null);
             setShowTitleInput(false);
@@ -3888,6 +3920,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           style={styles.sharePrayerButton}
           onPress={() => {
             setEditingPrayer(null); // Ensure we're creating new, not editing
+            setOriginalPrayerImage(null);
             setCurrentScreen('newPrayer');
           }}
           activeOpacity={0.7}

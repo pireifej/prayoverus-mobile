@@ -3984,7 +3984,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               
               <TouchableOpacity 
                 style={[styles.filterCardButton, showMyRequestsOnly && styles.filterCardButtonActive]}
-                onPress={() => setShowMyRequestsOnly(true)}
+                onPress={() => {
+                  setShowMyRequestsOnly(true);
+                  setHideAlreadyPrayed(false);
+                }}
               >
                 <Text style={[styles.filterCardButtonText, showMyRequestsOnly && styles.filterCardButtonTextActive]}>
                   ✍️ My Requests

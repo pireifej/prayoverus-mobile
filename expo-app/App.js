@@ -3972,7 +3972,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={styles.filterCardButtons}>
               <TouchableOpacity 
                 style={[styles.filterCardButton, !showMyRequestsOnly && styles.filterCardButtonActive]}
-                onPress={() => setShowMyRequestsOnly(false)}
+                onPress={() => {
+                  setShowMyRequestsOnly(false);
+                  fetchCommunityPrayers();
+                }}
               >
                 <Text style={[styles.filterCardButtonText, !showMyRequestsOnly && styles.filterCardButtonTextActive]}>
                   📋 All Requests

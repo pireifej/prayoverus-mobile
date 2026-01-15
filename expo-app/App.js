@@ -1790,6 +1790,15 @@ Through Christ our Lord. Amen.`;
     // Reset prayer modal state to prevent it from showing as overlay
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
     
+    // Increment prayer view count for interstitial ads (every 5th view)
+    const newPrayerCount = prayerCount + 1;
+    setPrayerCount(newPrayerCount);
+    console.log(`👁️ Prayer view count: ${newPrayerCount} (show ad at 5, 10, 15...)`);
+    if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
+      console.log(`🎬 Triggering interstitial ad after ${newPrayerCount} prayer views`);
+      showInterstitialAd();
+    }
+    
     // Set props and show the detail screen
     setDetailScreenProps({
       requestId: prayer.id,

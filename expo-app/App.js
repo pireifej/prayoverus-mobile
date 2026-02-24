@@ -695,6 +695,9 @@ function App() {
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
+  // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
+  const [prayerLayout, setPrayerLayout] = useState('sanctuary');
+
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
@@ -4174,16 +4177,36 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }
             ]}
           >
-            {/* Faint background image layer */}
+            {/* Background image layer - varies by layout */}
             <Image
               source={require('./assets/prayer-bg.png')}
-              style={styles.sanctuaryBgImage}
+              style={[
+                styles.sanctuaryBgImage,
+                prayerLayout === 'gallery' && styles.galleryBgImage,
+                prayerLayout === 'immersive' && styles.immersiveBgImage,
+              ]}
               resizeMode="cover"
+              blurRadius={prayerLayout === 'gallery' ? 20 : 0}
             />
+            {prayerLayout === 'gallery' && <View style={styles.galleryBgTint} />}
 
             {/* Close button - floats top right */}
             <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
+            </TouchableOpacity>
+
+            {/* Layout toggle - dev only */}
+            <TouchableOpacity
+              onPress={() => {
+                const layouts = ['sanctuary', 'gallery', 'immersive'];
+                const idx = layouts.indexOf(prayerLayout);
+                setPrayerLayout(layouts[(idx + 1) % layouts.length]);
+              }}
+              style={styles.layoutToggleButton}
+            >
+              <Text style={styles.layoutToggleText}>
+                {prayerLayout === 'sanctuary' ? '1' : prayerLayout === 'gallery' ? '2' : '3'}
+              </Text>
             </TouchableOpacity>
 
             {prayerModal.loading ? (
@@ -4193,15 +4216,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
                 <Text style={styles.fullScreenLoadingText}>Preparing your prayer...</Text>
               </View>
-            ) : (
+            ) : prayerLayout === 'sanctuary' ? (
+              /* ===== OPTION 1: SANCTUARY LAYOUT ===== */
               <View style={styles.sanctuaryLayout}>
-                {/* Header at top center with breathing room */}
                 <View style={styles.sanctuaryHeader}>
                   <Text style={styles.sanctuaryHeaderTitle}>Prayer</Text>
                   <Text style={styles.sanctuaryHeaderSubtitle}>for {prayerModal.prayer?.author}</Text>
                 </View>
-
-                {/* Prayer text - centered in remaining space */}
                 <ScrollView
                   style={styles.sanctuaryScrollView}
                   contentContainerStyle={styles.sanctuaryScrollContent}
@@ -4209,11 +4230,46 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
                 </ScrollView>
-
-                {/* Amen button at bottom with air above */}
                 <View style={styles.sanctuaryFooter}>
                   <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.sanctuaryAmenButtonText}>Amen</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : prayerLayout === 'gallery' ? (
+              /* ===== OPTION 2: ART GALLERY LAYOUT ===== */
+              <View style={styles.galleryLayout}>
+                <View style={styles.galleryHeader}>
+                  <Text style={styles.galleryHeaderLabel}>PRAYER FOR</Text>
+                  <Text style={styles.galleryHeaderName}>{prayerModal.prayer?.author}</Text>
+                </View>
+                <ScrollView
+                  style={styles.galleryScrollView}
+                  contentContainerStyle={styles.galleryScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
+                </ScrollView>
+                <View style={styles.galleryFooter}>
+                  <TouchableOpacity style={styles.galleryAmenButton} onPress={markAsPrayed}>
+                    <Text style={styles.galleryAmenButtonText}>Amen</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              /* ===== OPTION 3: IMMERSIVE QUOTE LAYOUT ===== */
+              <View style={styles.immersiveLayout}>
+                <ScrollView
+                  style={styles.immersiveScrollView}
+                  contentContainerStyle={styles.immersiveScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                </ScrollView>
+                <View style={styles.immersiveFooter}>
+                  <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
+                  <TouchableOpacity style={styles.immersiveAmenButton} onPress={markAsPrayed}>
+                    <Text style={styles.immersiveAmenButtonText}>Amen</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -5036,6 +5092,156 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '400',
     letterSpacing: 6,
+    textTransform: 'uppercase',
+  },
+  // Layout toggle button (dev only)
+  layoutToggleButton: {
+    position: 'absolute',
+    top: 56,
+    left: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  layoutToggleText: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  // ===== OPTION 2: ART GALLERY STYLES =====
+  galleryBgImage: {
+    opacity: 0.35,
+  },
+  galleryBgTint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(245, 241, 235, 0.65)',
+  },
+  galleryLayout: {
+    flex: 1,
+    paddingTop: 100,
+    paddingBottom: 50,
+    paddingHorizontal: 24,
+  },
+  galleryHeader: {
+    alignItems: 'flex-start',
+    marginBottom: 40,
+    paddingLeft: 8,
+  },
+  galleryHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#8B7D6B',
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  galleryHeaderName: {
+    fontSize: 14,
+    fontWeight: '300',
+    color: '#5C4033',
+    letterSpacing: 1,
+  },
+  galleryScrollView: {
+    flex: 1,
+  },
+  galleryScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+  },
+  galleryPrayerText: {
+    fontSize: 18,
+    lineHeight: 36,
+    color: '#2C1810',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  galleryFooter: {
+    alignItems: 'flex-end',
+    paddingTop: 30,
+    paddingRight: 8,
+  },
+  galleryAmenButton: {
+    backgroundColor: '#5C4033',
+    paddingVertical: 14,
+    paddingHorizontal: 36,
+    borderRadius: 30,
+    shadowColor: '#3D2B1F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  galleryAmenButtonText: {
+    color: '#FAF6F1',
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  // ===== OPTION 3: IMMERSIVE QUOTE STYLES =====
+  immersiveBgImage: {
+    opacity: 0.25,
+  },
+  immersiveLayout: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  immersiveScrollView: {
+    flex: 1,
+  },
+  immersiveScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 48,
+    paddingVertical: 40,
+  },
+  immersivePrayerText: {
+    fontSize: 21,
+    lineHeight: 42,
+    color: '#2C1810',
+    textAlign: 'center',
+    letterSpacing: 0.4,
+  },
+  immersiveFooter: {
+    alignItems: 'center',
+    paddingBottom: 60,
+    paddingTop: 16,
+  },
+  immersiveAttribution: {
+    fontSize: 15,
+    fontWeight: '300',
+    color: '#8B7D6B',
+    fontStyle: 'italic',
+    letterSpacing: 1,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  immersiveAmenButton: {
+    backgroundColor: '#5C4033',
+    paddingVertical: 18,
+    paddingHorizontal: 60,
+    borderRadius: 40,
+    shadowColor: '#3D2B1F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  immersiveAmenButtonText: {
+    color: '#FAF6F1',
+    fontSize: 20,
+    fontWeight: '400',
+    letterSpacing: 5,
     textTransform: 'uppercase',
   },
   // CELEBRATION FIREWORKS & CONFETTI styles!

@@ -2157,6 +2157,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     whisper: require('./assets/angelic-whisper.mp3'),
     sparkle: require('./assets/radiant-sparkle.mp3'),
     wind: require('./assets/wind-spirit.mp3'),
+    radiantAscent: require('./assets/radiant-ascent.mp3'),
+    goldenHarp: require('./assets/golden-harp.mp3'),
+    celestialBells: require('./assets/celestial-bells.mp3'),
+    heavensGate: require('./assets/heavens-gate.mp3'),
+    morningStar: require('./assets/morning-star.mp3'),
   };
 
   const soundLabels = {
@@ -2165,6 +2170,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     whisper: 'Angelic Whisper',
     sparkle: 'Radiant Sparkle',
     wind: 'Wind of the Spirit',
+    radiantAscent: 'Radiant Ascent',
+    goldenHarp: 'Golden Harp',
+    celestialBells: 'Celestial Bells',
+    heavensGate: "Heaven's Gate",
+    morningStar: 'Morning Star',
   };
 
   const playHeavenlyChime = async () => {
@@ -4225,36 +4235,38 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <View style={styles.soundPickerOverlay}>
                 <View style={styles.soundPickerContainer}>
                   <Text style={styles.soundPickerTitle}>Prayer Sound</Text>
-                  {Object.keys(soundLabels).map((key) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.soundPickerOption,
-                        prayerSound === key && styles.soundPickerOptionActive,
-                      ]}
-                      onPress={async () => {
-                        setPrayerSound(key);
-                        setShowSoundPicker(false);
-                        try {
-                          const { sound: previewSound } = await Audio.Sound.createAsync(
-                            soundFiles[key],
-                            { shouldPlay: true, volume: 0.9 }
-                          );
-                          previewSound.setOnPlaybackStatusUpdate((status) => {
-                            if (status.didJustFinish) previewSound.unloadAsync();
-                          });
-                        } catch (e) {}
-                      }}
-                    >
-                      <Text style={[
-                        styles.soundPickerOptionText,
-                        prayerSound === key && styles.soundPickerOptionTextActive,
-                      ]}>
-                        {soundLabels[key]}
-                      </Text>
-                      {prayerSound === key && <Text style={styles.soundPickerCheck}>✓</Text>}
-                    </TouchableOpacity>
-                  ))}
+                  <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                    {Object.keys(soundLabels).map((key) => (
+                      <TouchableOpacity
+                        key={key}
+                        style={[
+                          styles.soundPickerOption,
+                          prayerSound === key && styles.soundPickerOptionActive,
+                        ]}
+                        onPress={async () => {
+                          setPrayerSound(key);
+                          setShowSoundPicker(false);
+                          try {
+                            const { sound: previewSound } = await Audio.Sound.createAsync(
+                              soundFiles[key],
+                              { shouldPlay: true, volume: 0.9 }
+                            );
+                            previewSound.setOnPlaybackStatusUpdate((status) => {
+                              if (status.didJustFinish) previewSound.unloadAsync();
+                            });
+                          } catch (e) {}
+                        }}
+                      >
+                        <Text style={[
+                          styles.soundPickerOptionText,
+                          prayerSound === key && styles.soundPickerOptionTextActive,
+                        ]}>
+                          {soundLabels[key]}
+                        </Text>
+                        {prayerSound === key && <Text style={styles.soundPickerCheck}>✓</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </View>
               </View>
             )}
@@ -5173,6 +5185,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     width: 220,
+    maxHeight: 420,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,

@@ -4191,20 +4191,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
-            {/* Layout toggle - dev only */}
-            <TouchableOpacity
-              onPress={() => {
-                const layouts = ['sanctuary', 'gallery', 'immersive'];
-                const idx = layouts.indexOf(prayerLayout);
-                setPrayerLayout(layouts[(idx + 1) % layouts.length]);
-              }}
-              style={styles.layoutToggleButton}
-            >
-              <Text style={styles.layoutToggleText}>
-                {prayerLayout === 'sanctuary' ? '1' : prayerLayout === 'gallery' ? '2' : '3'}
-              </Text>
-            </TouchableOpacity>
-
             {prayerModal.loading ? (
               <View style={styles.fullScreenLoadingContainer}>
                 <View style={styles.loadingPulse}>

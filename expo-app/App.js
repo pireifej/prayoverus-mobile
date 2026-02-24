@@ -696,7 +696,7 @@ function App() {
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
   // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
-  const [prayerLayout, setPrayerLayout] = useState('sanctuary');
+  const [prayerLayout, setPrayerLayout] = useState('immersive');
 
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
@@ -2151,8 +2151,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       console.log('🔔 Playing prayer ascending sound...');
       
       const { sound: newSound } = await Audio.Sound.createAsync(
-        require('./assets/prayer-ascending.mp3'),
-        { shouldPlay: true, volume: 0.6 }
+        require('./assets/singing-bowl.mp3'),
+        { shouldPlay: true, volume: 0.7 }
       );
       
       setSound(newSound);
@@ -2172,17 +2172,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     // Play heavenly chime sound! 🔔
     playHeavenlyChime();
     
-    // Gentle ascending vibration - like a soft breath rising
-    const gentlePattern = [
+    // Single deep pulse - grounded and meditative like a bowl strike
+    const groundedPattern = [
       0,    // Start immediately
-      15,   // Soft touch
-      120,  // Pause
-      25,   // Slightly longer
-      200,  // Longer pause
-      40,   // Gentle swell
+      50,   // One deep, resonant pulse
     ];
     
-    Vibration.vibrate(gentlePattern);
+    Vibration.vibrate(groundedPattern);
     
     setShowPrayerAnimation(true);
     

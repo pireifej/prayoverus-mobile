@@ -699,7 +699,7 @@ function App() {
   const [prayerLayout, setPrayerLayout] = useState('immersive');
 
   // Prayer sound toggle: 5 sound options
-  const [prayerSound, setPrayerSound] = useState('ethereal');
+  const [prayerSound, setPrayerSound] = useState('goldenHarp');
   const [showSoundPicker, setShowSoundPicker] = useState(false);
 
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
@@ -4222,54 +4222,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
-            {/* Sound picker toggle - floats top left */}
-            <TouchableOpacity
-              onPress={() => setShowSoundPicker(!showSoundPicker)}
-              style={styles.soundToggleButton}
-            >
-              <Text style={styles.soundToggleIcon}>♪</Text>
-            </TouchableOpacity>
-
-            {/* Sound picker dropdown */}
-            {showSoundPicker && (
-              <View style={styles.soundPickerOverlay}>
-                <View style={styles.soundPickerContainer}>
-                  <Text style={styles.soundPickerTitle}>Prayer Sound</Text>
-                  <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-                    {Object.keys(soundLabels).map((key) => (
-                      <TouchableOpacity
-                        key={key}
-                        style={[
-                          styles.soundPickerOption,
-                          prayerSound === key && styles.soundPickerOptionActive,
-                        ]}
-                        onPress={async () => {
-                          setPrayerSound(key);
-                          setShowSoundPicker(false);
-                          try {
-                            const { sound: previewSound } = await Audio.Sound.createAsync(
-                              soundFiles[key],
-                              { shouldPlay: true, volume: 0.9 }
-                            );
-                            previewSound.setOnPlaybackStatusUpdate((status) => {
-                              if (status.didJustFinish) previewSound.unloadAsync();
-                            });
-                          } catch (e) {}
-                        }}
-                      >
-                        <Text style={[
-                          styles.soundPickerOptionText,
-                          prayerSound === key && styles.soundPickerOptionTextActive,
-                        ]}>
-                          {soundLabels[key]}
-                        </Text>
-                        {prayerSound === key && <Text style={styles.soundPickerCheck}>✓</Text>}
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              </View>
-            )}
+            {/* Sound picker toggle & dropdown - hidden, all sounds preserved in soundFiles/soundLabels */}
 
             {prayerModal.loading ? (
               <View style={styles.fullScreenLoadingContainer}>

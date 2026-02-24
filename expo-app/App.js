@@ -695,8 +695,8 @@ function App() {
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
-  // AdMob interstitial state
-  const [prayerCount, setPrayerCount] = useState(0);
+  // AdMob interstitial state - counts prayer views, shows ad every 4th view
+  const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
   const interstitialRef = useRef(null);
   
@@ -1790,12 +1790,12 @@ Through Christ our Lord. Amen.`;
     // Reset prayer modal state to prevent it from showing as overlay
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
     
-    // Increment prayer view count for interstitial ads (every 5th view)
-    const newPrayerCount = prayerCount + 1;
-    setPrayerCount(newPrayerCount);
-    console.log(`👁️ Prayer view count: ${newPrayerCount} (show ad at 5, 10, 15...)`);
-    if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
-      console.log(`🎬 Triggering interstitial ad after ${newPrayerCount} prayer views`);
+    // Increment prayer view count for interstitial ads (every 4th view)
+    const newViewCount = prayerViewCount + 1;
+    setPrayerViewCount(newViewCount);
+    console.log(`👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...)`);
+    if (newViewCount % 4 === 0 && isAdMobAvailable) {
+      console.log(`🎬 Triggering interstitial ad after ${newViewCount} prayer views`);
       showInterstitialAd();
     }
     
@@ -1944,12 +1944,6 @@ Through Christ our Lord. Amen.`;
             )
           );
           
-          // Count prayer for interstitial ads
-          const newPrayerCount = prayerCount + 1;
-          setPrayerCount(newPrayerCount);
-          if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
-            showInterstitialAd();
-          }
         }
         
         // Advance to next prayer
@@ -2274,20 +2268,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
     
-    // Increment prayer count and show interstitial ad every 5th prayer
-    const newPrayerCount = prayerCount + 1;
-    setPrayerCount(newPrayerCount);
-    console.log(`🙏 Prayer count: ${newPrayerCount} (show ad at 5, 10, 15...) isAdMobAvailable: ${isAdMobAvailable}`);
-    
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
       closePrayerModal();
-      
-      // Show interstitial ad after every 5th prayer
-      if (newPrayerCount % 5 === 0 && isAdMobAvailable) {
-        console.log(`🎬 Triggering interstitial ad after ${newPrayerCount} prayers`);
-        showInterstitialAd();
-      }
       
       // Get the detail screen context for auto-advance
       const context = detailScreenContextRef.current;

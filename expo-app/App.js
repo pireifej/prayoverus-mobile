@@ -4181,16 +4181,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }
             ]}
           >
-            {/* Heavenly Header */}
-            <View style={styles.fullScreenModalHeader}>
-              <View style={styles.modalHeaderContent}>
-                <Text style={styles.fullScreenModalTitle}>✙ Prayer ✙</Text>
-                <Text style={styles.fullScreenModalSubtitle}>for {prayerModal.prayer?.author}</Text>
-              </View>
-              <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
-                <Text style={styles.fullScreenCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Faint background image layer */}
+            <Image
+              source={require('./assets/prayer-bg.png')}
+              style={styles.sanctuaryBgImage}
+              resizeMode="cover"
+            />
+
+            {/* Close button - floats top right */}
+            <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
+              <Text style={styles.fullScreenCloseButtonText}>✕</Text>
+            </TouchableOpacity>
 
             {prayerModal.loading ? (
               <View style={styles.fullScreenLoadingContainer}>
@@ -4200,24 +4201,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.fullScreenLoadingText}>Preparing your prayer...</Text>
               </View>
             ) : (
-              <>
-                <View style={styles.fullScreenPrayerBody}>
-                  <ScrollView 
-                    style={styles.fullScreenPrayerTextContainer}
-                    contentContainerStyle={styles.fullScreenPrayerTextContent}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    <Text style={styles.prayerDividerTop}>— ✙ —</Text>
-                    <HtmlText html={prayerModal.generatedPrayer} style={styles.fullScreenGeneratedPrayer} />
-                    <Text style={styles.prayerDividerBottom}>— ✙ —</Text>
-                  </ScrollView>
+              <View style={styles.sanctuaryLayout}>
+                {/* Header at top center with breathing room */}
+                <View style={styles.sanctuaryHeader}>
+                  <Text style={styles.sanctuaryHeaderTitle}>Prayer</Text>
+                  <Text style={styles.sanctuaryHeaderSubtitle}>for {prayerModal.prayer?.author}</Text>
                 </View>
-                <View style={styles.fullScreenButtonContainer}>
-                  <TouchableOpacity style={styles.fullScreenAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.fullScreenAmenButtonText}>Amen 🙏</Text>
+
+                {/* Prayer text - centered in remaining space */}
+                <ScrollView
+                  style={styles.sanctuaryScrollView}
+                  contentContainerStyle={styles.sanctuaryScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
+                </ScrollView>
+
+                {/* Amen button at bottom with air above */}
+                <View style={styles.sanctuaryFooter}>
+                  <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
+                    <Text style={styles.sanctuaryAmenButtonText}>Amen</Text>
                   </TouchableOpacity>
                 </View>
-              </>
+              </View>
             )}
             
             {/* CELEBRATION FIREWORKS & CONFETTI! */}
@@ -4924,69 +4930,43 @@ const styles = StyleSheet.create({
   // FULL SCREEN MODAL STYLES - Beautiful & Immersive!
   fullScreenModalOverlay: {
     flex: 1,
-    backgroundColor: '#FDF8F0',
+    backgroundColor: '#FAF6F1',
   },
   fullScreenModalContent: {
     flex: 1,
-    backgroundColor: '#FDF8F0',
+    backgroundColor: '#FAF6F1',
   },
-  fullScreenModalHeader: {
-    backgroundColor: '#4A3260',
-    paddingTop: 70,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#2D1B4E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  modalHeaderContent: {
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  fullScreenModalTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#F5E6C8',
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: 3,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  fullScreenModalSubtitle: {
-    fontSize: 16,
-    color: 'rgba(245, 230, 200, 0.85)',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    letterSpacing: 0.5,
+  sanctuaryBgImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.12,
   },
   fullScreenCloseButton: {
     position: 'absolute',
-    top: 60,
-    right: 20,
+    top: 56,
+    right: 24,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   fullScreenCloseButtonText: {
-    fontSize: 28,
-    color: '#F5E6C8',
+    fontSize: 22,
+    color: '#9CA3AF',
     fontWeight: '300',
   },
   fullScreenLoadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
-    backgroundColor: '#FDF8F0',
   },
   loadingPulse: {
     marginBottom: 30,
@@ -4995,78 +4975,75 @@ const styles = StyleSheet.create({
     fontSize: 80,
   },
   fullScreenLoadingText: {
-    fontSize: 20,
-    color: '#4A3260',
-    fontWeight: '500',
+    fontSize: 18,
+    color: '#8B7D6B',
+    fontWeight: '300',
     fontStyle: 'italic',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  fullScreenPrayerBody: {
+  sanctuaryLayout: {
     flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
+    paddingHorizontal: 40,
   },
-  fullScreenPrayerTextContainer: {
+  sanctuaryHeader: {
+    alignItems: 'center',
+    paddingTop: 80,
+    paddingBottom: 40,
+  },
+  sanctuaryHeaderTitle: {
+    fontSize: 32,
+    fontWeight: '200',
+    color: '#5C4033',
+    textAlign: 'center',
+    letterSpacing: 8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  sanctuaryHeaderSubtitle: {
+    fontSize: 17,
+    fontWeight: '300',
+    color: '#8B7D6B',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 1,
+  },
+  sanctuaryScrollView: {
     flex: 1,
   },
-  fullScreenPrayerTextContent: {
+  sanctuaryScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 24,
-    paddingBottom: 140,
+    paddingVertical: 20,
   },
-  prayerDividerTop: {
-    textAlign: 'center',
-    fontSize: 18,
-    color: '#C4A265',
-    marginBottom: 20,
-    letterSpacing: 6,
-  },
-  prayerDividerBottom: {
-    textAlign: 'center',
-    fontSize: 18,
-    color: '#C4A265',
-    marginTop: 20,
-    letterSpacing: 6,
-  },
-  fullScreenGeneratedPrayer: {
-    fontSize: 20,
-    lineHeight: 36,
+  sanctuaryPrayerText: {
+    fontSize: 19,
+    lineHeight: 40,
     color: '#3D2B1F',
     textAlign: 'center',
-    letterSpacing: 0.4,
-    fontStyle: 'italic',
+    letterSpacing: 0.3,
   },
-  fullScreenButtonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    shadowColor: '#2D1B4E',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  fullScreenAmenButton: {
-    backgroundColor: '#4A3260',
-    paddingTop: 22,
-    paddingBottom: 80,
+  sanctuaryFooter: {
     alignItems: 'center',
-    justifyContent: 'center',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    paddingTop: 32,
+    paddingBottom: 60,
   },
-  fullScreenAmenButtonText: {
-    color: '#F5E6C8',
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 4,
+  sanctuaryAmenButton: {
+    backgroundColor: '#5C4033',
+    paddingVertical: 18,
+    paddingHorizontal: 80,
+    borderRadius: 40,
+    shadowColor: '#3D2B1F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  sanctuaryAmenButtonText: {
+    color: '#FAF6F1',
+    fontSize: 22,
+    fontWeight: '400',
+    letterSpacing: 6,
     textTransform: 'uppercase',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
   },
   // CELEBRATION FIREWORKS & CONFETTI styles!
   celebrationContainer: {

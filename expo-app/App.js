@@ -698,6 +698,10 @@ function App() {
   // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
   const [prayerLayout, setPrayerLayout] = useState('immersive');
 
+  // Prayer sound toggle: 5 sound options
+  const [prayerSound, setPrayerSound] = useState('ethereal');
+  const [showSoundPicker, setShowSoundPicker] = useState(false);
+
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
@@ -1682,6 +1686,7 @@ Through Christ our Lord. Amen.`;
   };
 
   const closePrayerModal = () => {
+    setShowSoundPicker(false);
     // Check if we should return to detail view
     const shouldReturnToDetail = returnToDetailRef.current;
     const prayerIdToReturn = shouldReturnToDetail?.prayerId;
@@ -2145,13 +2150,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Play ethereal ascending prayer sound
+  // Sound file map for prayer sounds
+  const soundFiles = {
+    ethereal: require('./assets/ethereal-ascent.mp3'),
+    cathedral: require('./assets/resonant-cathedral.mp3'),
+    whisper: require('./assets/angelic-whisper.mp3'),
+    sparkle: require('./assets/radiant-sparkle.mp3'),
+    wind: require('./assets/wind-spirit.mp3'),
+  };
+
+  const soundLabels = {
+    ethereal: 'Ethereal Ascent',
+    cathedral: 'Resonant Cathedral',
+    whisper: 'Angelic Whisper',
+    sparkle: 'Radiant Sparkle',
+    wind: 'Wind of the Spirit',
+  };
+
   const playHeavenlyChime = async () => {
     try {
-      console.log('🔔 Playing prayer ascending sound...');
+      console.log('🔔 Playing prayer sound:', prayerSound);
       
       const { sound: newSound } = await Audio.Sound.createAsync(
-        require('./assets/ethereal-ascent.mp3'),
+        soundFiles[prayerSound],
         { shouldPlay: true, volume: 0.9 }
       );
       
@@ -4191,6 +4212,53 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
+            {/* Sound picker toggle - floats top left */}
+            <TouchableOpacity
+              onPress={() => setShowSoundPicker(!showSoundPicker)}
+              style={styles.soundToggleButton}
+            >
+              <Text style={styles.soundToggleIcon}>♪</Text>
+            </TouchableOpacity>
+
+            {/* Sound picker dropdown */}
+            {showSoundPicker && (
+              <View style={styles.soundPickerOverlay}>
+                <View style={styles.soundPickerContainer}>
+                  <Text style={styles.soundPickerTitle}>Prayer Sound</Text>
+                  {Object.keys(soundLabels).map((key) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.soundPickerOption,
+                        prayerSound === key && styles.soundPickerOptionActive,
+                      ]}
+                      onPress={async () => {
+                        setPrayerSound(key);
+                        setShowSoundPicker(false);
+                        try {
+                          const { sound: previewSound } = await Audio.Sound.createAsync(
+                            soundFiles[key],
+                            { shouldPlay: true, volume: 0.9 }
+                          );
+                          previewSound.setOnPlaybackStatusUpdate((status) => {
+                            if (status.didJustFinish) previewSound.unloadAsync();
+                          });
+                        } catch (e) {}
+                      }}
+                    >
+                      <Text style={[
+                        styles.soundPickerOptionText,
+                        prayerSound === key && styles.soundPickerOptionTextActive,
+                      ]}>
+                        {soundLabels[key]}
+                      </Text>
+                      {prayerSound === key && <Text style={styles.soundPickerCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {prayerModal.loading ? (
               <View style={styles.fullScreenLoadingContainer}>
                 <View style={styles.loadingPulse}>
@@ -5075,6 +5143,78 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: 6,
     textTransform: 'uppercase',
+  },
+  // Sound toggle & picker styles
+  soundToggleButton: {
+    position: 'absolute',
+    top: 56,
+    left: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  soundToggleIcon: {
+    fontSize: 20,
+    color: '#9CA3AF',
+  },
+  soundPickerOverlay: {
+    position: 'absolute',
+    top: 108,
+    left: 16,
+    zIndex: 20,
+  },
+  soundPickerContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    width: 220,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  soundPickerTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8B7D6B',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  soundPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    minHeight: 44,
+  },
+  soundPickerOptionActive: {
+    backgroundColor: 'rgba(92, 64, 51, 0.08)',
+  },
+  soundPickerOptionText: {
+    fontSize: 15,
+    color: '#5C4033',
+    fontWeight: '400',
+  },
+  soundPickerOptionTextActive: {
+    fontWeight: '600',
+  },
+  soundPickerCheck: {
+    fontSize: 16,
+    color: '#5C4033',
+    fontWeight: '700',
   },
   // Layout toggle button (dev only)
   layoutToggleButton: {

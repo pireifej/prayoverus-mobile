@@ -2142,20 +2142,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
-  // Play modern notification sound
+  // Play ethereal ascending prayer sound
   const playHeavenlyChime = async () => {
     try {
-      console.log('🔔 Playing magical success sound...');
+      console.log('🔔 Playing prayer ascending sound...');
       
-      // Soft sparkle/success notification - light and pleasant ✨
       const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3' },
-        { shouldPlay: true, volume: 0.5 }
+        require('./assets/prayer-ascending.mp3'),
+        { shouldPlay: true, volume: 0.6 }
       );
       
       setSound(newSound);
       
-      // Clean up sound after playing
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
           newSound.unloadAsync();
@@ -2171,22 +2169,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     // Play heavenly chime sound! 🔔
     playHeavenlyChime();
     
-    // MAGICAL HEAVENLY vibration pattern - like bells chiming!
-    // Pattern: [wait, vibrate, wait, vibrate, ...] in milliseconds
-    const magicalPattern = [
-      0,   // Start immediately
-      30,  // Short ding
-      50,  // Pause
-      30,  // Second ding
-      50,  // Pause
-      30,  // Third ding
-      100, // Longer pause
-      50,  // Deeper bell
-      80,  // Pause
-      50,  // Final chime
+    // Gentle ascending vibration - like a soft breath rising
+    const gentlePattern = [
+      0,    // Start immediately
+      15,   // Soft touch
+      120,  // Pause
+      25,   // Slightly longer
+      200,  // Longer pause
+      40,   // Gentle swell
     ];
     
-    Vibration.vibrate(magicalPattern);
+    Vibration.vibrate(gentlePattern);
     
     setShowPrayerAnimation(true);
     

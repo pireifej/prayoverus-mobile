@@ -88,7 +88,8 @@
           "iosAppId": "ca-app-pub-3440306279423513~2757859969"
         }
       ],
-      "react-native-edge-to-edge"
+      "react-native-edge-to-edge",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

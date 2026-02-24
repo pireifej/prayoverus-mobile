@@ -2151,8 +2151,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       console.log('🔔 Playing prayer ascending sound...');
       
       const { sound: newSound } = await Audio.Sound.createAsync(
-        require('./assets/angelic-choir.mp3'),
-        { shouldPlay: true, volume: 0.8 }
+        require('./assets/ethereal-ascent.mp3'),
+        { shouldPlay: true, volume: 0.9 }
       );
       
       setSound(newSound);

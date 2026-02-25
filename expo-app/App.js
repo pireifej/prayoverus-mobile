@@ -706,8 +706,13 @@ function App() {
     require('./assets/prayer-bg-3.png'),
     require('./assets/prayer-bg-4.png'),
     require('./assets/prayer-bg-5.png'),
+    require('./assets/prayer-bg-6.png'),
+    require('./assets/prayer-bg-7.png'),
+    require('./assets/prayer-bg-8.png'),
+    require('./assets/prayer-bg-9.png'),
+    require('./assets/prayer-bg-10.png'),
   ];
-  const prayerBgLabels = ['Heavenly Light', 'Dove of Peace', 'Sunny Sky', 'Flowing Cross', 'Divine Rays'];
+  const prayerBgLabels = ['Heavenly Light', 'Dove of Peace', 'Sunny Sky', 'Flowing Cross', 'Divine Rays', 'Misty Mountains', 'Peaceful Shore', 'Angel Feathers', 'Stained Glass', 'White Lilies'];
 
   // Prayer sound toggle: 5 sound options
   const [prayerSound, setPrayerSound] = useState('goldenHarp');
@@ -5349,12 +5354,12 @@ const styles = StyleSheet.create({
   },
   immersiveFooter: {
     alignItems: 'center',
-    paddingBottom: 60,
+    paddingBottom: 100,
     paddingTop: 16,
   },
   immersiveAttribution: {
-    fontSize: 15,
-    fontWeight: '300',
+    fontSize: 20,
+    fontWeight: '400',
     color: '#8B7D6B',
     fontStyle: 'italic',
     letterSpacing: 1,

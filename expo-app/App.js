@@ -1612,6 +1612,7 @@ function App() {
 
   const generatePrayer = async (prayerRequest) => {
     try {
+      setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length));
       setPrayerModal({
         visible: true,
         prayer: prayerRequest,
@@ -4238,14 +4239,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
             </TouchableOpacity>
 
-            {/* Background toggle button - floats top left */}
-            <TouchableOpacity
-              onPress={() => setPrayerBgIndex((prev) => (prev + 1) % prayerBgImages.length)}
-              style={styles.bgToggleButton}
-            >
-              <Text style={styles.bgToggleIcon}>🖼</Text>
-              <Text style={styles.bgToggleLabel}>{prayerBgLabels[prayerBgIndex]}</Text>
-            </TouchableOpacity>
+            {/* Background toggle button - hidden, random bg selected on each prayer open */}
 
             {/* Sound picker toggle & dropdown - hidden, all sounds preserved in soundFiles/soundLabels */}
 

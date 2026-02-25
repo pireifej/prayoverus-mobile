@@ -698,6 +698,17 @@ function App() {
   // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
   const [prayerLayout, setPrayerLayout] = useState('immersive');
 
+  // Prayer background image toggle: 5 blue & white options (0-4)
+  const [prayerBgIndex, setPrayerBgIndex] = useState(0);
+  const prayerBgImages = [
+    require('./assets/prayer-bg-1.png'),
+    require('./assets/prayer-bg-2.png'),
+    require('./assets/prayer-bg-3.png'),
+    require('./assets/prayer-bg-4.png'),
+    require('./assets/prayer-bg-5.png'),
+  ];
+  const prayerBgLabels = ['Heavenly Light', 'Dove of Peace', 'Sunny Sky', 'Flowing Cross', 'Divine Rays'];
+
   // Prayer sound toggle: 5 sound options
   const [prayerSound, setPrayerSound] = useState('goldenHarp');
   const [showSoundPicker, setShowSoundPicker] = useState(false);
@@ -4204,9 +4215,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }
             ]}
           >
-            {/* Background image layer - varies by layout */}
+            {/* Background image layer - uses selectable blue & white backgrounds */}
             <Image
-              source={require('./assets/prayer-bg.png')}
+              source={prayerBgImages[prayerBgIndex]}
               style={[
                 styles.sanctuaryBgImage,
                 prayerLayout === 'gallery' && styles.galleryBgImage,
@@ -4220,6 +4231,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {/* Close button - floats top right */}
             <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
+            </TouchableOpacity>
+
+            {/* Background toggle button - floats top left */}
+            <TouchableOpacity
+              onPress={() => setPrayerBgIndex((prev) => (prev + 1) % prayerBgImages.length)}
+              style={styles.bgToggleButton}
+            >
+              <Text style={styles.bgToggleIcon}>🖼</Text>
+              <Text style={styles.bgToggleLabel}>{prayerBgLabels[prayerBgIndex]}</Text>
             </TouchableOpacity>
 
             {/* Sound picker toggle & dropdown - hidden, all sounds preserved in soundFiles/soundLabels */}
@@ -5026,6 +5046,33 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#9CA3AF',
     fontWeight: '300',
+  },
+  bgToggleButton: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+    zIndex: 10,
+    minHeight: 44,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bgToggleIcon: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  bgToggleLabel: {
+    fontSize: 13,
+    color: '#4B5563',
+    fontWeight: '600',
   },
   fullScreenLoadingContainer: {
     flex: 1,

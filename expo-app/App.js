@@ -4005,7 +4005,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
               
               {/* My Church - Only show if user has a church */}
-              {currentUser?.churchName && currentUser.churchName !== 'None' && (
+              {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
                 <TouchableOpacity 
                   style={[styles.filterPill, styles.filterPillChurch, showChurchOnly && styles.filterPillActive]}
                   onPress={() => {
@@ -4013,7 +4013,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     setShowMyRequestsOnly(false);
                   }}
                 >
-                  <Text style={[styles.filterPillText, showChurchOnly && styles.filterPillTextActive]} numberOfLines={1}>
+                  <Text style={[styles.filterPillText, showChurchOnly && styles.filterPillTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     ⛪ {currentUser.churchName}
                   </Text>
                 </TouchableOpacity>
@@ -5903,8 +5903,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterPillChurch: {
-    flex: 1,
-    maxWidth: 160,
+    flexShrink: 1,
+    minWidth: 80,
+    maxWidth: 180,
   },
   filterPillActive: {
     backgroundColor: '#6366f1',

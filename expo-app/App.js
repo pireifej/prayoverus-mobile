@@ -721,7 +721,9 @@ function App() {
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
+  const interstitialLoadedRef = useRef(false);
   const interstitialRef = useRef(null);
+  const prayerViewCountRef = useRef(0);
   
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -905,49 +907,63 @@ function App() {
   
   // Function to load interstitial ad
   const loadInterstitialAd = () => {
+    console.log('📺 loadInterstitialAd called - isAdMobAvailable:', isAdMobAvailable, 'InterstitialAd exists:', !!InterstitialAd, 'AD_UNIT_ID:', INTERSTITIAL_AD_UNIT_ID);
     if (!isAdMobAvailable || !InterstitialAd || !INTERSTITIAL_AD_UNIT_ID) {
+      console.log('📺 SKIP: AdMob not available or missing InterstitialAd class or missing AD_UNIT_ID');
       return;
     }
     
     try {
+      console.log('📺 Creating interstitial ad request...');
       const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
         requestNonPersonalizedAdsOnly: true,
       });
       
       interstitial.addAdEventListener(AdEventType.LOADED, () => {
-        console.log('Interstitial ad loaded');
+        console.log('📺 ✅ Interstitial ad LOADED and ready to show');
         setInterstitialLoaded(true);
+        interstitialLoadedRef.current = true;
         interstitialRef.current = interstitial;
       });
       
       interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-        console.log('Interstitial ad closed');
+        console.log('📺 Interstitial ad CLOSED by user');
         setInterstitialLoaded(false);
+        interstitialLoadedRef.current = false;
         interstitialRef.current = null;
-        // Load next interstitial
+        console.log('📺 Loading next interstitial ad...');
         loadInterstitialAd();
       });
       
       interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
-        console.log('Interstitial ad error:', error);
+        console.log('📺 ❌ Interstitial ad ERROR:', JSON.stringify(error));
         setInterstitialLoaded(false);
+        interstitialLoadedRef.current = false;
       });
       
+      console.log('📺 Calling interstitial.load()...');
       interstitial.load();
     } catch (error) {
-      console.log('Error creating interstitial:', error);
+      console.log('📺 ❌ Error creating interstitial:', error?.message || error);
     }
   };
   
-  // Function to show interstitial ad (call after every 5th prayer)
+  // Function to show interstitial ad (call after every 4th prayer view)
   const showInterstitialAd = () => {
-    console.log('🎬 showInterstitialAd called - interstitialLoaded:', interstitialLoaded, 'ref exists:', !!interstitialRef.current);
-    if (interstitialLoaded && interstitialRef.current) {
-      console.log('🎬 Showing interstitial ad NOW');
-      interstitialRef.current.show();
+    const isLoaded = interstitialLoadedRef.current;
+    const hasRef = !!interstitialRef.current;
+    console.log('📺 showInterstitialAd called - loadedRef:', isLoaded, 'ref exists:', hasRef, 'state:', interstitialLoaded);
+    if (isLoaded && interstitialRef.current) {
+      console.log('📺 ✅ SHOWING interstitial ad NOW!');
+      try {
+        interstitialRef.current.show();
+      } catch (error) {
+        console.log('📺 ❌ Error showing interstitial:', error?.message || error);
+        loadInterstitialAd();
+      }
       return true;
     }
-    console.log('🎬 Interstitial not ready - loading a new one');
+    console.log('📺 ⚠️ Interstitial NOT ready - loading a new one for next time');
     loadInterstitialAd();
     return false;
   };
@@ -1816,11 +1832,12 @@ Through Christ our Lord. Amen.`;
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
     
     // Increment prayer view count for interstitial ads (every 4th view)
-    const newViewCount = prayerViewCount + 1;
+    prayerViewCountRef.current += 1;
+    const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
-    console.log(`👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...)`);
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
     if (newViewCount % 4 === 0 && isAdMobAvailable) {
-      console.log(`🎬 Triggering interstitial ad after ${newViewCount} prayer views`);
+      console.log(`📺 🎬 Triggering interstitial ad after ${newViewCount} prayer views!`);
       showInterstitialAd();
     }
     

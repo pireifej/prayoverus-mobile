@@ -1665,6 +1665,16 @@ function App() {
 
   const generatePrayer = async (prayerRequest) => {
     try {
+      // Increment prayer view count for interstitial ads (every 4th view)
+      prayerViewCountRef.current += 1;
+      const newViewCount = prayerViewCountRef.current;
+      setPrayerViewCount(newViewCount);
+      console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
+      if (newViewCount % 4 === 0 && isAdMobAvailable) {
+        console.log(`📺 🎬 Triggering interstitial ad after ${newViewCount} prayer views!`);
+        showInterstitialAd();
+      }
+
       setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length));
       setPrayerModal({
         visible: true,

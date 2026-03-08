@@ -11,19 +11,17 @@ import { Buffer } from 'buffer';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
-  { level: 1,  title: 'Faithful Beginner',      minPoints: 0,     icon: '🕊️' },
-  { level: 2,  title: 'Choir Member',            minPoints: 10,    icon: '🎵' },
-  { level: 3,  title: 'Altar Server',            minPoints: 25,    icon: '🕯️' },
-  { level: 4,  title: 'Lector',                  minPoints: 50,    icon: '📖' },
-  { level: 5,  title: 'Eucharistic Minister',    minPoints: 100,   icon: '🍷' },
-  { level: 6,  title: 'Deacon',                  minPoints: 200,   icon: '📿' },
-  { level: 7,  title: 'Friar',                   minPoints: 400,   icon: '⛪' },
-  { level: 8,  title: 'Monsignor',               minPoints: 700,   icon: '✝️' },
-  { level: 9,  title: 'Pastor',                  minPoints: 1000,  icon: '🙏' },
-  { level: 10, title: 'Bishop',                  minPoints: 2000,  icon: '⭐' },
-  { level: 11, title: 'Archbishop',              minPoints: 5000,  icon: '🌟' },
-  { level: 12, title: 'Cardinal',                minPoints: 10000, icon: '💫' },
-  { level: 13, title: 'Pope',                    minPoints: 25000, icon: '👑' },
+  { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
+  { level: 1,  title: 'New Believer',        minPoints: 1,     icon: '🕊️' },
+  { level: 2,  title: 'Seed Planter',        minPoints: 20,    icon: '🌿' },
+  { level: 3,  title: 'Growing in Faith',    minPoints: 50,    icon: '📖' },
+  { level: 4,  title: 'Prayer Partner',      minPoints: 100,   icon: '🤝' },
+  { level: 5,  title: 'Faithful Friend',     minPoints: 150,   icon: '💛' },
+  { level: 6,  title: 'Prayer Leader',       minPoints: 250,   icon: '📿' },
+  { level: 7,  title: 'Devoted Believer',    minPoints: 350,   icon: '✝️' },
+  { level: 8,  title: 'Prayer Champion',     minPoints: 500,   icon: '🏆' },
+  { level: 9,  title: 'Faithful Servant',    minPoints: 750,   icon: '⭐' },
+  { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
 ];
 
 const getFaithRank = (points) => {
@@ -2367,26 +2365,45 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               user_has_prayed: true,
               prayer_count: (p.prayer_count || 0) + 1,
               prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You'],
-              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null, faith_points: (currentUser?.faith_points || 0) + 1 }]
+              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null, faith_points: (currentUser?.faith_points || 0) }]
             }
           : p
       )
     );
 
-    // Check for level-up: award 1 point for praying
+    // Refresh user profile from server to get updated faith_points (points awarded server-side)
     if (currentUser) {
       const oldPoints = currentUser.faith_points || 0;
-      const newPoints = oldPoints + 1;
       const oldRank = getFaithRank(oldPoints);
-      const newRank = getFaithRank(newPoints);
-      const updatedUser = { ...currentUser, faith_points: newPoints };
-      setCurrentUser(updatedUser);
-      if (newRank.level > oldRank.level) {
-        setTimeout(() => {
-          setShowLevelUp(newRank);
-          playHeavenlyChime();
-        }, 2500);
-      }
+      setTimeout(async () => {
+        try {
+          const endpoint = 'https://shouldcallpaul.replit.app/getUser';
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+            },
+            body: JSON.stringify({ userId: currentUser.id.toString() })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const userArray = Array.isArray(data) ? data : (data.result || []);
+            if (userArray.length > 0) {
+              const serverPoints = userArray[0].faith_points || 0;
+              const newRank = getFaithRank(serverPoints);
+              setCurrentUser(prev => ({ ...prev, faith_points: serverPoints }));
+              if (newRank.level > oldRank.level) {
+                setShowLevelUp(newRank);
+                playHeavenlyChime();
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Error refreshing faith points:', e.message);
+        }
+      }, 2000);
     }
     
     // Close the modal after animation completes and handle auto-advance

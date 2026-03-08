@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const FAITH_RANKS = [
-  { level: 1,  title: 'Faithful Beginner',      minPoints: 0,     icon: '🕊️' },
-  { level: 2,  title: 'Choir Member',            minPoints: 10,    icon: '🎵' },
-  { level: 3,  title: 'Altar Server',            minPoints: 25,    icon: '🕯️' },
-  { level: 4,  title: 'Lector',                  minPoints: 50,    icon: '📖' },
-  { level: 5,  title: 'Eucharistic Minister',    minPoints: 100,   icon: '🍷' },
-  { level: 6,  title: 'Deacon',                  minPoints: 200,   icon: '📿' },
-  { level: 7,  title: 'Friar',                   minPoints: 400,   icon: '⛪' },
-  { level: 8,  title: 'Monsignor',               minPoints: 700,   icon: '✝️' },
-  { level: 9,  title: 'Pastor',                  minPoints: 1000,  icon: '🙏' },
-  { level: 10, title: 'Bishop',                  minPoints: 2000,  icon: '⭐' },
-  { level: 11, title: 'Archbishop',              minPoints: 5000,  icon: '🌟' },
-  { level: 12, title: 'Cardinal',                minPoints: 10000, icon: '💫' },
-  { level: 13, title: 'Pope',                    minPoints: 25000, icon: '👑' },
+  { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
+  { level: 1,  title: 'New Believer',        minPoints: 1,     icon: '🕊️' },
+  { level: 2,  title: 'Seed Planter',        minPoints: 20,    icon: '🌿' },
+  { level: 3,  title: 'Growing in Faith',    minPoints: 50,    icon: '📖' },
+  { level: 4,  title: 'Prayer Partner',      minPoints: 100,   icon: '🤝' },
+  { level: 5,  title: 'Faithful Friend',     minPoints: 150,   icon: '💛' },
+  { level: 6,  title: 'Prayer Leader',       minPoints: 250,   icon: '📿' },
+  { level: 7,  title: 'Devoted Believer',    minPoints: 350,   icon: '✝️' },
+  { level: 8,  title: 'Prayer Champion',     minPoints: 500,   icon: '🏆' },
+  { level: 9,  title: 'Faithful Servant',    minPoints: 750,   icon: '⭐' },
+  { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
 ];
 
 const getFaithRank = (points) => {

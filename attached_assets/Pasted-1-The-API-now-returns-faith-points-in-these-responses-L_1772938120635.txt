@@ -1,0 +1,35 @@
+1. The API now returns faith_points in these responses:
+
+Login / getUser / getUserByEmail — the user object includes faith_points (integer)
+prayed_by_people (in community wall and request detail) — each person object now looks like:
+{ "name": "John", "picture": "https://...", "faith_points": 42 }
+2. Rank calculation (do this on the frontend):
+
+You'll want a helper function that takes a faith_points value and returns a rank title and level. Here's an example:
+
+function getFaithRank(points) {
+  if (points >= 1000) return { title: "Prayer Warrior", level: 10 };
+  if (points >= 750) return { title: "Faithful Servant", level: 9 };
+  if (points >= 500) return { title: "Prayer Champion", level: 8 };
+  if (points >= 350) return { title: "Devoted Believer", level: 7 };
+  if (points >= 250) return { title: "Prayer Leader", level: 6 };
+  if (points >= 150) return { title: "Faithful Friend", level: 5 };
+  if (points >= 100) return { title: "Prayer Partner", level: 4 };
+  if (points >= 50) return { title: "Growing in Faith", level: 3 };
+  if (points >= 20) return { title: "Seed Planter", level: 2 };
+  if (points >= 1) return { title: "New Believer", level: 1 };
+  return { title: "Newcomer", level: 0 };
+}
+Adjust the thresholds and titles to whatever feels right for your community.
+
+3. Where to display it:
+
+User profile screen — Show the user's rank title, level, and total points (from user.faith_points returned by login/getUser)
+Community prayer list — Next to each person in the "prayed by" section, you can show their rank badge or title (from faith_points in each prayed_by_people object)
+Leaderboard (optional) — If you want a leaderboard, you'd need a new API endpoint. Let me know and I can add one.
+4. Points are earned automatically:
+
++1 point when praying for someone's request
++3 points when posting a prayer request
++5 points when posting a prayer request with a picture
+No changes needed on the frontend for earning points — it happens server-side. You just need to read and display the values.

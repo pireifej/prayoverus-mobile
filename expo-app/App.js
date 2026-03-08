@@ -751,6 +751,10 @@ function App() {
   const [prayerSound, setPrayerSound] = useState('goldenHarp');
   const [showSoundPicker, setShowSoundPicker] = useState(false);
 
+  // Faith rank level-up celebration state
+  const [showLevelUp, setShowLevelUp] = useState(null);
+  const previousRankRef = useRef(null);
+
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
@@ -2352,11 +2356,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               user_has_prayed: true,
               prayer_count: (p.prayer_count || 0) + 1,
               prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You'],
-              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null }]
+              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null, faith_points: (currentUser?.faith_points || 0) + 1 }]
             }
           : p
       )
     );
+
+    // Check for level-up: award 1 point for praying
+    if (currentUser) {
+      const oldPoints = currentUser.faith_points || 0;
+      const newPoints = oldPoints + 1;
+      const oldRank = getFaithRank(oldPoints);
+      const newRank = getFaithRank(newPoints);
+      const updatedUser = { ...currentUser, faith_points: newPoints };
+      setCurrentUser(updatedUser);
+      if (newRank.level > oldRank.level) {
+        setTimeout(() => {
+          setShowLevelUp(newRank);
+          playHeavenlyChime();
+        }, 2500);
+      }
+    }
     
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
@@ -3989,6 +4009,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             style={styles.headerProfilePicture}
           />
           <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>
+          {(() => {
+            const r = getFaithRank(currentUser.faith_points);
+            return (
+              <View style={styles.headerFaithBadge}>
+                <Text style={styles.headerFaithShield}>🛡️</Text>
+                <Text style={styles.headerFaithLevel}>{r.level}</Text>
+              </View>
+            );
+          })()}
         </TouchableOpacity>
         <TouchableOpacity 
           onPress={handleLogout} 
@@ -4566,6 +4595,33 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
       {/* NOTE: Prayer Detail View now uses PrayerDetailScreen component instead of a modal */}
 
+      {/* Level Up Celebration Modal */}
+      {showLevelUp && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowLevelUp(null)}
+        >
+          <View style={styles.levelUpOverlay}>
+            <View style={styles.levelUpCard}>
+              <Text style={styles.levelUpStars}>✨ 🌟 ✨</Text>
+              <View style={styles.levelUpShield}>
+                <Text style={styles.levelUpShieldIcon}>🛡️</Text>
+                <Text style={styles.levelUpShieldLevel}>{showLevelUp.level}</Text>
+              </View>
+              <Text style={styles.levelUpCongrats}>Congratulations!</Text>
+              <Text style={styles.levelUpMessage}>You've been elevated to</Text>
+              <Text style={styles.levelUpTitle}>{showLevelUp.icon} {showLevelUp.title}</Text>
+              <Text style={styles.levelUpSubtext}>Your faithfulness has been rewarded. Keep praying and supporting others!</Text>
+              <TouchableOpacity style={styles.levelUpButton} onPress={() => setShowLevelUp(null)}>
+                <Text style={styles.levelUpButtonText}>Amen!</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* App Update Modal */}
       <Modal
         visible={showUpdateModal}
@@ -4689,6 +4745,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#6366f1',
     textDecorationLine: 'underline',
+  },
+  headerFaithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    marginLeft: 4,
+  },
+  headerFaithShield: {
+    fontSize: 11,
+    marginRight: 2,
+  },
+  headerFaithLevel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4338CA',
   },
   logoutButton: {
     backgroundColor: '#ef4444',
@@ -6439,6 +6515,87 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
+  },
+  levelUpOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(49, 46, 129, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelUpCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    width: 300,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  levelUpStars: {
+    fontSize: 28,
+    marginBottom: 12,
+  },
+  levelUpShield: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  levelUpShieldIcon: {
+    fontSize: 36,
+    position: 'absolute',
+    top: 8,
+  },
+  levelUpShieldLevel: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 20,
+  },
+  levelUpCongrats: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#312E81',
+    marginBottom: 4,
+  },
+  levelUpMessage: {
+    fontSize: 15,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  levelUpTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6366f1',
+    marginBottom: 12,
+  },
+  levelUpSubtext: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  levelUpButton: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 48,
+    paddingVertical: 14,
+    borderRadius: 28,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  levelUpButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
   updateModalOverlay: {
     flex: 1,

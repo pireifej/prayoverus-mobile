@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const FAITH_RANKS = [
   { level: 1,  title: 'Faithful Beginner',      minPoints: 0,     icon: '🕊️' },
@@ -40,7 +40,9 @@ import {
   Dimensions,
   PanResponder,
   Platform,
-  StatusBar as RNStatusBar
+  StatusBar as RNStatusBar,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
@@ -159,6 +161,7 @@ export default function PrayerDetailScreen({
   const [error, setError] = useState(null);
   const [index, setIndex] = useState(currentIndex);
   const [isLoadingNewPrayer, setIsLoadingNewPrayer] = useState(false);
+  const [rankTooltip, setRankTooltip] = useState(null);
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -714,10 +717,14 @@ export default function PrayerDetailScreen({
                           </View>
                         )}
                         <Text style={styles.prayerNameText}>{person.name}</Text>
-                        <View style={styles.faithBadge}>
+                        <TouchableOpacity
+                          style={styles.faithBadge}
+                          onPress={() => setRankTooltip({ name: person.name, rank: personRank })}
+                          activeOpacity={0.7}
+                        >
                           <Text style={styles.faithBadgeShield}>🛡️</Text>
                           <Text style={styles.faithBadgeLevel}>{personRank.level}</Text>
-                        </View>
+                        </TouchableOpacity>
                       </View>
                     );
                   })}
@@ -748,6 +755,30 @@ export default function PrayerDetailScreen({
         </View>
       </ScrollView>
       </Animated.View>
+
+      {/* Rank Tooltip Modal */}
+      {rankTooltip && (
+        <Modal transparent visible={true} animationType="fade" onRequestClose={() => setRankTooltip(null)}>
+          <TouchableWithoutFeedback onPress={() => setRankTooltip(null)}>
+            <View style={styles.rankTooltipOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.rankTooltipCard}>
+                  <View style={styles.rankTooltipShield}>
+                    <Text style={styles.rankTooltipShieldIcon}>🛡️</Text>
+                    <Text style={styles.rankTooltipShieldLevel}>{rankTooltip.rank.level}</Text>
+                  </View>
+                  <Text style={styles.rankTooltipName}>{rankTooltip.name}</Text>
+                  <Text style={styles.rankTooltipTitle}>{rankTooltip.rank.icon} {rankTooltip.rank.title}</Text>
+                  <Text style={styles.rankTooltipPoints}>Level {rankTooltip.rank.level} of 13</Text>
+                  <TouchableOpacity style={styles.rankTooltipClose} onPress={() => setRankTooltip(null)}>
+                    <Text style={styles.rankTooltipCloseText}>Got it</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -1015,21 +1046,92 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#C7D2FE',
-    marginLeft: 8,
+    marginLeft: 4,
+    minWidth: 36,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   faithBadgeShield: {
-    fontSize: 12,
+    fontSize: 11,
     marginRight: 2,
   },
   faithBadgeLevel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#4338CA',
+  },
+  rankTooltipOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankTooltipCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    width: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  rankTooltipShield: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rankTooltipShieldIcon: {
+    fontSize: 28,
+    position: 'absolute',
+    top: 6,
+  },
+  rankTooltipShieldLevel: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 16,
+  },
+  rankTooltipName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  rankTooltipTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366f1',
+    marginBottom: 4,
+  },
+  rankTooltipPoints: {
+    fontSize: 13,
+    color: '#94a3b8',
+    marginBottom: 16,
+  },
+  rankTooltipClose: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  rankTooltipCloseText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   prayerText: {
     fontSize: 17,

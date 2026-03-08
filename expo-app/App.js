@@ -745,6 +745,12 @@ function App() {
   const headerExpandAnim = useRef(new Animated.Value(1)).current;
   const headerCompactAnim = useRef(new Animated.Value(0)).current;
   const [showChurchOnly, setShowChurchOnly] = useState(false);
+  const [communityChurches, setCommunityChurches] = useState([]);
+  const [communityMembers, setCommunityMembers] = useState([]);
+  const [selectedChurch, setSelectedChurch] = useState(null);
+  const [viewingMember, setViewingMember] = useState(null);
+  const [loadingChurches, setLoadingChurches] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
   // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
@@ -2617,6 +2623,53 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
+  const loadCommunityChurches = async () => {
+    setLoadingChurches(true);
+    try {
+      const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.error === 0 && data.churches) {
+          setCommunityChurches(data.churches);
+        }
+      }
+    } catch (error) {
+      console.log('Error loading community churches:', error);
+    }
+    setLoadingChurches(false);
+  };
+
+  const loadChurchMembers = async (churchId) => {
+    setLoadingMembers(true);
+    setCommunityMembers([]);
+    try {
+      const response = await fetch('https://shouldcallpaul.replit.app/getUsersByChurch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ churchId })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setCommunityMembers(data);
+        } else if (data.users && Array.isArray(data.users)) {
+          setCommunityMembers(data.users);
+        }
+      }
+    } catch (error) {
+      console.log('Error loading church members:', error);
+    }
+    setLoadingMembers(false);
+  };
+
   // Enter edit mode and populate form with current values
   const enterEditMode = async () => {
     // Fetch churches FIRST so dropdown is populated
@@ -2865,90 +2918,222 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
-  if (currentScreen === 'community') {
+  if (currentScreen === 'community' && viewingMember) {
+    const member = viewingMember;
+    const memberRank = getFaithRank(member.faith_points || 0);
+    const profilePicUri = member.picture 
+      ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
+      : null;
     return (
       <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={() => setViewingMember(null)} style={styles.communityBackButton}>
+            <Text style={styles.communityBackText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Community Wall</Text>
-        </View>
+          <Text style={styles.communityHeaderTitle} numberOfLines={1}>{member.first_name}'s Profile</Text>
+          <View style={{width: 60}} />
+        </LinearGradient>
+        
+        <ScrollView style={styles.screenContent} contentContainerStyle={{paddingBottom: 40}}>
+          <View style={styles.memberProfileCard}>
+            <View style={styles.memberProfileTop}>
+              {profilePicUri ? (
+                <Image source={{ uri: profilePicUri }} style={styles.memberProfilePicLarge} />
+              ) : (
+                <View style={[styles.memberProfilePicLarge, styles.memberProfilePicPlaceholder]}>
+                  <Text style={{fontSize: 40}}>👤</Text>
+                </View>
+              )}
+              <Text style={styles.memberProfileName}>{member.first_name} {member.last_name || ''}</Text>
+              {member.title ? <Text style={styles.memberProfileTitle}>{member.title}</Text> : null}
+              <View style={styles.memberRankRow}>
+                <Text style={{fontSize: 18}}>🛡️</Text>
+                <Text style={styles.memberRankName}>{memberRank.name}</Text>
+                <Text style={styles.memberRankLevel}>Level {memberRank.level}</Text>
+              </View>
+            </View>
+
+            {member.about ? (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>About</Text>
+                <Text style={styles.memberProfileSectionText}>{member.about}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.memberProfileSection}>
+              <Text style={styles.memberProfileSectionTitle}>Church</Text>
+              <Text style={styles.memberProfileSectionText}>⛪ {selectedChurch?.church_name || member.church_name || 'Not set'}</Text>
+            </View>
+
+            <View style={styles.memberProfileSection}>
+              <Text style={styles.memberProfileSectionTitle}>Faith Points</Text>
+              <View style={styles.memberFaithBar}>
+                <View style={[styles.memberFaithBarFill, { width: `${Math.min(((member.faith_points || 0) / Math.max(memberRank.maxPoints, 1)) * 100, 100)}%` }]} />
+              </View>
+              <Text style={styles.memberFaithPoints}>{member.faith_points || 0} points</Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (currentScreen === 'community' && selectedChurch) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={() => { setSelectedChurch(null); setCommunityMembers([]); }} style={styles.communityBackButton}>
+            <Text style={styles.communityBackText}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.communityHeaderTitle} numberOfLines={1}>⛪ {selectedChurch.church_name}</Text>
+          <View style={{width: 60}} />
+        </LinearGradient>
+        
+        <ScrollView style={styles.screenContent} contentContainerStyle={{paddingBottom: 40}}>
+          <Text style={styles.communitySubtitle}>Members</Text>
+          {loadingMembers ? (
+            <View style={styles.communityLoading}>
+              <ActivityIndicator size="large" color="#2563eb" />
+              <Text style={styles.communityLoadingText}>Loading members...</Text>
+            </View>
+          ) : communityMembers.length === 0 ? (
+            <View style={styles.communityEmpty}>
+              <Text style={{fontSize: 40, textAlign: 'center', marginBottom: 8}}>🙏</Text>
+              <Text style={styles.communityEmptyText}>No members found for this church yet.</Text>
+            </View>
+          ) : (
+            communityMembers.map((member) => {
+              const rank = getFaithRank(member.faith_points || 0);
+              const picUri = member.picture 
+                ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
+                : null;
+              return (
+                <TouchableOpacity 
+                  key={member.id} 
+                  style={styles.memberCard}
+                  onPress={() => setViewingMember(member)}
+                  activeOpacity={0.7}
+                >
+                  {picUri ? (
+                    <Image source={{ uri: picUri }} style={styles.memberCardPic} />
+                  ) : (
+                    <View style={[styles.memberCardPic, styles.memberCardPicPlaceholder]}>
+                      <Text style={{fontSize: 20}}>👤</Text>
+                    </View>
+                  )}
+                  <View style={styles.memberCardInfo}>
+                    <Text style={styles.memberCardName}>{member.first_name} {member.last_name || ''}</Text>
+                    {member.title ? <Text style={styles.memberCardTitle}>{member.title}</Text> : null}
+                  </View>
+                  <View style={styles.memberCardBadge}>
+                    <Text style={{fontSize: 14}}>🛡️</Text>
+                    <Text style={styles.memberCardLevel}>{rank.level}</Text>
+                  </View>
+                  <Text style={styles.memberCardArrow}>›</Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (currentScreen === 'community') {
+    if (communityChurches.length === 0 && !loadingChurches) {
+      loadCommunityChurches();
+    }
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.communityBackButton}>
+            <Text style={styles.communityBackText}>← Home</Text>
+          </TouchableOpacity>
+          <Text style={styles.communityHeaderTitle}>Community</Text>
+          <View style={{width: 60}} />
+        </LinearGradient>
         
         <ScrollView 
           style={styles.screenContent}
+          contentContainerStyle={{paddingBottom: 40}}
           refreshControl={
             <RefreshControl
-              refreshing={refreshingCommunity}
-              onRefresh={onRefreshCommunity}
-              tintColor="#6366f1"
-              title="Loading prayers..."
-              titleColor="#6366f1"
+              refreshing={loadingChurches}
+              onRefresh={loadCommunityChurches}
+              tintColor="#2563eb"
             />
           }
         >
-          <Text style={styles.sectionTitle}>Community Prayers</Text>
-          {communityPrayers.map(prayer => (
-            <View key={prayer.id} style={styles.prayerCard}>
-              <Text style={styles.prayerTitle}>{prayer.title}</Text>
-              <Text style={styles.prayerContent}>{prayer.content}</Text>
-              <View style={styles.prayerMeta}>
-                <Text style={styles.prayerAuthor}>by {prayer.author}</Text>
-                {prayer.category && (
-                  <Text style={styles.prayerCategory}>• {prayer.category}</Text>
-                )}
-              </View>
-              {prayer.timestamp && (
-                <Text style={styles.prayerTime}>
-                  {new Date(prayer.timestamp).toLocaleDateString()}
-                </Text>
-              )}
-              <TouchableOpacity 
-                style={[styles.prayButton, prayer.prayedFor && styles.prayButtonPrayed]}
-                onPress={() => generatePrayer(prayer)}
-                disabled={prayer.prayedFor}
-              >
-                <Text style={[styles.prayButtonText, prayer.prayedFor && styles.prayButtonTextPrayed]}>
-                  {prayer.prayedFor ? '✅ Prayed for' : '🙏 Pray for this'}
-                </Text>
-              </TouchableOpacity>
+          <Text style={styles.communitySubtitle}>Churches</Text>
+          <Text style={styles.communityDescription}>Tap a church to see its members</Text>
+          
+          {loadingChurches && communityChurches.length === 0 ? (
+            <View style={styles.communityLoading}>
+              <ActivityIndicator size="large" color="#2563eb" />
+              <Text style={styles.communityLoadingText}>Loading churches...</Text>
             </View>
-          ))}
+          ) : (
+            communityChurches.map((church) => (
+              <TouchableOpacity 
+                key={church.church_id} 
+                style={styles.churchCard}
+                onPress={() => {
+                  setSelectedChurch(church);
+                  loadChurchMembers(church.church_id);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.churchCardIcon}>⛪</Text>
+                <View style={styles.churchCardInfo}>
+                  <Text style={styles.churchCardName}>{church.church_name}</Text>
+                </View>
+                <Text style={styles.churchCardArrow}>›</Text>
+              </TouchableOpacity>
+            ))
+          )}
         </ScrollView>
         
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={prayerModal.visible}
-          onRequestClose={closePrayerModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Prayer for: {prayerModal.prayer?.title}</Text>
-                <TouchableOpacity onPress={closePrayerModal} style={styles.closeButton}>
-                  <Text style={styles.closeButtonText}>×</Text>
-                </TouchableOpacity>
-              </View>
-              
-              {prayerModal.loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#6366f1" />
-                  <Text style={styles.loadingText}>Generating heartfelt prayer...</Text>
-                </View>
-              ) : (
-                <ScrollView style={styles.prayerTextContainer}>
-                  <HtmlText html={prayerModal.generatedPrayer} style={styles.generatedPrayer} />
-                </ScrollView>
-              )}
-              
-              <TouchableOpacity style={styles.closeModalButton} onPress={markAsPrayed}>
-                <Text style={styles.closeModalButtonText}>Amen</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <View style={styles.bottomNav}>
+          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
+            <Text style={styles.bottomNavIcon}>🏠</Text>
+            <Text style={styles.bottomNavLabel}>Home</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomNavItem} onPress={() => {}}>
+            <Text style={styles.bottomNavIcon}>🌍</Text>
+            <Text style={[styles.bottomNavLabel, styles.bottomNavLabelActive]}>Community</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
+            <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
+              <Text style={styles.bottomNavCenterIcon}>✙</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('groups')}>
+            <Text style={styles.bottomNavIcon}>👥</Text>
+            <Text style={styles.bottomNavLabel}>Groups</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('profile')}>
+            <Text style={styles.bottomNavIcon}>👤</Text>
+            <Text style={styles.bottomNavLabel}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -7541,6 +7726,256 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#ffffff',
     fontWeight: 'bold',
+  },
+  communityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 55,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  communityBackButton: {
+    minWidth: 60,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  communityBackText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  communityHeaderTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  communitySubtitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 4,
+  },
+  communityDescription: {
+    fontSize: 14,
+    color: '#64748b',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  communityLoading: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  communityLoadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: '#64748b',
+  },
+  communityEmpty: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+  },
+  communityEmptyText: {
+    fontSize: 15,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  churchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  churchCardIcon: {
+    fontSize: 28,
+    marginRight: 14,
+  },
+  churchCardInfo: {
+    flex: 1,
+  },
+  churchCardName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  churchCardArrow: {
+    fontSize: 24,
+    color: '#94a3b8',
+    fontWeight: '300',
+  },
+  memberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  memberCardPic: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  memberCardPicPlaceholder: {
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberCardInfo: {
+    flex: 1,
+  },
+  memberCardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  memberCardTitle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  memberCardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  memberCardLevel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginLeft: 2,
+  },
+  memberCardArrow: {
+    fontSize: 24,
+    color: '#94a3b8',
+    fontWeight: '300',
+  },
+  memberProfileCard: {
+    backgroundColor: '#ffffff',
+    margin: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  memberProfileTop: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  memberProfilePicLarge: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 14,
+    borderWidth: 3,
+    borderColor: '#2563eb',
+  },
+  memberProfilePicPlaceholder: {
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberProfileName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textAlign: 'center',
+  },
+  memberProfileTitle: {
+    fontSize: 15,
+    color: '#64748b',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  memberRankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  memberRankName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  memberRankLevel: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  memberProfileSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  memberProfileSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  memberProfileSectionText: {
+    fontSize: 16,
+    color: '#334155',
+    lineHeight: 22,
+  },
+  memberFaithBar: {
+    height: 8,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  memberFaithBarFill: {
+    height: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 4,
+  },
+  memberFaithPoints: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
   },
 });
 

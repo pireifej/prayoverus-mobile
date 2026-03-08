@@ -510,7 +510,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             picture: user.picture,
             active: user.active,
             timestamp: user.timestamp,
-            churchName: user.church_name
+            churchName: user.church_name,
+            faith_points: user.faith_points || 0
           };
           
           console.log('Facebook login successful for user:', userDataFormatted.firstName);
@@ -738,10 +739,11 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             active: user.active,
             timestamp: user.timestamp,
             churchId: user.church_id,
-            churchName: user.church_name
+            churchName: user.church_name,
+            faith_points: user.faith_points || 0
           };
           
-          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name);
+          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name, 'Faith:', user.faith_points);
           
           // Save email if Remember Me is checked
           if (rememberMe) {

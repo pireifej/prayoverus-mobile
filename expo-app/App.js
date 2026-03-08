@@ -1401,10 +1401,11 @@ function App() {
             churchName: user.church_name,
             title: user.user_title,
             about: user.user_about,
-            picture: user.picture || user.profile_picture_url
+            picture: user.picture || user.profile_picture_url,
+            faith_points: user.faith_points || 0
           };
           
-          console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name);
+          console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
           setCurrentUser(updatedUser);
           await saveUserToStorage(updatedUser);
         }

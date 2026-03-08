@@ -1,0 +1,59 @@
+We recommend you instead use a development build to avoid limitations. Learn more: https://expo.fyi/dev-client.
+ LOG  AdMob not available (running in Expo Go)
+ LOG  📱 Current app version: 1.0.23
+ LOG  Found stored user session: George ID: 1235
+ LOG  🔄 loadCommunityPrayers called - User ID: 1235 Church Filter: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getCommunityWall
+ LOG  {
+  "userId": "1235",
+  "tz": "America/New_York",
+  "filterByChurch": false
+}
+ LOG  📱 Community API Response: Loaded 141 prayers
+ LOG  📱 Parsed community prayers: 141 items
+ LOG  📺 👁️ Prayer view count: 1 (show ad at 4, 8, 12...) | Ad loaded: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getPrayerByRequestId
+ LOG  {
+  "requestId": 1889
+}
+ LOG  data.error: 0
+ LOG  data.prayerText exists: true
+ LOG  data.prayerText length: 681
+ LOG  📺 👁️ Prayer view count: 2 (show ad at 4, 8, 12...) | Ad loaded: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getPrayerByRequestId
+ LOG  {
+  "requestId": 1888
+}
+ LOG  data.error: 0
+ LOG  data.prayerText exists: true
+ LOG  data.prayerText length: 506
+ LOG  📺 👁️ Prayer view count: 3 (show ad at 4, 8, 12...) | Ad loaded: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getPrayerByRequestId
+ LOG  {
+  "requestId": 1887
+}
+ LOG  data.error: 0
+ LOG  data.prayerText exists: true
+ LOG  data.prayerText length: 675
+ LOG  📺 👁️ Prayer view count: 4 (show ad at 4, 8, 12...) | Ad loaded: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getPrayerByRequestId
+ LOG  {
+  "requestId": 1885
+}
+ LOG  data.error: 0
+ LOG  data.prayerText exists: true
+ LOG  data.prayerText length: 487
+ LOG  📺 👁️ Prayer view count: 5 (show ad at 4, 8, 12...) | Ad loaded: false
+ LOG  📱 MOBILE APP API CALL:
+ LOG  POST https://shouldcallpaul.replit.app/getPrayerByRequestId
+ LOG  {
+  "requestId": 1882
+}
+ LOG  data.error: 0
+ LOG  data.prayerText exists: true
+ LOG  data.prayerText length: 513

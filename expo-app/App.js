@@ -741,6 +741,7 @@ function App() {
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
@@ -4045,10 +4046,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Gradient Header with Greeting */}
+      {/* Gradient Header - Collapses on scroll */}
       <LinearGradient
         colors={['#0f172a', '#1e3a5f', '#2563eb']}
-        style={styles.gradientHeader}
+        style={headerCollapsed ? styles.gradientHeaderCompact : styles.gradientHeader}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -4058,18 +4059,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               source={{ 
                 uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
               }}
-              style={styles.headerProfilePicture}
+              style={headerCollapsed ? styles.headerProfilePictureSmall : styles.headerProfilePicture}
             />
             {(() => {
               const r = getFaithRank(currentUser.faith_points);
               return (
-                <View style={styles.headerFaithBadge}>
+                <View style={headerCollapsed ? styles.headerFaithBadgeSmall : styles.headerFaithBadge}>
                   <Text style={styles.headerFaithShield}>🛡️</Text>
                   <Text style={styles.headerFaithLevel}>{r.level}</Text>
                 </View>
               );
             })()}
           </TouchableOpacity>
+          {headerCollapsed && (
+            <Text style={styles.compactGreeting}>{getGreeting()}, {currentUser.firstName || 'Friend'}</Text>
+          )}
           <TouchableOpacity 
             onPress={handleLogout} 
             style={styles.logoutButton} 
@@ -4079,10 +4083,67 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.greetingText}>{getGreeting()},</Text>
-        <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
-        <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
+        {!headerCollapsed && (
+          <>
+            <Text style={styles.greetingText}>{getGreeting()},</Text>
+            <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
+            <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
+          </>
+        )}
       </LinearGradient>
+
+      {/* Sticky Filter Bar - Always visible */}
+      <View style={styles.stickyFilterBar}>
+        <View style={styles.stickyFilterTopRow}>
+          <Text style={styles.stickyFilterHideLabel}>Hide prayed</Text>
+          <TouchableOpacity 
+            onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+            style={[styles.toggleSwitchSmall, hideAlreadyPrayed && styles.toggleSwitchSmallActive]}
+          >
+            <View style={[styles.toggleKnobSmall, hideAlreadyPrayed && styles.toggleKnobSmallActive]} />
+          </TouchableOpacity>
+          <View style={{width: 8}} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillRowCompact} style={{flex: 1}}>
+            <TouchableOpacity 
+              style={[styles.filterPillSmall, !showMyRequestsOnly && !showChurchOnly && styles.filterPillSmallActive]}
+              onPress={() => {
+                setShowMyRequestsOnly(false);
+                setShowChurchOnly(false);
+                loadCommunityPrayers(true);
+              }}
+            >
+              <Text style={[styles.filterPillSmallText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillSmallTextActive]}>
+                🌍 All
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.filterPillSmall, showMyRequestsOnly && styles.filterPillSmallActive]}
+              onPress={() => {
+                setShowMyRequestsOnly(true);
+                setShowChurchOnly(false);
+                setHideAlreadyPrayed(false);
+              }}
+            >
+              <Text style={[styles.filterPillSmallText, showMyRequestsOnly && styles.filterPillSmallTextActive]}>
+                ✍️ Mine
+              </Text>
+            </TouchableOpacity>
+            {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
+              <TouchableOpacity 
+                style={[styles.filterPillSmall, showChurchOnly && styles.filterPillSmallActive]}
+                onPress={() => {
+                  setShowChurchOnly(true);
+                  setShowMyRequestsOnly(false);
+                }}
+              >
+                <Text style={[styles.filterPillSmallText, showChurchOnly && styles.filterPillSmallTextActive]} numberOfLines={1}>
+                  ⛪ {currentUser.churchName}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        </View>
+      </View>
       
       <ScrollView 
         style={styles.feedContainer}
@@ -4093,6 +4154,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             tintColor="#6366f1"
           />
         }
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          if (y > 60 && !headerCollapsed) setHeaderCollapsed(true);
+          else if (y <= 20 && headerCollapsed) setHeaderCollapsed(false);
+        }}
+        scrollEventThrottle={16}
       >
         {/* Share Prayer Request Button - Opens dedicated screen */}
         <TouchableOpacity 
@@ -4122,71 +4189,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
           </View>
         )}
-
-        {/* Community Wall Feed */}
-        <View style={styles.feedHeaderSection}>
-          <Text style={styles.feedTitle}>Community Prayers</Text>
-          
-          {/* Prayer Filter - Option C Toggle Style */}
-          <View style={styles.toggleFilterContainer}>
-            <Text style={styles.toggleFilterLabel}>Hide requests I've already prayed for:</Text>
-            <TouchableOpacity 
-              onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
-              style={[styles.toggleSwitch, hideAlreadyPrayed && styles.toggleSwitchActive]}
-            >
-              <View style={[styles.toggleKnob, hideAlreadyPrayed && styles.toggleKnobActive]} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Unified Filter Pills - Trinary: All / My Requests / My Church (if applicable) */}
-          <View style={styles.filterCard}>
-            <Text style={styles.filterCardLabel}>Show:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillRow}>
-              {/* All Requests */}
-              <TouchableOpacity 
-                style={[styles.filterPill, !showMyRequestsOnly && !showChurchOnly && styles.filterPillActive]}
-                onPress={() => {
-                  setShowMyRequestsOnly(false);
-                  setShowChurchOnly(false);
-                  loadCommunityPrayers(true);
-                }}
-              >
-                <Text style={[styles.filterPillText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillTextActive]}>
-                  🌍 All Requests
-                </Text>
-              </TouchableOpacity>
-              
-              {/* My Requests */}
-              <TouchableOpacity 
-                style={[styles.filterPill, showMyRequestsOnly && styles.filterPillActive]}
-                onPress={() => {
-                  setShowMyRequestsOnly(true);
-                  setShowChurchOnly(false);
-                  setHideAlreadyPrayed(false);
-                }}
-              >
-                <Text style={[styles.filterPillText, showMyRequestsOnly && styles.filterPillTextActive]}>
-                  ✍️ My Requests
-                </Text>
-              </TouchableOpacity>
-              
-              {/* My Church - Only show if user has a church */}
-              {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
-                <TouchableOpacity 
-                  style={[styles.filterPill, styles.filterPillChurch, showChurchOnly && styles.filterPillActive]}
-                  onPress={() => {
-                    setShowChurchOnly(true);
-                    setShowMyRequestsOnly(false);
-                  }}
-                >
-                  <Text style={[styles.filterPillText, showChurchOnly && styles.filterPillTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    ⛪ {currentUser.churchName}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </View>
-        </View>
         
         {/* DEMO OPTIONS - Hidden but preserved for reference
         <View style={{backgroundColor: '#fef3c7', margin: 15, padding: 15, borderRadius: 12, borderWidth: 2, borderColor: '#f59e0b'}}>
@@ -4820,11 +4822,112 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
+  gradientHeaderCompact: {
+    paddingTop: 50,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+  },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 5,
+  },
+  compactGreeting: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginLeft: 10,
+  },
+  headerProfilePictureSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  headerFaithBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  stickyFilterBar: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  stickyFilterTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stickyFilterHideLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+    marginRight: 6,
+  },
+  toggleSwitchSmall: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#cbd5e1',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleSwitchSmallActive: {
+    backgroundColor: '#2563eb',
+  },
+  toggleKnobSmall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleKnobSmallActive: {
+    transform: [{ translateX: 16 }],
+  },
+  filterPillRowCompact: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  filterPillSmall: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterPillSmallActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterPillSmallText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  filterPillSmallTextActive: {
+    color: '#ffffff',
   },
   userHeader: {
     flexDirection: 'row',
@@ -7390,8 +7493,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    paddingTop: 8,
-    paddingBottom: 28,
+    paddingTop: 10,
+    paddingBottom: 36,
+    marginBottom: 0,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     shadowColor: '#000',

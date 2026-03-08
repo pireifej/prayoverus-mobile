@@ -742,7 +742,8 @@ function App() {
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
-  const headerAnim = useRef(new Animated.Value(1)).current;
+  const headerExpandAnim = useRef(new Animated.Value(1)).current;
+  const headerCompactAnim = useRef(new Animated.Value(0)).current;
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
@@ -4048,61 +4049,50 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <StatusBar style="light" />
       
       {/* Gradient Header - Animated collapse on scroll */}
-      <Animated.View style={{
-        overflow: 'hidden',
-      }}>
-        <LinearGradient
-          colors={['#0f172a', '#1e3a5f', '#2563eb']}
-          style={[styles.gradientHeader, {
-            paddingBottom: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 20] }),
-          }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
-              <Image 
-                source={{ 
-                  uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
-                }}
-                style={styles.headerProfilePicture}
-              />
-              {(() => {
-                const r = getFaithRank(currentUser.faith_points);
-                return (
-                  <View style={styles.headerFaithBadge}>
-                    <Text style={styles.headerFaithShield}>🛡️</Text>
-                    <Text style={styles.headerFaithLevel}>{r.level}</Text>
-                  </View>
-                );
-              })()}
-            </TouchableOpacity>
-            <Animated.Text style={[styles.compactGreeting, { 
-              opacity: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-              maxHeight: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
-            }]}>
-              {getGreeting()}, {currentUser.firstName || 'Friend'}
-            </Animated.Text>
-            <TouchableOpacity 
-              onPress={handleLogout} 
-              style={styles.logoutButton} 
-              activeOpacity={0.6}
-              data-testid="button-logout"
-            >
-              <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-          <Animated.View style={{
-            opacity: headerAnim,
-            maxHeight: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 100] }),
-            overflow: 'hidden',
-          }}>
+      <LinearGradient
+        colors={['#0f172a', '#1e3a5f', '#2563eb']}
+        style={headerCollapsed ? styles.gradientHeaderCompact : styles.gradientHeader}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
+            <Image 
+              source={{ 
+                uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
+              }}
+              style={styles.headerProfilePicture}
+            />
+            {(() => {
+              const r = getFaithRank(currentUser.faith_points);
+              return (
+                <View style={styles.headerFaithBadge}>
+                  <Text style={styles.headerFaithShield}>🛡️</Text>
+                  <Text style={styles.headerFaithLevel}>{r.level}</Text>
+                </View>
+              );
+            })()}
+          </TouchableOpacity>
+          <Animated.Text style={[styles.compactGreeting, { opacity: headerCompactAnim }]}>
+            {getGreeting()}, {currentUser.firstName || 'Friend'}
+          </Animated.Text>
+          <TouchableOpacity 
+            onPress={handleLogout} 
+            style={styles.logoutButton} 
+            activeOpacity={0.6}
+            data-testid="button-logout"
+          >
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+        {!headerCollapsed && (
+          <Animated.View style={{ opacity: headerExpandAnim }}>
             <Text style={styles.greetingText}>{getGreeting()},</Text>
             <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
             <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
           </Animated.View>
-        </LinearGradient>
-      </Animated.View>
+        )}
+      </LinearGradient>
 
       {/* Sticky Filter Bar - Always visible */}
       <View style={styles.stickyFilterBar}>
@@ -4170,10 +4160,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           const y = e.nativeEvent.contentOffset.y;
           if (y > 60 && !headerCollapsed) {
             setHeaderCollapsed(true);
-            Animated.timing(headerAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
+            Animated.parallel([
+              Animated.timing(headerExpandAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+              Animated.timing(headerCompactAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+            ]).start();
           } else if (y <= 20 && headerCollapsed) {
             setHeaderCollapsed(false);
-            Animated.timing(headerAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+            Animated.parallel([
+              Animated.timing(headerExpandAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+              Animated.timing(headerCompactAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+            ]).start();
           }
         }}
         scrollEventThrottle={16}
@@ -4838,6 +4834,11 @@ const styles = StyleSheet.create({
     paddingTop: 55,
     paddingBottom: 20,
     paddingHorizontal: 20,
+  },
+  gradientHeaderCompact: {
+    paddingTop: 50,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',

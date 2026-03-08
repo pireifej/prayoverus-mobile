@@ -849,8 +849,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         <View style={styles.logoContainer}>
           <Animated.View style={[styles.logoGlow, { opacity: glowAnim }]} />
           <Animated.Image 
-            source={require('./assets/logo.png')}
-            style={[styles.logo, { transform: [{ translateY: floatAnim }] }]}
+            source={require('./assets/cross-hands.png')}
+            style={[styles.mascot, { transform: [{ translateY: floatAnim }] }]}
             resizeMode="contain"
           />
         </View>
@@ -1064,6 +1064,11 @@ const styles = StyleSheet.create({
   logo: {
     width: 200,
     height: 120,
+    alignSelf: 'center',
+  },
+  mascot: {
+    width: 140,
+    height: 140,
     alignSelf: 'center',
   },
   welcomeText: {

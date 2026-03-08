@@ -855,9 +855,9 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
           />
         </View>
         <Text style={styles.welcomeText}>Welcome to</Text>
-        <Text style={styles.appName}>PrayOverUs</Text>
+        <Text style={styles.appName}>Pray Over Us</Text>
         <Text style={styles.subtitle}>
-          {isRegistering ? 'Create Your Account' : 'Sign in to continue'}
+          {isRegistering ? 'Create Your Account' : 'Where Hope is Found'}
         </Text>
       
       {isRegistering && (
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: '#60a5fa',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   logo: {
     width: 200,

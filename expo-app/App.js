@@ -4141,7 +4141,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {/* Unified Filter Pills - Trinary: All / My Requests / My Church (if applicable) */}
           <View style={styles.filterCard}>
             <Text style={styles.filterCardLabel}>Show:</Text>
-            <View style={styles.filterPillRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillRow}>
               {/* All Requests */}
               <TouchableOpacity 
                 style={[styles.filterPill, !showMyRequestsOnly && !showChurchOnly && styles.filterPillActive]}
@@ -4184,7 +4184,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   </Text>
                 </TouchableOpacity>
               )}
-            </View>
+            </ScrollView>
           </View>
         </View>
         
@@ -6267,9 +6267,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterPillChurch: {
-    flexShrink: 1,
     minWidth: 80,
-    maxWidth: 180,
   },
   filterPillActive: {
     backgroundColor: '#6366f1',

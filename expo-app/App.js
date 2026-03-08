@@ -742,6 +742,7 @@ function App() {
   const [resetToken, setResetToken] = useState(null);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  const headerAnim = useRef(new Animated.Value(1)).current;
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
   
@@ -4046,51 +4047,62 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Gradient Header - Collapses on scroll */}
-      <LinearGradient
-        colors={['#0f172a', '#1e3a5f', '#2563eb']}
-        style={headerCollapsed ? styles.gradientHeaderCompact : styles.gradientHeader}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
-            <Image 
-              source={{ 
-                uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
-              }}
-              style={headerCollapsed ? styles.headerProfilePictureSmall : styles.headerProfilePicture}
-            />
-            {(() => {
-              const r = getFaithRank(currentUser.faith_points);
-              return (
-                <View style={headerCollapsed ? styles.headerFaithBadgeSmall : styles.headerFaithBadge}>
-                  <Text style={styles.headerFaithShield}>🛡️</Text>
-                  <Text style={styles.headerFaithLevel}>{r.level}</Text>
-                </View>
-              );
-            })()}
-          </TouchableOpacity>
-          {headerCollapsed && (
-            <Text style={styles.compactGreeting}>{getGreeting()}, {currentUser.firstName || 'Friend'}</Text>
-          )}
-          <TouchableOpacity 
-            onPress={handleLogout} 
-            style={styles.logoutButton} 
-            activeOpacity={0.6}
-            data-testid="button-logout"
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-        {!headerCollapsed && (
-          <>
+      {/* Gradient Header - Animated collapse on scroll */}
+      <Animated.View style={{
+        overflow: 'hidden',
+      }}>
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={[styles.gradientHeader, {
+            paddingBottom: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 20] }),
+          }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
+              <Image 
+                source={{ 
+                  uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
+                }}
+                style={styles.headerProfilePicture}
+              />
+              {(() => {
+                const r = getFaithRank(currentUser.faith_points);
+                return (
+                  <View style={styles.headerFaithBadge}>
+                    <Text style={styles.headerFaithShield}>🛡️</Text>
+                    <Text style={styles.headerFaithLevel}>{r.level}</Text>
+                  </View>
+                );
+              })()}
+            </TouchableOpacity>
+            <Animated.Text style={[styles.compactGreeting, { 
+              opacity: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+              maxHeight: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+            }]}>
+              {getGreeting()}, {currentUser.firstName || 'Friend'}
+            </Animated.Text>
+            <TouchableOpacity 
+              onPress={handleLogout} 
+              style={styles.logoutButton} 
+              activeOpacity={0.6}
+              data-testid="button-logout"
+            >
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+          <Animated.View style={{
+            opacity: headerAnim,
+            maxHeight: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 100] }),
+            overflow: 'hidden',
+          }}>
             <Text style={styles.greetingText}>{getGreeting()},</Text>
             <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
             <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
-          </>
-        )}
-      </LinearGradient>
+          </Animated.View>
+        </LinearGradient>
+      </Animated.View>
 
       {/* Sticky Filter Bar - Always visible */}
       <View style={styles.stickyFilterBar}>
@@ -4156,8 +4168,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         }
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          if (y > 60 && !headerCollapsed) setHeaderCollapsed(true);
-          else if (y <= 20 && headerCollapsed) setHeaderCollapsed(false);
+          if (y > 60 && !headerCollapsed) {
+            setHeaderCollapsed(true);
+            Animated.timing(headerAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
+          } else if (y <= 20 && headerCollapsed) {
+            setHeaderCollapsed(false);
+            Animated.timing(headerAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+          }
         }}
         scrollEventThrottle={16}
       >
@@ -4822,11 +4839,6 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  gradientHeaderCompact: {
-    paddingTop: 50,
-    paddingBottom: 10,
-    paddingHorizontal: 16,
-  },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -4839,21 +4851,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginLeft: 10,
-  },
-  headerProfilePictureSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  headerFaithBadgeSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 8,
   },
   stickyFilterBar: {
     backgroundColor: '#ffffff',

@@ -9,6 +9,39 @@ import NotificationService from './NotificationService';
 import PrayerDetailScreen from './PrayerDetailScreen';
 import { Buffer } from 'buffer';
 
+// Faith Rank System - tiered Christian ranking based on faith_points
+const FAITH_RANKS = [
+  { level: 1,  title: 'Faithful Beginner',      minPoints: 0,     icon: '🕊️' },
+  { level: 2,  title: 'Choir Member',            minPoints: 10,    icon: '🎵' },
+  { level: 3,  title: 'Altar Server',            minPoints: 25,    icon: '🕯️' },
+  { level: 4,  title: 'Lector',                  minPoints: 50,    icon: '📖' },
+  { level: 5,  title: 'Eucharistic Minister',    minPoints: 100,   icon: '🍷' },
+  { level: 6,  title: 'Deacon',                  minPoints: 200,   icon: '📿' },
+  { level: 7,  title: 'Friar',                   minPoints: 400,   icon: '⛪' },
+  { level: 8,  title: 'Monsignor',               minPoints: 700,   icon: '✝️' },
+  { level: 9,  title: 'Pastor',                  minPoints: 1000,  icon: '🙏' },
+  { level: 10, title: 'Bishop',                  minPoints: 2000,  icon: '⭐' },
+  { level: 11, title: 'Archbishop',              minPoints: 5000,  icon: '🌟' },
+  { level: 12, title: 'Cardinal',                minPoints: 10000, icon: '💫' },
+  { level: 13, title: 'Pope',                    minPoints: 25000, icon: '👑' },
+];
+
+const getFaithRank = (points) => {
+  const p = points || 0;
+  let rank = FAITH_RANKS[0];
+  for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
+    if (p >= FAITH_RANKS[i].minPoints) {
+      rank = FAITH_RANKS[i];
+      break;
+    }
+  }
+  const nextRank = FAITH_RANKS.find(r => r.level === rank.level + 1);
+  const progress = nextRank
+    ? (p - rank.minPoints) / (nextRank.minPoints - rank.minPoints)
+    : 1;
+  return { ...rank, points: p, nextRank, progress: Math.min(progress, 1) };
+};
+
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
 let mobileAds, BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType;
 let isAdMobAvailable = false;
@@ -3017,6 +3050,38 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             <Text style={styles.profileEmail}>{currentUser.email}</Text>
             
+            {/* Faith Rank Card */}
+            {(() => {
+              const rank = getFaithRank(currentUser.faith_points);
+              return (
+                <View style={styles.faithRankCard}>
+                  <View style={styles.faithRankHeader}>
+                    <View style={styles.faithRankShield}>
+                      <Text style={styles.faithRankShieldIcon}>🛡️</Text>
+                      <Text style={styles.faithRankShieldLevel}>{rank.level}</Text>
+                    </View>
+                    <View style={styles.faithRankInfo}>
+                      <Text style={styles.faithRankTitle}>{rank.icon} {rank.title}</Text>
+                      <Text style={styles.faithRankPoints}>{rank.points} Faith Points</Text>
+                    </View>
+                  </View>
+                  {rank.nextRank && (
+                    <View style={styles.faithRankProgressSection}>
+                      <View style={styles.faithRankProgressBar}>
+                        <View style={[styles.faithRankProgressFill, { width: `${rank.progress * 100}%` }]} />
+                      </View>
+                      <Text style={styles.faithRankProgressText}>
+                        {rank.nextRank.minPoints - rank.points} pts to {rank.nextRank.title}
+                      </Text>
+                    </View>
+                  )}
+                  {!rank.nextRank && (
+                    <Text style={styles.faithRankMaxText}>Maximum rank achieved!</Text>
+                  )}
+                </View>
+              );
+            })()}
+            
             <View style={styles.profileInfoSection}>
               <Text style={styles.profileInfoLabel}>First Name</Text>
               {isEditingProfile ? (
@@ -5645,6 +5710,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     marginBottom: 20,
+  },
+  faithRankCard: {
+    width: '100%',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#C7D2FE',
+  },
+  faithRankHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  faithRankShield: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+    position: 'relative',
+  },
+  faithRankShieldIcon: {
+    fontSize: 24,
+    position: 'absolute',
+    top: 4,
+  },
+  faithRankShieldLevel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginTop: 14,
+  },
+  faithRankInfo: {
+    flex: 1,
+  },
+  faithRankTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#312E81',
+    marginBottom: 2,
+  },
+  faithRankPoints: {
+    fontSize: 14,
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  faithRankProgressSection: {
+    marginTop: 12,
+  },
+  faithRankProgressBar: {
+    height: 8,
+    backgroundColor: '#C7D2FE',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  faithRankProgressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 4,
+  },
+  faithRankProgressText: {
+    fontSize: 12,
+    color: '#6366f1',
+    fontWeight: '500',
+    marginTop: 6,
+    textAlign: 'right',
+  },
+  faithRankMaxText: {
+    fontSize: 14,
+    color: '#6366f1',
+    fontWeight: '600',
+    marginTop: 10,
+    textAlign: 'center',
   },
   profileInfoSection: {
     width: '100%',

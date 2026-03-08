@@ -1,4 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+const FAITH_RANKS = [
+  { level: 1,  title: 'Faithful Beginner',      minPoints: 0,     icon: '🕊️' },
+  { level: 2,  title: 'Choir Member',            minPoints: 10,    icon: '🎵' },
+  { level: 3,  title: 'Altar Server',            minPoints: 25,    icon: '🕯️' },
+  { level: 4,  title: 'Lector',                  minPoints: 50,    icon: '📖' },
+  { level: 5,  title: 'Eucharistic Minister',    minPoints: 100,   icon: '🍷' },
+  { level: 6,  title: 'Deacon',                  minPoints: 200,   icon: '📿' },
+  { level: 7,  title: 'Friar',                   minPoints: 400,   icon: '⛪' },
+  { level: 8,  title: 'Monsignor',               minPoints: 700,   icon: '✝️' },
+  { level: 9,  title: 'Pastor',                  minPoints: 1000,  icon: '🙏' },
+  { level: 10, title: 'Bishop',                  minPoints: 2000,  icon: '⭐' },
+  { level: 11, title: 'Archbishop',              minPoints: 5000,  icon: '🌟' },
+  { level: 12, title: 'Cardinal',                minPoints: 10000, icon: '💫' },
+  { level: 13, title: 'Pope',                    minPoints: 25000, icon: '👑' },
+];
+
+const getFaithRank = (points) => {
+  const p = points || 0;
+  let rank = FAITH_RANKS[0];
+  for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
+    if (p >= FAITH_RANKS[i].minPoints) {
+      rank = FAITH_RANKS[i];
+      break;
+    }
+  }
+  return rank;
+};
 import { 
   View, 
   Text, 
@@ -669,23 +697,30 @@ export default function PrayerDetailScreen({
               </Text>
               {prayer.prayed_by_people && prayer.prayed_by_people.length > 0 && (
                 <View style={styles.prayerNamesList}>
-                  {prayer.prayed_by_people.map((person, idx) => (
-                    <View key={idx} style={styles.prayerNameRow}>
-                      {person.picture && person.picture.startsWith('http') ? (
-                        <Image 
-                          source={{ uri: person.picture }} 
-                          style={styles.prayerNameAvatarImage}
-                        />
-                      ) : (
-                        <View style={styles.prayerNameAvatar}>
-                          <Text style={styles.prayerNameAvatarText}>
-                            {person.name.charAt(0).toUpperCase()}
-                          </Text>
+                  {prayer.prayed_by_people.map((person, idx) => {
+                    const personRank = getFaithRank(person.faith_points);
+                    return (
+                      <View key={idx} style={styles.prayerNameRow}>
+                        {person.picture && person.picture.startsWith('http') ? (
+                          <Image 
+                            source={{ uri: person.picture }} 
+                            style={styles.prayerNameAvatarImage}
+                          />
+                        ) : (
+                          <View style={styles.prayerNameAvatar}>
+                            <Text style={styles.prayerNameAvatarText}>
+                              {person.name.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={styles.prayerNameText}>{person.name}</Text>
+                        <View style={styles.faithBadge}>
+                          <Text style={styles.faithBadgeShield}>🛡️</Text>
+                          <Text style={styles.faithBadgeLevel}>{personRank.level}</Text>
                         </View>
-                      )}
-                      <Text style={styles.prayerNameText}>{person.name}</Text>
-                    </View>
-                  ))}
+                      </View>
+                    );
+                  })}
                 </View>
               )}
             </View>
@@ -974,6 +1009,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1e40af',
     fontWeight: '500',
+    flex: 1,
+  },
+  faithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    marginLeft: 8,
+  },
+  faithBadgeShield: {
+    fontSize: 12,
+    marginRight: 2,
+  },
+  faithBadgeLevel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4338CA',
   },
   prayerText: {
     fontSize: 17,

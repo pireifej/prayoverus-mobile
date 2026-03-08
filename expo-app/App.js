@@ -3139,35 +3139,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'groups') {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Prayer Groups</Text>
-        </View>
-        
-        <ScrollView style={styles.screenContent}>
-          <Text style={styles.sectionTitle}>Available Groups</Text>
-          <View style={styles.groupCard}>
-            <Text style={styles.groupTitle}>Family Prayer Circle</Text>
-            <Text style={styles.groupMembers}>5 members</Text>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Join Group</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.groupCard}>
-            <Text style={styles.groupTitle}>Healing Prayers</Text>
-            <Text style={styles.groupMembers}>12 members</Text>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Join Group</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-    );
+    Alert.alert('Coming Soon!', 'Prayer Groups are on the way. Stay tuned!');
+    setCurrentScreen('home');
+    return null;
   }
 
   if (currentScreen === 'help') {

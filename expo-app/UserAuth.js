@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
@@ -111,6 +112,12 @@ export function ForgotPasswordScreen({ onBack }) {
   };
 
   return (
+    <LinearGradient 
+      colors={['#0f172a', '#1e3a5f', '#1e40af', '#3b82f6']}
+      style={styles.gradientBackground}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
     <KeyboardAvoidingView 
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -133,6 +140,7 @@ export function ForgotPasswordScreen({ onBack }) {
         <TextInput
           style={styles.input}
           placeholder="Email"
+          placeholderTextColor="rgba(255,255,255,0.4)"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -149,7 +157,7 @@ export function ForgotPasswordScreen({ onBack }) {
         >
           {loading ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#1e40af" />
               <Text style={styles.buttonText}>Sending...</Text>
             </View>
           ) : (
@@ -162,6 +170,7 @@ export function ForgotPasswordScreen({ onBack }) {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
@@ -234,6 +243,12 @@ export function ResetPasswordScreen({ token, onSuccess }) {
   };
 
   return (
+    <LinearGradient 
+      colors={['#0f172a', '#1e3a5f', '#1e40af', '#3b82f6']}
+      style={styles.gradientBackground}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
     <KeyboardAvoidingView 
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -257,6 +272,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
           <TextInput
             style={styles.passwordInput}
             placeholder="New Password"
+            placeholderTextColor="rgba(255,255,255,0.4)"
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry={!showPassword}
@@ -279,6 +295,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
           <TextInput
             style={styles.passwordInput}
             placeholder="Confirm Password"
+            placeholderTextColor="rgba(255,255,255,0.4)"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
@@ -307,7 +324,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         >
           {loading ? (
             <View style={styles.loadingRow}>
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color="#1e40af" />
               <Text style={styles.buttonText}>Resetting...</Text>
             </View>
           ) : (
@@ -316,6 +333,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
@@ -334,6 +352,24 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [churches, setChurches] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
   const [emailError, setEmailError] = useState('');
+
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -10, duration: 2000, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.6, duration: 2500, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.3, duration: 2500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
   
 
   // Facebook OAuth configuration
@@ -795,6 +831,12 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   };
 
   return (
+    <LinearGradient 
+      colors={['#0f172a', '#1e3a5f', '#1e40af', '#3b82f6']}
+      style={styles.gradientBackground}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
     <KeyboardAvoidingView 
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -804,14 +846,19 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Image 
-        source={require('./assets/logo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <Text style={styles.subtitle}>
-        {isRegistering ? 'Create Account' : 'Sign In'}
-      </Text>
+        <View style={styles.logoContainer}>
+          <Animated.View style={[styles.logoGlow, { opacity: glowAnim }]} />
+          <Animated.Image 
+            source={require('./assets/logo.png')}
+            style={[styles.logo, { transform: [{ translateY: floatAnim }] }]}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.welcomeText}>Welcome to</Text>
+        <Text style={styles.appName}>PrayOverUs</Text>
+        <Text style={styles.subtitle}>
+          {isRegistering ? 'Create Your Account' : 'Sign in to continue'}
+        </Text>
       
       {isRegistering && (
         <>
@@ -822,6 +869,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
               <TextInput
                 style={[styles.input, styles.halfInput]}
                 placeholder="First Name"
+                placeholderTextColor="rgba(255,255,255,0.4)"
                 value={firstName}
                 onChangeText={setFirstName}
                 autoCapitalize="words"
@@ -833,6 +881,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
               <TextInput
                 style={[styles.input, styles.halfInput]}
                 placeholder="Last Name"
+                placeholderTextColor="rgba(255,255,255,0.4)"
                 value={lastName}
                 onChangeText={setLastName}
                 autoCapitalize="words"
@@ -904,6 +953,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       <TextInput
         style={[styles.input, emailError && styles.inputError]}
         placeholder="Email"
+        placeholderTextColor="rgba(255,255,255,0.4)"
         value={email}
         onChangeText={handleEmailChange}
         keyboardType="email-address"
@@ -918,6 +968,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor="rgba(255,255,255,0.4)"
         value={password}
         onChangeText={setPassword}
         secureTextEntry={true}
@@ -980,13 +1031,17 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       </Text>
       </ScrollView>
     </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradientBackground: {
+    flex: 1,
+  },
   keyboardContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   container: {
     flexGrow: 1,
@@ -994,29 +1049,55 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  logoGlow: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: '#60a5fa',
+  },
   logo: {
     width: 200,
     height: 120,
-    marginBottom: 20,
     alignSelf: 'center',
+  },
+  welcomeText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#ffffff',
+    marginBottom: 6,
+    letterSpacing: 1.5,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
-    color: '#8B5CF6',
+    color: '#ffffff',
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 40,
-    color: '#666',
+    marginBottom: 30,
+    color: 'rgba(255,255,255,0.6)',
   },
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 6,
     marginLeft: 2,
   },
@@ -1024,35 +1105,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
-    color: '#000',
+    borderColor: 'rgba(255,255,255,0.25)',
+    color: '#ffffff',
   },
   inputError: {
-    borderColor: '#ff4444',
+    borderColor: '#ff6b6b',
     borderWidth: 2,
   },
   errorText: {
-    color: '#ff4444',
+    color: '#ff6b6b',
     fontSize: 12,
     marginTop: -10,
     marginBottom: 10,
     paddingLeft: 5,
   },
   button: {
-    backgroundColor: '#8B5CF6',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonText: {
-    color: 'white',
+    color: '#1e40af',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1060,11 +1146,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchText: {
-    color: '#8B5CF6',
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -1074,11 +1160,11 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#d1d5db',
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   dividerText: {
     marginHorizontal: 15,
-    color: '#6b7280',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1109,21 +1195,21 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: '#60a5fa',
   },
   imagePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: 'rgba(255,255,255,0.3)',
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
   },
   imagePlaceholderText: {
-    color: '#666',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -1139,29 +1225,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   genderLabel: {
     fontSize: 16,
-    color: '#333',
+    color: 'rgba(255,255,255,0.8)',
     marginRight: 15,
   },
   genderButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     marginRight: 10,
   },
   genderButtonSelected: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#3b82f6',
   },
   genderButtonText: {
-    color: '#666',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
   },
   genderButtonTextSelected: {
@@ -1183,14 +1269,15 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: 'rgba(255,255,255,0.5)',
     borderRadius: 4,
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
   },
   checkmark: {
     color: 'white',
@@ -1198,20 +1285,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   rememberMeText: {
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
   },
   forgotPasswordButton: {
     marginLeft: 'auto',
   },
   forgotPasswordText: {
-    color: '#8B5CF6',
+    color: '#93c5fd',
     fontSize: 14,
     fontWeight: '600',
   },
   helpText: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     marginBottom: 30,
     paddingHorizontal: 20,
@@ -1245,17 +1332,17 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   passwordInput: {
     flex: 1,
     padding: 15,
     fontSize: 16,
-    color: '#000',
+    color: '#ffffff',
   },
   eyeButton: {
     padding: 15,
@@ -1265,7 +1352,7 @@ const styles = StyleSheet.create({
   },
   passwordHint: {
     fontSize: 12,
-    color: '#999',
+    color: 'rgba(255,255,255,0.5)',
     marginBottom: 20,
     marginTop: -10,
   },
@@ -1281,39 +1368,39 @@ const styles = StyleSheet.create({
   churchLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 10,
   },
   churchDropdown: {
     maxHeight: 180,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: 'white',
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   churchOption: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   churchOptionSelected: {
-    backgroundColor: '#f0f4ff',
+    backgroundColor: 'rgba(59,130,246,0.3)',
   },
   churchOptionText: {
     fontSize: 15,
-    color: '#333',
+    color: 'rgba(255,255,255,0.8)',
     flex: 1,
   },
   churchOptionTextSelected: {
-    color: '#8B5CF6',
+    color: '#ffffff',
     fontWeight: '600',
   },
   versionText: {
     fontSize: 12,
-    color: '#999',
+    color: 'rgba(255,255,255,0.4)',
     textAlign: 'right',
     marginTop: 30,
     paddingRight: 5,

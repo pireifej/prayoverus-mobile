@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
 import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAuth';
 import NotificationService from './NotificationService';
 import PrayerDetailScreen from './PrayerDetailScreen';
@@ -696,9 +697,26 @@ const optionsMenuStyles = StyleSheet.create({
   },
 });
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
+
+  const prayerHandsPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(prayerHandsPulse, { toValue: 1.15, duration: 1200, useNativeDriver: true }),
+        Animated.timing(prayerHandsPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
   const [prayers, setPrayers] = useState([]);
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
@@ -4025,37 +4043,46 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       
-      {/* User Header */}
-      <View style={styles.userHeader}>
-        <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
-          <Image 
-            source={{ 
-              uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
-            }}
-            style={styles.headerProfilePicture}
-          />
-          <Text style={styles.profileLinkText}>{currentUser.firstName}</Text>
-          {(() => {
-            const r = getFaithRank(currentUser.faith_points);
-            return (
-              <View style={styles.headerFaithBadge}>
-                <Text style={styles.headerFaithShield}>🛡️</Text>
-                <Text style={styles.headerFaithLevel}>{r.level}</Text>
-              </View>
-            );
-          })()}
-        </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={handleLogout} 
-          style={styles.logoutButton} 
-          activeOpacity={0.6}
-          data-testid="button-logout"
-        >
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Gradient Header with Greeting */}
+      <LinearGradient
+        colors={['#0f172a', '#1e3a5f', '#2563eb']}
+        style={styles.gradientHeader}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
+            <Image 
+              source={{ 
+                uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
+              }}
+              style={styles.headerProfilePicture}
+            />
+            {(() => {
+              const r = getFaithRank(currentUser.faith_points);
+              return (
+                <View style={styles.headerFaithBadge}>
+                  <Text style={styles.headerFaithShield}>🛡️</Text>
+                  <Text style={styles.headerFaithLevel}>{r.level}</Text>
+                </View>
+              );
+            })()}
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleLogout} 
+            style={styles.logoutButton} 
+            activeOpacity={0.6}
+            data-testid="button-logout"
+          >
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.greetingText}>{getGreeting()},</Text>
+        <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
+        <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
+      </LinearGradient>
       
       <ScrollView 
         style={styles.feedContainer}
@@ -4071,13 +4098,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <TouchableOpacity 
           style={styles.sharePrayerButton}
           onPress={() => {
-            setEditingPrayer(null); // Ensure we're creating new, not editing
+            setEditingPrayer(null);
             setOriginalPrayerImage(null);
             setCurrentScreen('newPrayer');
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.sharePrayerButtonIcon}>✏️</Text>
+          <Animated.Text style={[styles.sharePrayerButtonIcon, { transform: [{ scale: prayerHandsPulse }] }]}>🙏</Animated.Text>
           <Text style={styles.sharePrayerButtonText}>Share a Prayer Request</Text>
         </TouchableOpacity>
 
@@ -4679,6 +4706,53 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         </View>
       </Modal>
+
+      {/* Bottom Navigation Bar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity 
+          style={styles.bottomNavItem}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Text style={styles.bottomNavIcon}>🏠</Text>
+          <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bottomNavItem}
+          onPress={() => setCurrentScreen('community')}
+        >
+          <Text style={styles.bottomNavIcon}>🌍</Text>
+          <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>Community</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bottomNavCenterButton}
+          onPress={() => {
+            setEditingPrayer(null);
+            setOriginalPrayerImage(null);
+            setCurrentScreen('newPrayer');
+          }}
+        >
+          <LinearGradient
+            colors={['#2563eb', '#1e40af']}
+            style={styles.bottomNavCenterGradient}
+          >
+            <Text style={styles.bottomNavCenterIcon}>✙</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bottomNavItem}
+          onPress={() => setCurrentScreen('groups')}
+        >
+          <Text style={styles.bottomNavIcon}>👥</Text>
+          <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>Groups</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bottomNavItem}
+          onPress={() => setCurrentScreen('profile')}
+        >
+          <Text style={styles.bottomNavIcon}>👤</Text>
+          <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -4741,6 +4815,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 8,
   },
+  gradientHeader: {
+    paddingTop: 55,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   userHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -4754,36 +4839,27 @@ const styles = StyleSheet.create({
   profileLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    gap: 10,
+    gap: 8,
   },
   headerProfilePicture: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e2e8f0',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   profileLinkText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6366f1',
-    textDecorationLine: 'underline',
+    color: '#ffffff',
   },
   headerFaithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    marginLeft: 4,
   },
   headerFaithShield: {
     fontSize: 11,
@@ -4792,16 +4868,34 @@ const styles = StyleSheet.create({
   headerFaithLevel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4338CA',
+    color: '#ffffff',
+  },
+  greetingText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.5,
+  },
+  greetingName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  greetingSubtext: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
+    fontStyle: 'italic',
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 15,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   logoutText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -4969,7 +5063,14 @@ const styles = StyleSheet.create({
   communityPrayerCard: {
     backgroundColor: 'white',
     padding: 20,
-    borderRadius: 0,
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 16,
+    shadowColor: '#1e3a5f',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   prayerTitle: {
     fontSize: 18,
@@ -5965,7 +6066,7 @@ const styles = StyleSheet.create({
   // New Facebook-style feed styles
   feedContainer: {
     flex: 1,
-    paddingBottom: 100,
+    paddingBottom: 10,
   },
   compactPostWidget: {
     backgroundColor: 'white',
@@ -5984,26 +6085,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#1e40af',
     margin: 15,
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 15,
+    marginBottom: 20,
     padding: 16,
-    borderRadius: 12,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    borderRadius: 16,
+    shadowColor: '#1e40af',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
   },
   sharePrayerButtonIcon: {
-    fontSize: 18,
+    fontSize: 22,
     marginRight: 10,
   },
   sharePrayerButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: 'white',
+    letterSpacing: 0.5,
   },
   newPrayerContainer: {
     flex: 1,
@@ -7283,6 +7385,61 @@ const styles = StyleSheet.create({
   rosaryEndSessionButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingTop: 8,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  bottomNavItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    minWidth: 56,
+    minHeight: 44,
+  },
+  bottomNavIcon: {
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  bottomNavLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  bottomNavLabelActive: {
+    color: '#1e40af',
+    fontWeight: '700',
+  },
+  bottomNavCenterButton: {
+    marginTop: -20,
+  },
+  bottomNavCenterGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1e40af',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bottomNavCenterIcon: {
+    fontSize: 28,
+    color: '#ffffff',
     fontWeight: 'bold',
   },
 });

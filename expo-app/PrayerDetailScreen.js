@@ -1016,7 +1016,8 @@ const styles = StyleSheet.create({
   prayerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   prayerNameAvatar: {
     width: 32,
@@ -1040,20 +1041,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1e40af',
     fontWeight: '500',
-    flex: 1,
   },
   faithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#C7D2FE',
-    marginLeft: 4,
-    minWidth: 36,
-    minHeight: 28,
     justifyContent: 'center',
   },
   faithBadgeShield: {

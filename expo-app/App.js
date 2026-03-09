@@ -722,6 +722,32 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
 
+  const renderBottomNav = () => (
+    <View style={styles.bottomNav}>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
+        <Text style={styles.bottomNavIcon}>🏠</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => { setSelectedChurch(null); setViewingMember(null); setCommunityMembers([]); setCurrentScreen('community'); }}>
+        <Text style={styles.bottomNavIcon}>🌍</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>Community</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
+        <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
+          <Text style={styles.bottomNavCenterIcon}>✙</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('groups')}>
+        <Text style={styles.bottomNavIcon}>👥</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>Groups</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('profile')}>
+        <Text style={styles.bottomNavIcon}>👤</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>Profile</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const prayerHandsPulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
@@ -1308,6 +1334,46 @@ function App() {
         const parsedUserData = JSON.parse(userData);
         console.log('Found stored user session:', parsedUserData.firstName, 'ID:', parsedUserData.id);
         setCurrentUser(parsedUserData);
+        
+        // Refresh profile from server to get latest data (church, faith rank, etc.)
+        setTimeout(async () => {
+          try {
+            const endpoint = 'https://shouldcallpaul.replit.app/getUser';
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+              },
+              body: JSON.stringify({ userId: parsedUserData.id.toString() })
+            });
+            if (response.ok) {
+              const data = await response.json();
+              const userArray = Array.isArray(data) ? data : (data.result || []);
+              if (userArray.length > 0) {
+                const user = userArray[0];
+                const refreshedUser = {
+                  ...parsedUserData,
+                  firstName: user.real_name || parsedUserData.firstName,
+                  lastName: user.last_name || parsedUserData.lastName,
+                  churchId: user.church_id,
+                  churchName: user.church_name,
+                  title: user.user_title,
+                  about: user.user_about,
+                  picture: user.picture || user.profile_picture_url || parsedUserData.picture,
+                  faith_points: user.faith_points || 0,
+                  faith_rank: user.faith_rank || null
+                };
+                console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
+                setCurrentUser(refreshedUser);
+                await saveUserToStorage(refreshedUser);
+              }
+            }
+          } catch (e) {
+            console.log('Background profile refresh failed:', e.message);
+          }
+        }, 500);
       } else {
         console.log('No stored user session found');
       }
@@ -2997,6 +3063,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
         </ScrollView>
+        {renderBottomNav()}
       </View>
     );
   }
@@ -3064,6 +3131,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             })
           )}
         </ScrollView>
+        {renderBottomNav()}
       </View>
     );
   }
@@ -3128,29 +3196,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           )}
         </ScrollView>
         
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
-            <Text style={styles.bottomNavIcon}>🏠</Text>
-            <Text style={styles.bottomNavLabel}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomNavItem} onPress={() => {}}>
-            <Text style={styles.bottomNavIcon}>🌍</Text>
-            <Text style={[styles.bottomNavLabel, styles.bottomNavLabelActive]}>Community</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
-            <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
-              <Text style={styles.bottomNavCenterIcon}>✙</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('groups')}>
-            <Text style={styles.bottomNavIcon}>👥</Text>
-            <Text style={styles.bottomNavLabel}>Groups</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('profile')}>
-            <Text style={styles.bottomNavIcon}>👤</Text>
-            <Text style={styles.bottomNavLabel}>Profile</Text>
-          </TouchableOpacity>
-        </View>
+        {renderBottomNav()}
       </View>
     );
   }
@@ -3570,6 +3616,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </KeyboardAvoidingView>
         </Modal>
+        {renderBottomNav()}
       </View>
     );
   }
@@ -4898,52 +4945,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
       </Modal>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity 
-          style={styles.bottomNavItem}
-          onPress={() => setCurrentScreen('home')}
-        >
-          <Text style={styles.bottomNavIcon}>🏠</Text>
-          <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.bottomNavItem}
-          onPress={() => setCurrentScreen('community')}
-        >
-          <Text style={styles.bottomNavIcon}>🌍</Text>
-          <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>Community</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.bottomNavCenterButton}
-          onPress={() => {
-            setEditingPrayer(null);
-            setOriginalPrayerImage(null);
-            setCurrentScreen('newPrayer');
-          }}
-        >
-          <LinearGradient
-            colors={['#2563eb', '#1e40af']}
-            style={styles.bottomNavCenterGradient}
-          >
-            <Text style={styles.bottomNavCenterIcon}>✙</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.bottomNavItem}
-          onPress={() => setCurrentScreen('groups')}
-        >
-          <Text style={styles.bottomNavIcon}>👥</Text>
-          <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>Groups</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.bottomNavItem}
-          onPress={() => setCurrentScreen('profile')}
-        >
-          <Text style={styles.bottomNavIcon}>👤</Text>
-          <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      {renderBottomNav()}
     </View>
   );
 }

@@ -3040,6 +3040,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.memberRankName}>{memberRank.name}</Text>
                 <Text style={styles.memberRankLevel}>Level {memberRank.level}</Text>
               </View>
+
+              <View style={styles.memberStatsRow}>
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{member.request_count ?? member.requestCount ?? '—'}</Text>
+                  <Text style={styles.memberStatLabel}>Requests</Text>
+                </View>
+                <View style={styles.memberStatDivider} />
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{member.prayer_count ?? member.prayerCount ?? '—'}</Text>
+                  <Text style={styles.memberStatLabel}>Prayers</Text>
+                </View>
+                <View style={styles.memberStatDivider} />
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{member.faith_points || 0}</Text>
+                  <Text style={styles.memberStatLabel}>Points</Text>
+                </View>
+              </View>
             </View>
 
             {member.about ? (
@@ -7933,6 +7950,35 @@ const styles = StyleSheet.create({
   memberRankLevel: {
     fontSize: 13,
     color: '#64748b',
+  },
+  memberStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  memberStatBox: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  memberStatNumber: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  memberStatLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  memberStatDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#e2e8f0',
   },
   memberProfileSection: {
     paddingHorizontal: 20,

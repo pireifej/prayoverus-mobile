@@ -3304,37 +3304,44 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'profile') {
+    const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
+    const myProfilePicUri = currentUser.picture
+      ? (currentUser.picture.startsWith('http') ? currentUser.picture : `https://shouldcallpaul.replit.app/${currentUser.picture}`)
+      : null;
     return (
       <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { flex: 1 }]}>My Profile</Text>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={{width: 60}} />
+          <Text style={styles.communityHeaderTitle}>My Profile</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {!isEditingProfile && (
               <TouchableOpacity 
                 onPress={enterEditMode} 
-                style={styles.editButton}
+                style={{ padding: 8 }}
                 data-testid="button-edit-profile"
               >
-                <Text style={styles.editIcon}>✏️</Text>
+                <Text style={{ fontSize: 20, color: '#fff' }}>✏️</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity 
               onPress={() => setCurrentScreen('settings')} 
-              style={styles.settingsButton}
+              style={{ padding: 8 }}
               data-testid="button-settings"
             >
-              <Text style={styles.settingsIcon}>⚙️</Text>
+              <Text style={{ fontSize: 20, color: '#fff' }}>⚙️</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
         
         {isLoadingProfile ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
-            <ActivityIndicator size="large" color="#6366f1" />
+            <ActivityIndicator size="large" color="#2563eb" />
             <Text style={{ marginTop: 16, color: '#64748b', fontSize: 16 }}>Loading profile...</Text>
           </View>
         ) : (
@@ -3342,115 +3349,90 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           style={styles.screenContent}
           contentContainerStyle={{ paddingBottom: 140 }}
         >
-          {/* User Profile Info */}
-          <View style={styles.profileCard}>
-            <View style={styles.profileImageContainer}>
-              <Image 
-                source={{ 
-                  uri: currentUser.picture || 'https://via.placeholder.com/150/6366f1/ffffff?text=📸'
-                }}
-                style={styles.profileImage}
-              />
-              
-              {/* Camera button overlay */}
-              <TouchableOpacity 
-                style={styles.cameraButton}
-                onPress={pickProfilePicture}
-                disabled={isUploadingPicture}
-                data-testid="button-upload-picture"
-              >
-                {isUploadingPicture ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+          <View style={styles.memberProfileCard}>
+            <View style={styles.memberProfileTop}>
+              <View style={{ position: 'relative' }}>
+                {myProfilePicUri ? (
+                  <Image source={{ uri: myProfilePicUri }} style={styles.memberProfilePicLarge} />
                 ) : (
-                  <Text style={styles.cameraIcon}>📷</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.profileEmail}>{currentUser.email}</Text>
-            
-            {/* Faith Rank Card */}
-            {(() => {
-              const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
-              return (
-                <View style={styles.faithRankCard}>
-                  <View style={styles.faithRankHeader}>
-                    <View style={styles.faithRankShield}>
-                      <Text style={styles.faithRankShieldIcon}>🛡️</Text>
-                      <Text style={styles.faithRankShieldLevel}>{rank.level}</Text>
-                    </View>
-                    <View style={styles.faithRankInfo}>
-                      <Text style={styles.faithRankTitle}>{rank.icon} {rank.title}</Text>
-                      <Text style={styles.faithRankPoints}>{rank.points} Faith Points</Text>
-                    </View>
+                  <View style={[styles.memberProfilePicLarge, styles.memberProfilePicPlaceholder]}>
+                    <Text style={{fontSize: 40}}>👤</Text>
                   </View>
-                  {rank.nextRank && (
-                    <View style={styles.faithRankProgressSection}>
-                      <View style={styles.faithRankProgressBar}>
-                        <View style={[styles.faithRankProgressFill, { width: `${rank.progress * 100}%` }]} />
-                      </View>
-                      <Text style={styles.faithRankProgressText}>
-                        {rank.nextRank.minPoints - rank.points} pts to {rank.nextRank.title}
-                      </Text>
-                    </View>
+                )}
+                <TouchableOpacity 
+                  style={styles.profileCameraOverlay}
+                  onPress={pickProfilePicture}
+                  disabled={isUploadingPicture}
+                  data-testid="button-upload-picture"
+                >
+                  {isUploadingPicture ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={{ fontSize: 16 }}>📷</Text>
                   )}
-                  {!rank.nextRank && (
-                    <Text style={styles.faithRankMaxText}>Maximum rank achieved!</Text>
-                  )}
+                </TouchableOpacity>
+              </View>
+
+              {isEditingProfile ? (
+                <View style={{ width: '100%', alignItems: 'center', marginTop: 12 }}>
+                  <TextInput
+                    style={styles.profileEditInlineInput}
+                    value={profileForm.firstName}
+                    onChangeText={(text) => setProfileForm({...profileForm, firstName: text})}
+                    placeholder="First Name"
+                    data-testid="input-edit-firstname"
+                  />
+                  <TextInput
+                    style={styles.profileEditInlineInput}
+                    value={profileForm.lastName}
+                    onChangeText={(text) => setProfileForm({...profileForm, lastName: text})}
+                    placeholder="Last Name"
+                    data-testid="input-edit-lastname"
+                  />
+                  <TextInput
+                    style={styles.profileEditInlineInput}
+                    value={profileForm.title}
+                    onChangeText={(text) => setProfileForm({...profileForm, title: text})}
+                    placeholder="Title (e.g. Parishioner)"
+                    data-testid="input-edit-title"
+                  />
                 </View>
-              );
-            })()}
-            
-            <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>First Name</Text>
-              {isEditingProfile ? (
-                <TextInput
-                  style={styles.editInput}
-                  value={profileForm.firstName}
-                  onChangeText={(text) => setProfileForm({...profileForm, firstName: text})}
-                  placeholder="Enter your first name"
-                  data-testid="input-edit-firstname"
-                />
               ) : (
-                <Text style={styles.profileInfoValue}>{currentUser.firstName || 'Not set'}</Text>
+                <>
+                  <Text style={styles.memberProfileName}>{currentUser.firstName} {currentUser.lastName || ''}</Text>
+                  {currentUser.title ? <Text style={styles.memberProfileTitle}>{currentUser.title}</Text> : null}
+                </>
               )}
+
+              <View style={styles.memberRankRow}>
+                <Text style={{fontSize: 18}}>🛡️</Text>
+                <Text style={styles.memberRankName}>{rank.name}</Text>
+                <Text style={styles.memberRankLevel}>Level {rank.level}</Text>
+              </View>
+
+              <View style={styles.memberStatsRow}>
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{currentUser.request_count ?? currentUser.requestCount ?? '—'}</Text>
+                  <Text style={styles.memberStatLabel}>Requests</Text>
+                </View>
+                <View style={styles.memberStatDivider} />
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{currentUser.prayer_count ?? currentUser.prayerCount ?? '—'}</Text>
+                  <Text style={styles.memberStatLabel}>Prayers</Text>
+                </View>
+                <View style={styles.memberStatDivider} />
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>{currentUser.faith_points || rank.points || 0}</Text>
+                  <Text style={styles.memberStatLabel}>Points</Text>
+                </View>
+              </View>
             </View>
-            
-            <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>Last Name</Text>
-              {isEditingProfile ? (
+
+            {isEditingProfile ? (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>About</Text>
                 <TextInput
-                  style={styles.editInput}
-                  value={profileForm.lastName}
-                  onChangeText={(text) => setProfileForm({...profileForm, lastName: text})}
-                  placeholder="Enter your last name"
-                  data-testid="input-edit-lastname"
-                />
-              ) : (
-                <Text style={styles.profileInfoValue}>{currentUser.lastName || 'Not set'}</Text>
-              )}
-            </View>
-            
-            <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>Title</Text>
-              {isEditingProfile ? (
-                <TextInput
-                  style={styles.editInput}
-                  value={profileForm.title}
-                  onChangeText={(text) => setProfileForm({...profileForm, title: text})}
-                  placeholder="Enter your title"
-                  data-testid="input-edit-title"
-                />
-              ) : (
-                <Text style={styles.profileInfoValue}>{currentUser.title || 'Not set'}</Text>
-              )}
-            </View>
-            
-            <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>About</Text>
-              {isEditingProfile ? (
-                <TextInput
-                  style={[styles.editInput, styles.editTextArea]}
+                  style={[styles.profileEditInlineInput, { textAlign: 'left', minHeight: 70 }]}
                   value={profileForm.about}
                   onChangeText={(text) => setProfileForm({...profileForm, about: text})}
                   placeholder="Tell us about yourself"
@@ -3458,14 +3440,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   numberOfLines={3}
                   data-testid="input-edit-about"
                 />
-              ) : (
-                <Text style={styles.profileInfoValue}>{currentUser.about || 'Not set'}</Text>
-              )}
-            </View>
-            
-            <View style={styles.profileInfoSection}>
-              <Text style={styles.profileInfoLabel}>Church</Text>
-              {isEditingProfile ? (
+              </View>
+            ) : (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>About</Text>
+                <Text style={styles.memberProfileSectionText}>{currentUser.about || 'Not set'}</Text>
+              </View>
+            )}
+
+            {isEditingProfile ? (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>Church</Text>
                 <TouchableOpacity 
                   style={styles.churchSelector}
                   onPress={() => setShowChurchPicker(true)}
@@ -3476,11 +3461,28 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   </Text>
                   <Text style={styles.churchSelectorArrow}>▼</Text>
                 </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>Church</Text>
+                <Text style={styles.memberProfileSectionText}>⛪ {currentUser.churchName || 'Not set'}</Text>
+              </View>
+            )}
+
+            <View style={styles.memberProfileSection}>
+              <Text style={styles.memberProfileSectionTitle}>Faith Progress</Text>
+              <View style={styles.memberFaithBar}>
+                <View style={[styles.memberFaithBarFill, { width: `${rank.progress * 100}%` }]} />
+              </View>
+              {rank.nextRank ? (
+                <Text style={styles.memberFaithPoints}>
+                  {Math.max(rank.nextRank.minPoints - rank.points, 0)} pts to {rank.nextRank.title}
+                </Text>
               ) : (
-                <Text style={styles.profileInfoValue}>{currentUser.churchName || 'Not set'}</Text>
+                <Text style={styles.memberFaithPoints}>Maximum rank achieved!</Text>
               )}
             </View>
-            
+
             {isEditingProfile && (
               <View style={styles.editActions}>
                 <TouchableOpacity 
@@ -3507,7 +3509,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             )}
           </View>
           
-          {/* Church Picker Modal */}
           <Modal
             visible={showChurchPicker}
             transparent={true}
@@ -3548,7 +3549,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </Modal>
 
-          {/* Help & Support Button */}
           <TouchableOpacity 
             style={styles.helpSupportButton} 
             onPress={() => setCurrentScreen('help')}
@@ -3556,34 +3556,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           >
             <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
           </TouchableOpacity>
-
-          {/* Personal Requests Section - REMOVED: Now using "My Requests" filter on home screen */}
-
-          {/* Test Notification Button - Hidden for now */}
-          {false && (
-            <TouchableOpacity 
-              style={styles.testNotificationButton} 
-              onPress={async () => {
-                try {
-                  await NotificationService.scheduleLocalNotification(
-                    '🙏 New Prayer Request',
-                    'Someone in your community needs prayers',
-                    { type: 'test', prayerId: '123' }
-                  );
-                  Alert.alert('Success', 'Test notification sent! Check your notification tray.');
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to send test notification: ' + error.message);
-                }
-              }}
-              data-testid="button-test-notification"
-            >
-              <Text style={styles.testNotificationButtonText}>🔔 Test Notification</Text>
-            </TouchableOpacity>
-          )}
         </ScrollView>
         )}
 
-        {/* Edit Prayer Modal for Profile Screen */}
         <Modal
           visible={editPrayerModal.visible}
           transparent={true}
@@ -7930,6 +7905,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profileCameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#2563eb',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  profileEditInlineInput: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1e293b',
+    width: '90%',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    textAlign: 'center',
   },
   memberProfileName: {
     fontSize: 24,

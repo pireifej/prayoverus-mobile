@@ -52,6 +52,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Calculate safe top padding based on platform
 const getStatusBarHeight = () => {
@@ -528,11 +529,27 @@ export default function PrayerDetailScreen({
     paddingTop: safeTopPadding + 16, // Safe area + extra padding
   };
 
+  const renderGradientHeader = (centerContent, showClose = true) => (
+    <LinearGradient
+      colors={['#0f172a', '#1e3a5f', '#2563eb']}
+      style={[styles.header, { paddingTop: safeTopPadding + 12 }]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      {centerContent}
+      {showClose && (
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <Text style={styles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
+    </LinearGradient>
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <StatusBar style="dark" />
-        <View style={headerStyle}>
+        <StatusBar style="light" />
+        {renderGradientHeader(
           <View style={styles.navButtonsContainer}>
             <View style={[styles.navButton, styles.navButtonDisabled]}>
               <Text style={styles.navButtonTextDisabled}>←</Text>
@@ -542,12 +559,9 @@ export default function PrayerDetailScreen({
               <Text style={styles.navButtonTextDisabled}>→</Text>
             </View>
           </View>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+        )}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#2563eb" />
           <Text style={styles.loadingText}>Loading prayer...</Text>
         </View>
       </View>
@@ -557,13 +571,8 @@ export default function PrayerDetailScreen({
   if (error) {
     return (
       <View style={styles.container}>
-        <StatusBar style="dark" />
-        <View style={headerStyle}>
-          <View style={styles.navButtonsContainer} />
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+        <StatusBar style="light" />
+        {renderGradientHeader(<View style={styles.navButtonsContainer} />)}
         <View style={styles.loadingContainer}>
           <Text style={styles.errorText}>Could not load prayer</Text>
           <TouchableOpacity 
@@ -579,9 +588,9 @@ export default function PrayerDetailScreen({
   
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
-      <View style={headerStyle}>
+      {renderGradientHeader(
         <View style={styles.navButtonsContainer}>
           <TouchableOpacity
             onPress={handlePrevious}
@@ -613,21 +622,15 @@ export default function PrayerDetailScreen({
             <Text style={canGoNext ? styles.navButtonText : styles.navButtonTextDisabled}>→</Text>
           </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>✕</Text>
-        </TouchableOpacity>
-      </View>
+      )}
       
-      {/* Loading overlay during transitions */}
       {isLoadingNewPrayer && (
         <View style={styles.transitionOverlay}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#2563eb" />
           <Text style={styles.transitionText}>Loading...</Text>
         </View>
       )}
       
-      {/* Swipeable content area with slide and fade animation */}
       <Animated.View 
         style={[
           styles.swipeContainer, 
@@ -646,8 +649,8 @@ export default function PrayerDetailScreen({
           showsVerticalScrollIndicator={true}
           bounces={false}
         >
-        <View style={styles.contentContainer}>
-          <View style={styles.titleRow}>
+        <View style={styles.authorCard}>
+          <View style={styles.authorCardLeft}>
             {prayer?.user_picture && prayer.user_picture.startsWith('http') ? (
               <Image 
                 source={{ uri: prayer.user_picture }} 
@@ -660,46 +663,44 @@ export default function PrayerDetailScreen({
                 </Text>
               </View>
             )}
-            {prayer?.title && (
-              <Text style={styles.titleLarge} selectable={true}>{prayer.title}</Text>
-            )}
-          </View>
-          
-          <View style={styles.authorTimeRow}>
-            {prayer?.real_name && (
-              <>
+            <View style={styles.authorCardInfo}>
+              {prayer?.real_name && (
                 <Text style={styles.realName}>{prayer.real_name}</Text>
-                <Text style={styles.timeDot}> • </Text>
-              </>
-            )}
-            <Text style={styles.relativeTime}>
-              {getRelativeTime(prayer?.date)}
-            </Text>
-            {prayer?.category && (
-              <>
-                <Text style={styles.timeDot}> • </Text>
-                <View style={styles.categoryBadgeSmall}>
-                  <Text style={styles.categoryTextSmall}>{prayer.category}</Text>
-                </View>
-              </>
-            )}
+              )}
+              <Text style={styles.relativeTime}>
+                {getRelativeTime(prayer?.date)}
+                {prayer?.category ? ` • ${prayer.category}` : ''}
+              </Text>
+            </View>
           </View>
         </View>
+
+        {prayer?.title && (
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleLarge} selectable={true}>{prayer.title}</Text>
+          </View>
+        )}
         
         {prayer?.picture && prayer.picture.trim() !== '' && (
-          <Image 
-            source={{ 
-              uri: prayer.picture.startsWith('http') 
-                ? prayer.picture 
-                : `${API_BASE_URL}/${prayer.picture}` 
-            }}
-            style={styles.imageBanner}
-            resizeMode="cover"
-          />
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ 
+                uri: prayer.picture.startsWith('http') 
+                  ? prayer.picture 
+                  : `${API_BASE_URL}/${prayer.picture}` 
+              }}
+              style={styles.imageBanner}
+              resizeMode="cover"
+            />
+          </View>
         )}
         
         <View style={styles.contentContainer}>
-          {prayer?.prayer_count > 0 && (
+          <Text style={styles.prayerText} selectable={true}>{prayer?.content}</Text>
+        </View>
+
+        {prayer?.prayer_count > 0 && (
+          <View style={styles.prayerCountSection}>
             <View style={styles.prayerCountBadge}>
               <Text style={styles.prayerCountText}>
                 🙏 {prayer.prayer_count} {prayer.prayer_count === 1 ? 'person' : 'people'} prayed
@@ -737,32 +738,37 @@ export default function PrayerDetailScreen({
                 </View>
               )}
             </View>
-          )}
-          
-          <Text style={styles.prayerText} selectable={true}>{prayer?.content}</Text>
-          
-          <View style={styles.actionContainer}>
-            <AnimatedButton 
-              style={[
-                styles.prayButton,
-                prayer?.user_has_prayed && styles.prayButtonPrayed
-              ]} 
-              onPress={handlePray}
-              data-testid="button-pray-detail"
-            >
-              <Text style={[
-                styles.prayButtonText,
-                prayer?.user_has_prayed && styles.prayButtonTextPrayed
-              ]}>
-                {prayer?.user_has_prayed ? '✓ You Prayed' : '🙏 Pray for this'}
-              </Text>
-            </AnimatedButton>
           </View>
+        )}
+          
+        <View style={styles.actionContainer}>
+          <AnimatedButton 
+            style={[
+              styles.prayButton,
+              prayer?.user_has_prayed && styles.prayButtonPrayed
+            ]} 
+            onPress={handlePray}
+            data-testid="button-pray-detail"
+          >
+            {prayer?.user_has_prayed ? (
+              <View style={styles.prayButtonInner}>
+                <Text style={styles.prayButtonText}>✓ You Prayed</Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={['#2563eb', '#1e40af']}
+                style={styles.prayButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.prayButtonText}>🙏 Pray for this</Text>
+              </LinearGradient>
+            )}
+          </AnimatedButton>
         </View>
       </ScrollView>
       </Animated.View>
 
-      {/* Rank Tooltip Modal */}
       {rankTooltip && (
         <Modal transparent visible={true} animationType="fade" onRequestClose={() => setRankTooltip(null)}>
           <TouchableWithoutFeedback onPress={() => setRankTooltip(null)}>
@@ -792,17 +798,14 @@ export default function PrayerDetailScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingBottom: 18,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
   swipeContainer: {
     flex: 1,
@@ -813,7 +816,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(241, 245, 249, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -821,49 +824,51 @@ const styles = StyleSheet.create({
   transitionText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6b7280',
+    color: '#64748b',
   },
   navButtonsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   navButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   navButtonActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   navButtonDisabled: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   navButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '600',
   },
   navButtonTextDisabled: {
-    color: '#9ca3af',
-    fontSize: 18,
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 20,
   },
   navCounter: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
   },
   closeButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#f3f4f6',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: '#374151',
+    color: '#ffffff',
     fontWeight: '600',
   },
   loadingContainer: {
@@ -874,7 +879,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6b7280',
+    color: '#64748b',
   },
   errorText: {
     fontSize: 16,
@@ -882,10 +887,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   retryButtonText: {
     color: '#fff',
@@ -899,41 +906,58 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     flexGrow: 1,
   },
-  contentContainer: {
-    padding: 24,
-    paddingTop: 20,
-  },
-  titleRow: {
+  authorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  authorCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  authorCardInfo: {
+    flex: 1,
+  },
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
   },
   titleLarge: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#1f2937',
-    lineHeight: 30,
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  authorTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    flexWrap: 'wrap',
-    marginLeft: 60,
+    color: '#0f172a',
+    lineHeight: 28,
   },
   authorAvatarLarge: {
     width: 48,
     height: 48,
     borderRadius: 24,
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#dbeafe',
   },
   authorAvatarPlaceholderLarge: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -943,76 +967,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  authorAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  authorAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6366f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  authorAvatarText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  authorName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
   realName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  authorFirstName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6366f1',
-  },
-  timeDot: {
-    fontSize: 15,
-    color: '#9ca3af',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
   },
   relativeTime: {
-    fontSize: 15,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
   },
-  categoryBadgeSmall: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  categoryTextSmall: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
+  imageContainer: {
+    marginHorizontal: 16,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
   },
   imageBanner: {
     width: '100%',
-    height: 220,
-    marginBottom: 16,
+    height: 240,
+  },
+  prayerCountSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
   },
   prayerCountBadge: {
-    backgroundColor: '#f0f4ff',
+    backgroundColor: '#eff6ff',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#dbeafe',
   },
   prayerCountText: {
     fontSize: 15,
-    color: '#3b82f6',
+    color: '#2563eb',
     fontWeight: '600',
   },
   prayerNamesList: {
@@ -1022,14 +1011,14 @@ const styles = StyleSheet.create({
   prayerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     flexWrap: 'wrap',
   },
   prayerNameAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1051,12 +1040,12 @@ const styles = StyleSheet.create({
   faithBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: '#bfdbfe',
     justifyContent: 'center',
   },
   faithBadgeShield: {
@@ -1066,7 +1055,7 @@ const styles = StyleSheet.create({
   faithBadgeLevel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4338CA',
+    color: '#1e40af',
   },
   rankTooltipOverlay: {
     flex: 1,
@@ -1082,15 +1071,15 @@ const styles = StyleSheet.create({
     width: 280,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
     elevation: 8,
   },
   rankTooltipShield: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -1109,13 +1098,13 @@ const styles = StyleSheet.create({
   rankTooltipName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#0f172a',
     marginBottom: 4,
   },
   rankTooltipTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#2563eb',
     marginBottom: 4,
   },
   rankTooltipPoints: {
@@ -1124,11 +1113,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   rankTooltipClose: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 24,
-    minHeight: 44,
+    minHeight: 48,
     justifyContent: 'center',
   },
   rankTooltipCloseText: {
@@ -1138,31 +1127,41 @@ const styles = StyleSheet.create({
   },
   prayerText: {
     fontSize: 17,
-    color: '#374151',
-    lineHeight: 26,
+    color: '#334155',
+    lineHeight: 28,
     letterSpacing: 0.2,
   },
   actionContainer: {
-    marginTop: 24,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 20,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginBottom: 16,
   },
   prayButton: {
-    backgroundColor: '#6366f1',
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+    minHeight: 52,
+  },
+  prayButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 14,
+  },
+  prayButtonInner: {
+    paddingVertical: 16,
     alignItems: 'center',
   },
   prayButtonPrayed: {
     backgroundColor: '#10b981',
+    borderRadius: 14,
   },
   prayButtonText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  prayButtonTextPrayed: {
+    fontWeight: '700',
     color: '#ffffff',
   },
 });

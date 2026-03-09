@@ -28,15 +28,26 @@ const FAITH_RANKS = [
 const getFaithRank = (pointsOrRankObj, backendRank) => {
   if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
     const nr = backendRank.next_rank || backendRank.nextRank || null;
+    const actualPoints = backendRank.points || (typeof pointsOrRankObj === 'number' ? pointsOrRankObj : 0) || 0;
+    const currentMin = backendRank.min_points || 0;
+    const nextMin = nr ? (nr.min_points || nr.minPoints || 0) : 0;
+    let progress;
+    if (!nr) {
+      progress = 1;
+    } else if (nextMin > currentMin) {
+      progress = Math.min((actualPoints - currentMin) / (nextMin - currentMin), 1);
+    } else {
+      progress = backendRank.progress != null ? backendRank.progress : 1;
+    }
     return {
       level: backendRank.level,
       title: backendRank.title,
       icon: backendRank.icon || '🛡️',
-      minPoints: backendRank.min_points || 0,
-      points: backendRank.points || pointsOrRankObj || 0,
-      nextRank: nr ? { level: nr.level, title: nr.title, icon: nr.icon, minPoints: nr.min_points || nr.minPoints || 0 } : null,
-      progress: backendRank.progress != null ? backendRank.progress : 1,
-      maxPoints: nr ? (nr.min_points || nr.minPoints || 1) : 1,
+      minPoints: currentMin,
+      points: actualPoints,
+      nextRank: nr ? { level: nr.level, title: nr.title, icon: nr.icon, minPoints: nextMin } : null,
+      progress: Math.max(0, progress),
+      maxPoints: nr ? nextMin : 1,
       name: backendRank.title,
     };
   }

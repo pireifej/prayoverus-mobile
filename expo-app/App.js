@@ -1374,7 +1374,9 @@ function App() {
                   about: user.user_about,
                   picture: user.picture || user.profile_picture_url || parsedUserData.picture,
                   faith_points: user.faith_points || 0,
-                  faith_rank: user.faith_rank || null
+                  faith_rank: user.faith_rank || null,
+                  prayer_count: parseInt(user.prayer_count, 10) || 0,
+                  request_count: parseInt(user.request_count, 10) || 0
                 };
                 console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
                 setCurrentUser(refreshedUser);

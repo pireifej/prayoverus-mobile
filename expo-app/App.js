@@ -25,8 +25,22 @@ const FAITH_RANKS = [
   { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
 ];
 
-const getFaithRank = (points) => {
-  const p = points || 0;
+const getFaithRank = (pointsOrRankObj, backendRank) => {
+  if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
+    const nr = backendRank.next_rank || backendRank.nextRank || null;
+    return {
+      level: backendRank.level,
+      title: backendRank.title,
+      icon: backendRank.icon || '🛡️',
+      minPoints: backendRank.min_points || 0,
+      points: backendRank.points || pointsOrRankObj || 0,
+      nextRank: nr ? { level: nr.level, title: nr.title, icon: nr.icon, minPoints: nr.min_points || nr.minPoints || 0 } : null,
+      progress: backendRank.progress != null ? backendRank.progress : 1,
+      maxPoints: nr ? (nr.min_points || nr.minPoints || 1) : 1,
+      name: backendRank.title,
+    };
+  }
+  const p = (typeof pointsOrRankObj === 'number' ? pointsOrRankObj : 0) || 0;
   let rank = FAITH_RANKS[0];
   for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
     if (p >= FAITH_RANKS[i].minPoints) {
@@ -38,7 +52,7 @@ const getFaithRank = (points) => {
   const progress = nextRank
     ? (p - rank.minPoints) / (nextRank.minPoints - rank.minPoints)
     : 1;
-  return { ...rank, points: p, nextRank, progress: Math.min(progress, 1) };
+  return { ...rank, points: p, nextRank, progress: Math.min(progress, 1), maxPoints: nextRank ? nextRank.minPoints : 1, name: rank.title };
 };
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
@@ -1427,7 +1441,8 @@ function App() {
             title: user.user_title,
             about: user.user_about,
             picture: user.picture || user.profile_picture_url,
-            faith_points: user.faith_points || 0
+            faith_points: user.faith_points || 0,
+            faith_rank: user.faith_rank || null
           };
           
           console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
@@ -2401,7 +2416,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     // Refresh user profile from server to get updated faith_points (points awarded server-side)
     if (currentUser) {
       const oldPoints = currentUser.faith_points || 0;
-      const oldRank = getFaithRank(oldPoints);
+      const oldRank = getFaithRank(oldPoints, currentUser.faith_rank);
       setTimeout(async () => {
         try {
           const endpoint = 'https://shouldcallpaul.replit.app/getUser';
@@ -2418,9 +2433,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             const data = await response.json();
             const userArray = Array.isArray(data) ? data : (data.result || []);
             if (userArray.length > 0) {
-              const serverPoints = userArray[0].faith_points || 0;
-              const newRank = getFaithRank(serverPoints);
-              setCurrentUser(prev => ({ ...prev, faith_points: serverPoints }));
+              const serverUser = userArray[0];
+              const serverPoints = serverUser.faith_points || 0;
+              const serverFaithRank = serverUser.faith_rank || null;
+              const newRank = getFaithRank(serverPoints, serverFaithRank);
+              setCurrentUser(prev => ({ ...prev, faith_points: serverPoints, faith_rank: serverFaithRank }));
               if (newRank.level > oldRank.level) {
                 setShowLevelUp(newRank);
                 playHeavenlyChime();
@@ -2920,7 +2937,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   if (currentScreen === 'community' && viewingMember) {
     const member = viewingMember;
-    const memberRank = getFaithRank(member.faith_points || 0);
+    const memberRank = getFaithRank(member.faith_points || 0, member.faith_rank);
     const profilePicUri = member.picture 
       ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
       : null;
@@ -3015,7 +3032,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           ) : (
             communityMembers.map((member) => {
-              const rank = getFaithRank(member.faith_points || 0);
+              const rank = getFaithRank(member.faith_points || 0, member.faith_rank);
               const picUri = member.picture 
                 ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
                 : null;
@@ -3280,7 +3297,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             {/* Faith Rank Card */}
             {(() => {
-              const rank = getFaithRank(currentUser.faith_points);
+              const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
               return (
                 <View style={styles.faithRankCard}>
                   <View style={styles.faithRankHeader}>
@@ -4223,7 +4240,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               style={styles.headerProfilePicture}
             />
             {(() => {
-              const r = getFaithRank(currentUser.faith_points);
+              const r = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
               return (
                 <View style={styles.headerFaithBadge}>
                   <Text style={styles.headerFaithShield}>🛡️</Text>

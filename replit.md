@@ -45,7 +45,7 @@ shadcn/ui provides a consistent component library. Theming supports dark/light m
 *   **Password Reset**: Complete forgot password and reset password flow with email integration and deep linking.
 *   **UI/UX Enhancements**: Bouncy button animations, loading states with animated prayer hands, Facebook-style feeds, Hallow-inspired gradient login screen with floating logo + glow animation, frosted glass inputs, gradient home header with time-based greeting, bottom navigation bar, enhanced prayer cards with elevation, and animated prayer hands on share button.
 *   **Catholic Prayer Generation**: Implemented authentic Catholic prayers for specific requests.
-*   **Faith Rank System**: 11-tier ranking system (Newcomer to Prayer Warrior, levels 0-10) based on faith_points from backend. Displayed on profile with shield badge, progress bar, and in "prayed by" lists. Points awarded server-side: praying (1pt), posting requests (3pts), posting with picture (5pts). Frontend reads faith_points from login/getUser/prayed_by_people API responses.
+*   **Faith Rank System**: Rank definitions stored in backend `faith_ranks` database table. Backend computes rank and returns `faith_rank` object in API responses (login, getUser, getUsersByChurch, prayed_by_people). Frontend uses backend rank data when available, with hardcoded FAITH_RANKS as fallback. Points awarded server-side: praying (1pt), posting requests (3pts), posting with picture (5pts). Ranks can be modified in the database without app updates.
 *   **Prayer Backgrounds**: 10 AI-generated blue & white backgrounds randomly selected for each prayer popup view.
 
 # External Dependencies

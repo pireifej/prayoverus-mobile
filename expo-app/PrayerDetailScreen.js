@@ -14,7 +14,15 @@ const FAITH_RANKS = [
   { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
 ];
 
-const getFaithRank = (points) => {
+const getFaithRank = (points, backendRank) => {
+  if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
+    return {
+      level: backendRank.level,
+      title: backendRank.title,
+      icon: backendRank.icon || '🛡️',
+      minPoints: backendRank.min_points || 0,
+    };
+  }
   const p = points || 0;
   let rank = FAITH_RANKS[0];
   for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
@@ -699,7 +707,7 @@ export default function PrayerDetailScreen({
               {prayer.prayed_by_people && prayer.prayed_by_people.length > 0 && (
                 <View style={styles.prayerNamesList}>
                   {prayer.prayed_by_people.map((person, idx) => {
-                    const personRank = getFaithRank(person.faith_points);
+                    const personRank = getFaithRank(person.faith_points, person.faith_rank);
                     return (
                       <View key={idx} style={styles.prayerNameRow}>
                         {person.picture && person.picture.startsWith('http') ? (

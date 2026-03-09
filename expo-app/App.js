@@ -3894,121 +3894,145 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       }
     };
     
+    const myPicUri = currentUser?.picture
+      ? (currentUser.picture.startsWith('http') ? currentUser.picture : `https://shouldcallpaul.replit.app/${currentUser.picture}`)
+      : null;
     return (
       <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleCancelDraft} style={styles.backButton}>
-            <Text style={styles.backText}>← Cancel</Text>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={handleCancelDraft} style={styles.communityBackButton}>
+            <Text style={styles.communityBackText}>← Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isEditing ? 'Edit Prayer Request' : 'New Prayer Request'}</Text>
-          <TouchableOpacity onPress={handleClearForm} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>Clear</Text>
+          <Text style={styles.communityHeaderTitle}>{isEditing ? 'Edit Prayer' : 'New Prayer'}</Text>
+          <TouchableOpacity onPress={handleClearForm} style={{ padding: 8 }}>
+            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Clear</Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
         
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        >
         <ScrollView style={styles.newPrayerContainer} keyboardShouldPersistTaps="handled">
+          <View style={styles.npComposerHeader}>
+            {myPicUri ? (
+              <Image source={{ uri: myPicUri }} style={styles.npComposerAvatar} />
+            ) : (
+              <View style={[styles.npComposerAvatar, styles.npComposerAvatarPlaceholder]}>
+                <Text style={{ fontSize: 20 }}>👤</Text>
+              </View>
+            )}
+            <View style={styles.npComposerInfo}>
+              <Text style={styles.npComposerName}>{currentUser?.firstName || 'You'}</Text>
+              <Text style={styles.npComposerHint}>
+                {isEditing ? 'Edit your prayer request below' : "What's on your heart today?"}
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.newPrayerForm}>
             {showTitleInput && (
-              <>
-                <Text style={styles.inputLabel}>Prayer Title (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={`${currentUser?.firstName}'s Prayer Request`}
-                  value={newPrayer.title}
-                  onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
-                  editable={!isPosting}
-                />
-              </>
+              <TextInput
+                style={styles.npTitleInput}
+                placeholder={`${currentUser?.firstName}'s Prayer Request`}
+                placeholderTextColor="#94a3b8"
+                value={newPrayer.title}
+                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+                editable={!isPosting}
+              />
             )}
             
-            <Text style={styles.inputLabel}>Prayer Request</Text>
             <TextInput
-              style={[styles.input, styles.newPrayerTextArea]}
-              placeholder="What would you like prayer for?"
+              style={styles.npTextArea}
+              placeholder="Share your prayer request with the community..."
+              placeholderTextColor="#94a3b8"
               multiline
               numberOfLines={6}
               value={newPrayer.content}
               onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
               editable={!isPosting}
+              textAlignVertical="top"
             />
             
-            {/* Image Preview */}
             {prayerImage && (
-              <View style={styles.imagePreviewContainer}>
+              <View style={styles.npImagePreview}>
                 <Image 
                   source={{ uri: prayerImage }}
-                  style={styles.imagePreview}
+                  style={styles.npImagePreviewImg}
                 />
                 <TouchableOpacity 
-                  style={styles.removeImageButton}
+                  style={styles.npImageRemove}
                   onPress={() => setPrayerImage(null)}
                 >
-                  <Text style={styles.removeImageText}>✕</Text>
+                  <Text style={styles.npImageRemoveText}>✕</Text>
                 </TouchableOpacity>
               </View>
             )}
             
-            {/* Options buttons */}
-            <View style={styles.iconButtonRow}>
+            <View style={styles.npOptionRow}>
               <TouchableOpacity 
-                style={[styles.iconButton, showTitleInput && styles.iconButtonActive]}
+                style={[styles.npOptionPill, showTitleInput && styles.npOptionPillActive]}
                 onPress={() => setShowTitleInput(!showTitleInput)}
                 disabled={isPosting}
               >
-                <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📝</Text>
-                <Text style={[styles.iconButtonLabel, showTitleInput && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Title</Text>
+                <Text style={styles.npOptionPillIcon}>📝</Text>
+                <Text style={[styles.npOptionPillLabel, showTitleInput && styles.npOptionPillLabelActive]}>
+                  {showTitleInput ? 'Hide Title' : 'Add Title'}
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.iconButton, prayerImage && styles.iconButtonActive]}
+                style={[styles.npOptionPill, prayerImage && styles.npOptionPillActive]}
                 onPress={pickPrayerImage}
                 disabled={isPosting}
               >
-                <Text style={[styles.iconButtonIcon, isPosting && { opacity: 0.5 }]}>📷</Text>
-                <Text style={[styles.iconButtonLabel, prayerImage && styles.iconButtonLabelActive, isPosting && { opacity: 0.5 }]}>Picture</Text>
+                <Text style={styles.npOptionPillIcon}>📷</Text>
+                <Text style={[styles.npOptionPillLabel, prayerImage && styles.npOptionPillLabelActive]}>
+                  {prayerImage ? 'Change Photo' : 'Add Photo'}
+                </Text>
               </TouchableOpacity>
             </View>
             
-            {/* Who can see this prayer - Only show if user has a church assigned */}
             {currentUser?.churchName && currentUser.churchName !== 'None' && (
-              <View style={styles.visibilitySection}>
-                <Text style={styles.visibilityLabel}>Who can see this prayer?</Text>
-                <View style={styles.visibilityOptions}>
+              <View style={styles.npVisibilitySection}>
+                <Text style={styles.npVisibilityTitle}>Who can see this?</Text>
+                <View style={styles.npSegmentedControl}>
                   <TouchableOpacity 
-                    style={[styles.visibilityOption, newPrayer.isPublic && styles.visibilityOptionActive]}
+                    style={[styles.npSegment, newPrayer.isPublic && styles.npSegmentActive]}
                     onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
                     disabled={isPosting}
                   >
-                    <View style={[styles.radioCircle, newPrayer.isPublic && styles.radioCircleActive]}>
-                      {newPrayer.isPublic && <View style={styles.radioInner} />}
-                    </View>
-                    <Text style={[styles.visibilityOptionText, newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                      🌍 All Churches
+                    <Text style={[styles.npSegmentText, newPrayer.isPublic && styles.npSegmentTextActive]}>
+                      🌍 Everyone
                     </Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
-                    style={[styles.visibilityOption, !newPrayer.isPublic && styles.visibilityOptionActive]}
+                    style={[styles.npSegment, !newPrayer.isPublic && styles.npSegmentActive]}
                     onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
                     disabled={isPosting}
                   >
-                    <View style={[styles.radioCircle, !newPrayer.isPublic && styles.radioCircleActive]}>
-                      {!newPrayer.isPublic && <View style={styles.radioInner} />}
-                    </View>
-                    <Text style={[styles.visibilityOptionText, !newPrayer.isPublic && styles.visibilityOptionTextActive]}>
-                      ⛪ {currentUser.churchName} Only
+                    <Text style={[styles.npSegmentText, !newPrayer.isPublic && styles.npSegmentTextActive]}>
+                      ⛪ {currentUser.churchName}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             )}
-            
-            {/* Post/Update Button */}
+          </View>
+
+          <View style={styles.npPostButtonContainer}>
             <TouchableOpacity 
               style={[
-                styles.newPrayerPostButton, 
-                (!newPrayer.content.trim() || isPosting) && styles.postButtonDisabled
+                styles.npPostButton, 
+                (!newPrayer.content.trim() || isPosting) && styles.npPostButtonDisabled
               ]}
               onPress={async () => {
                 if (isEditing) {
@@ -4020,14 +4044,35 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }}
               disabled={!newPrayer.content.trim() || isPosting}
             >
-              {isPosting ? (
-                <ActivityIndicator color="white" size="small" />
+              {(!newPrayer.content.trim() || isPosting) ? (
+                isPosting ? (
+                  <View style={styles.npPostButtonInner}>
+                    <ActivityIndicator color="white" size="small" />
+                    <Text style={styles.npPostButtonText}>Posting...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.npPostButtonInner}>
+                    <Text style={[styles.npPostButtonText, { opacity: 0.7 }]}>
+                      {isEditing ? 'Update Prayer Request' : 'Post Prayer Request'}
+                    </Text>
+                  </View>
+                )
               ) : (
-                <Text style={styles.postButtonText}>{isEditing ? 'Update Prayer Request' : 'Post Prayer Request'}</Text>
+                <LinearGradient
+                  colors={['#2563eb', '#1e40af']}
+                  style={styles.npPostButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.npPostButtonText}>
+                    {isEditing ? 'Update Prayer Request' : '🙏 Post Prayer Request'}
+                  </Text>
+                </LinearGradient>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     );
   }
@@ -6395,29 +6440,212 @@ const styles = StyleSheet.create({
   },
   newPrayerContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f5f9',
+  },
+  npComposerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  npComposerAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#dbeafe',
+  },
+  npComposerAvatarPlaceholder: {
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  npComposerInfo: {
+    flex: 1,
+  },
+  npComposerName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  npComposerHint: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
   },
   newPrayerForm: {
-    backgroundColor: 'white',
-    margin: 15,
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    padding: 16,
+    paddingTop: 12,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  newPrayerTextArea: {
-    minHeight: 150,
+  npTitleInput: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    marginBottom: 4,
+  },
+  npTextArea: {
+    fontSize: 16,
+    color: '#334155',
+    lineHeight: 24,
+    minHeight: 140,
     textAlignVertical: 'top',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
-  newPrayerPostButton: {
-    backgroundColor: '#6366f1',
-    paddingVertical: 16,
-    borderRadius: 12,
+  npImagePreview: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
+    marginBottom: 12,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  npImagePreviewImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+  npImageRemove: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+  },
+  npImageRemoveText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  npOptionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  npOptionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    backgroundColor: '#f1f5f9',
+    minHeight: 44,
+  },
+  npOptionPillActive: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  npOptionPillIcon: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  npOptionPillLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  npOptionPillLabelActive: {
+    color: '#2563eb',
+  },
+  npVisibilitySection: {
+    marginTop: 16,
+  },
+  npVisibilityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 10,
+  },
+  npSegmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 4,
+  },
+  npSegment: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  npSegmentActive: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  npSegmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  npSegmentTextActive: {
+    color: '#0f172a',
+  },
+  npPostButtonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  npPostButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    minHeight: 54,
+    backgroundColor: '#94a3b8',
+  },
+  npPostButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    minHeight: 54,
+  },
+  npPostButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  npPostButtonDisabled: {
+    backgroundColor: '#cbd5e1',
+    opacity: 0.8,
+  },
+  npPostButtonText: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
   },
   toggleFilterContainer: {
     flexDirection: 'row',

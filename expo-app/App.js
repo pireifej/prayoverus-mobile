@@ -1785,16 +1785,6 @@ function App() {
 
   const generatePrayer = async (prayerRequest) => {
     try {
-      // Increment prayer view count for interstitial ads (every 4th view)
-      prayerViewCountRef.current += 1;
-      const newViewCount = prayerViewCountRef.current;
-      setPrayerViewCount(newViewCount);
-      console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
-      if (newViewCount % 4 === 0 && isAdMobAvailable) {
-        console.log(`📺 🎬 Triggering interstitial ad after ${newViewCount} prayer views!`);
-        showInterstitialAd();
-      }
-
       setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length));
       setPrayerModal({
         visible: true,
@@ -1886,6 +1876,14 @@ Through Christ our Lord. Amen.`;
   };
 
   const closePrayerModal = () => {
+    prayerViewCountRef.current += 1;
+    const newViewCount = prayerViewCountRef.current;
+    setPrayerViewCount(newViewCount);
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
+    if (newViewCount % 4 === 0 && isAdMobAvailable) {
+      console.log(`📺 🎬 Triggering interstitial ad after closing prayer ${newViewCount}!`);
+      showInterstitialAd();
+    }
     setShowSoundPicker(false);
     // Check if we should return to detail view
     const shouldReturnToDetail = returnToDetailRef.current;
@@ -1997,16 +1995,6 @@ Through Christ our Lord. Amen.`;
     
     // Reset prayer modal state to prevent it from showing as overlay
     setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-    
-    // Increment prayer view count for interstitial ads (every 4th view)
-    prayerViewCountRef.current += 1;
-    const newViewCount = prayerViewCountRef.current;
-    setPrayerViewCount(newViewCount);
-    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
-    if (newViewCount % 4 === 0 && isAdMobAvailable) {
-      console.log(`📺 🎬 Triggering interstitial ad after ${newViewCount} prayer views!`);
-      showInterstitialAd();
-    }
     
     // Set props and show the detail screen
     setDetailScreenProps({
@@ -2231,6 +2219,14 @@ Through Christ our Lord. Amen.`;
 
   // Close prayer detail view
   const closeDetailModal = () => {
+    prayerViewCountRef.current += 1;
+    const newViewCount = prayerViewCountRef.current;
+    setPrayerViewCount(newViewCount);
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
+    if (newViewCount % 4 === 0 && isAdMobAvailable) {
+      console.log(`📺 🎬 Triggering interstitial ad after closing prayer detail ${newViewCount}!`);
+      showInterstitialAd();
+    }
     // Close the new detail screen
     setShowDetailScreen(false);
     setDetailScreenProps({ requestId: null, prayerIds: [], currentIndex: 0 });

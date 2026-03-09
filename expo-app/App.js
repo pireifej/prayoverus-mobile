@@ -6049,7 +6049,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 20,
+    marginBottom: 20,
     paddingTop: 20,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
   },
@@ -7930,7 +7932,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   memberProfileName: {
     fontSize: 24,

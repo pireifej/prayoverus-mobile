@@ -3236,66 +3236,175 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   if (currentScreen === 'help') {
     return (
       <View style={styles.container}>
-        <StatusBar style="auto" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity
+            onPress={() => setCurrentScreen('settings')}
+            style={{ padding: 10, minWidth: 60 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={{ fontSize: 22, color: '#fff' }}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help & Support</Text>
-        </View>
-        
-        <ScrollView style={styles.screenContent}>
-          <View style={styles.addPrayerForm}>
-            <Text style={styles.formTitle}>Contact Us</Text>
-            <Text style={styles.formSubtitle}>
+          <Text style={styles.communityHeaderTitle}>Help & Support</Text>
+          <View style={{ minWidth: 60 }} />
+        </LinearGradient>
+
+        <ScrollView
+          style={{ flex: 1, backgroundColor: '#f1f5f9' }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Intro card */}
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 16,
+            shadowColor: '#0f172a',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 3,
+          }}>
+            <Text style={{ fontSize: 22, marginBottom: 8 }}>🙏</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 6 }}>
+              Contact Us
+            </Text>
+            <Text style={{ fontSize: 15, color: '#64748b', lineHeight: 22 }}>
               Have questions or need support? Send us a message and we'll get back to you as soon as possible.
             </Text>
-            
-            <Text style={styles.inputLabel}>Message</Text>
+          </View>
+
+          {/* Form card */}
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 16,
+            padding: 20,
+            shadowColor: '#0f172a',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 3,
+            marginBottom: 16,
+          }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
+              Message
+            </Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                padding: 14,
+                fontSize: 16,
+                color: '#0f172a',
+                minHeight: 110,
+                textAlignVertical: 'top',
+                marginBottom: 16,
+              }}
               placeholder="Your message..."
+              placeholderTextColor="#94a3b8"
               multiline
               numberOfLines={4}
               value={helpForm.message}
               onChangeText={(text) => setHelpForm({...helpForm, message: text})}
               data-testid="input-help-message"
             />
-            
-            <Text style={styles.inputLabel}>Name</Text>
+
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
+              Name
+            </Text>
             <TextInput
-              style={styles.input}
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                padding: 14,
+                fontSize: 16,
+                color: '#0f172a',
+                marginBottom: 16,
+              }}
               placeholder="Your name"
+              placeholderTextColor="#94a3b8"
               value={helpForm.name}
               onChangeText={(text) => setHelpForm({...helpForm, name: text})}
               data-testid="input-help-name"
             />
-            
-            <Text style={styles.inputLabel}>Email Address</Text>
+
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
+              Email Address
+            </Text>
             <TextInput
-              style={styles.input}
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                padding: 14,
+                fontSize: 16,
+                color: '#0f172a',
+                marginBottom: 16,
+              }}
               placeholder="Your email"
+              placeholderTextColor="#94a3b8"
               keyboardType="email-address"
               autoCapitalize="none"
               value={helpForm.email}
               onChangeText={(text) => setHelpForm({...helpForm, email: text})}
               data-testid="input-help-email"
             />
-            
-            <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
+
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
+              Phone Number (Optional)
+            </Text>
             <TextInput
-              style={styles.input}
+              style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+                padding: 14,
+                fontSize: 16,
+                color: '#0f172a',
+                marginBottom: 4,
+              }}
               placeholder="Your phone (optional)"
+              placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
               value={helpForm.phone}
               onChangeText={(text) => setHelpForm({...helpForm, phone: text})}
               data-testid="input-help-phone"
             />
-            
-            <TouchableOpacity style={styles.addButton} onPress={submitHelpForm} data-testid="button-submit-help">
-              <Text style={styles.addButtonText}>Send Message</Text>
-            </TouchableOpacity>
           </View>
+
+          {/* Submit button */}
+          <TouchableOpacity
+            onPress={submitHelpForm}
+            activeOpacity={0.85}
+            data-testid="button-submit-help"
+          >
+            <LinearGradient
+              colors={['#2563eb', '#1e40af']}
+              style={{
+                borderRadius: 14,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
+                Send Message
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </ScrollView>
       </View>
     );

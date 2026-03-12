@@ -11,7 +11,7 @@ import { z } from "zod";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Current app version - update this when releasing new versions
-const CURRENT_APP_VERSION = '1.0.23';
+const CURRENT_APP_VERSION = '1.0.24';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware

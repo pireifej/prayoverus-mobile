@@ -1020,8 +1020,8 @@ function App() {
   };
   
   // Function to load interstitial ad
-  const loadInterstitialAd = () => {
-    console.log('📺 loadInterstitialAd called - isAdMobAvailable:', isAdMobAvailable, 'InterstitialAd exists:', !!InterstitialAd, 'AD_UNIT_ID:', INTERSTITIAL_AD_UNIT_ID);
+  const loadInterstitialAd = (retryCount = 0) => {
+    console.log('📺 loadInterstitialAd called - isAdMobAvailable:', isAdMobAvailable, 'InterstitialAd exists:', !!InterstitialAd, 'AD_UNIT_ID:', INTERSTITIAL_AD_UNIT_ID, 'retry:', retryCount);
     if (!isAdMobAvailable || !InterstitialAd || !INTERSTITIAL_AD_UNIT_ID) {
       console.log('📺 SKIP: AdMob not available or missing InterstitialAd class or missing AD_UNIT_ID');
       return;
@@ -1032,8 +1032,19 @@ function App() {
       const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
         requestNonPersonalizedAdsOnly: true,
       });
+
+      // Safety timeout — if neither LOADED nor ERROR fires within 15s, retry
+      const timeoutId = setTimeout(() => {
+        if (!interstitialLoadedRef.current) {
+          console.log('📺 ⏱️ No LOADED/ERROR response after 15s — retrying ad load');
+          if (retryCount < 3) {
+            loadInterstitialAd(retryCount + 1);
+          }
+        }
+      }, 15000);
       
       interstitial.addAdEventListener(AdEventType.LOADED, () => {
+        clearTimeout(timeoutId);
         console.log('📺 ✅ Interstitial ad LOADED and ready to show');
         setInterstitialLoaded(true);
         interstitialLoadedRef.current = true;
@@ -1051,6 +1062,7 @@ function App() {
       });
       
       interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        clearTimeout(timeoutId);
         console.log('📺 Interstitial ad CLOSED by user');
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
@@ -1060,10 +1072,16 @@ function App() {
       });
       
       interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+        clearTimeout(timeoutId);
         console.log('📺 ❌ Interstitial ad ERROR:', JSON.stringify(error));
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         pendingInterstitialShowRef.current = false;
+        // Retry on error (up to 3 times, with delay)
+        if (retryCount < 3) {
+          console.log(`📺 Retrying ad load in 5s (attempt ${retryCount + 1}/3)...`);
+          setTimeout(() => loadInterstitialAd(retryCount + 1), 5000);
+        }
       });
       
       console.log('📺 Calling interstitial.load()...');

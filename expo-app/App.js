@@ -1911,10 +1911,14 @@ Through Christ our Lord. Amen.`;
     prayerViewCountRef.current += 1;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
-    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
-    if (newViewCount % 4 === 0 && isAdMobAvailable) {
-      console.log(`📺 🎬 Triggering interstitial ad after closing prayer ${newViewCount}!`);
-      showInterstitialAd();
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
+    if (newViewCount % 4 === 0) {
+      if (!isAdMobAvailable) {
+        console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
+      } else {
+        console.log(`📺 🎬 Count hit ${newViewCount} — calling showInterstitialAd...`);
+        showInterstitialAd();
+      }
     }
     setShowSoundPicker(false);
     // Check if we should return to detail view
@@ -2254,10 +2258,14 @@ Through Christ our Lord. Amen.`;
     prayerViewCountRef.current += 1;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
-    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current}`);
-    if (newViewCount % 4 === 0 && isAdMobAvailable) {
-      console.log(`📺 🎬 Triggering interstitial ad after closing prayer detail ${newViewCount}!`);
-      showInterstitialAd();
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
+    if (newViewCount % 4 === 0) {
+      if (!isAdMobAvailable) {
+        console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
+      } else {
+        console.log(`📺 🎬 Count hit ${newViewCount} — calling showInterstitialAd...`);
+        showInterstitialAd();
+      }
     }
     // Close the new detail screen
     setShowDetailScreen(false);

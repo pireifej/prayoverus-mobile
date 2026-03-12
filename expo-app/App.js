@@ -837,6 +837,7 @@ function App() {
   const interstitialLoadedRef = useRef(false);
   const interstitialRef = useRef(null);
   const prayerViewCountRef = useRef(0);
+  const pendingInterstitialShowRef = useRef(false);
   
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -1037,6 +1038,16 @@ function App() {
         setInterstitialLoaded(true);
         interstitialLoadedRef.current = true;
         interstitialRef.current = interstitial;
+        // If a show was requested while the ad was still loading, show it now
+        if (pendingInterstitialShowRef.current) {
+          console.log('📺 🎬 Pending show detected — showing interstitial now!');
+          pendingInterstitialShowRef.current = false;
+          try {
+            interstitial.show();
+          } catch (e) {
+            console.log('📺 ❌ Error showing pending interstitial:', e?.message || e);
+          }
+        }
       });
       
       interstitial.addAdEventListener(AdEventType.CLOSED, () => {
@@ -1052,6 +1063,7 @@ function App() {
         console.log('📺 ❌ Interstitial ad ERROR:', JSON.stringify(error));
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
+        pendingInterstitialShowRef.current = false;
       });
       
       console.log('📺 Calling interstitial.load()...');
@@ -1076,7 +1088,9 @@ function App() {
       }
       return true;
     }
-    console.log('📺 ⚠️ Interstitial NOT ready - loading a new one for next time');
+    // Ad not ready yet — set a pending flag so it shows as soon as it finishes loading
+    console.log('📺 ⚠️ Interstitial NOT ready yet — setting pending flag to show when loaded');
+    pendingInterstitialShowRef.current = true;
     loadInterstitialAd();
     return false;
   };

@@ -634,7 +634,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const rs = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#f1f5f9' },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 64 : 52, paddingBottom: 22, paddingHorizontal: 16 },
+  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 80 : 64, paddingBottom: 22, paddingHorizontal: 16 },
   headerBack:   { padding: 8, minWidth: 48, alignItems: 'flex-start' },
   headerBackText: { fontSize: 22, color: '#fff', fontWeight: '600' },
   headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
@@ -677,8 +677,8 @@ const rs = StyleSheet.create({
   bigBtn:     { borderRadius: 14, paddingVertical: 18, alignItems: 'center' },
   bigBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 
-  overallBar:     { height: 4, backgroundColor: '#e2e8f0' },
-  overallBarFill: { height: 4, backgroundColor: '#2563eb' },
+  overallBar:     { height: 8, backgroundColor: '#e2e8f0' },
+  overallBarFill: { height: 8, backgroundColor: '#f59e0b' },
 
   swipeHint: { textAlign: 'center', fontSize: 11, color: '#cbd5e1', paddingVertical: 4, backgroundColor: '#fff' },
 

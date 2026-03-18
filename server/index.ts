@@ -1,10 +1,19 @@
 import express, { type Request, Response, NextFunction } from "express";
+import nodePath from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve bundled audio files for the Rosary music player
+app.use('/audio', express.static(nodePath.join(process.cwd(), 'public/audio'), {
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

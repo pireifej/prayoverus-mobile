@@ -23,14 +23,13 @@ try {
         : 'ca-app-pub-9861737616974560/9395514909');
 } catch (_) {}
 
-// ─── Music Options (streaming from Internet Archive — public domain) ──────────
-const ARCHIVE_BASE = 'https://archive.org/download/100ClassicalMusicMasterpieces/';
+// ─── Music Options (hosted on backend — public domain recordings) ─────────────
+const AUDIO_BASE = 'https://shouldcallpaul.replit.app/audio/';
 const MUSIC_OPTIONS = [
   { key: 'off',     label: 'Off',          emoji: '🔇', uri: null },
-  { key: 'air',     label: 'Bach – Air',   emoji: '🕊️', uri: ARCHIVE_BASE + '1727%20Bach%20%2C%20Air%20%28from%20Orchestral%20Suite%20No.%203%20in%20D%29.mp3' },
-  { key: 'canon',   label: 'Canon in D',   emoji: '📿', uri: ARCHIVE_BASE + '1698%20Pachelbel%20%2C%20Canon%20in%20D.mp3' },
-  { key: 'handel',  label: 'Water Music',  emoji: '💧', uri: ARCHIVE_BASE + '1717%20Handel%20%2C%20Water%20Music%2C%20Suite%20No.%202%20in%20D.mp3' },
-  { key: 'vivaldi', label: 'Four Seasons', emoji: '🌸', uri: ARCHIVE_BASE + '1725%20Vivaldi%20%2C%20The%20Four%20Seasons%20-%20Spring.mp3' },
+  { key: 'canon',   label: 'Canon in D',   emoji: '📿', uri: AUDIO_BASE + 'canon.mp3' },
+  { key: 'jesu',    label: 'Jesu, Joy',    emoji: '✝️', uri: AUDIO_BASE + 'jesu.mp3' },
+  { key: 'vivaldi', label: 'Vivaldi',      emoji: '🌸', uri: AUDIO_BASE + 'vivaldi.mp3' },
 ];
 
 // ─── Mystery Data ────────────────────────────────────────────────────────────
@@ -143,7 +142,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const [mysteryType, setMysteryType] = useState(getTodaysMystery());
   const [playMode, setPlayMode]     = useState('manual');
   const [autoSpeed, setAutoSpeed]   = useState('medium');
-  const [musicChoice, setMusicChoice] = useState('air');
+  const [musicChoice, setMusicChoice] = useState('jesu');
   const [isMuted, setIsMuted]       = useState(false);
   const [steps, setSteps]           = useState([]);
   const [currentStep, setCurrentStep] = useState(0);

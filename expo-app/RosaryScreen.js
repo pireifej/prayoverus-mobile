@@ -1,12 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StatusBar,
-  StyleSheet, Animated, Alert, Platform,
+  StyleSheet, Animated, Alert, Platform, PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
+
+// ─── AdMob (same conditional-import pattern as App.js) ────────────────────────
+let BannerAd, BannerAdSize, TestIds;
+let isAdMobAvailable = false;
+let ROSARY_BANNER_ID = null;
+try {
+  const adMobModule = require('react-native-google-mobile-ads');
+  BannerAd     = adMobModule.BannerAd;
+  BannerAdSize = adMobModule.BannerAdSize;
+  TestIds      = adMobModule.TestIds;
+  isAdMobAvailable = true;
+  ROSARY_BANNER_ID = __DEV__
+    ? TestIds.BANNER
+    : (Platform.OS === 'ios'
+        ? 'ca-app-pub-9861737616974560/9395514909'
+        : 'ca-app-pub-9861737616974560/9395514909');
+} catch (_) {}
+
+// ─── Music Options ────────────────────────────────────────────────────────────
+const MUSIC_OPTIONS = [
+  { key: 'off',       label: 'Off',       emoji: '🔇', file: null },
+  { key: 'cathedral', label: 'Cathedral', emoji: '⛪', file: require('./assets/resonant-cathedral.mp3') },
+  { key: 'choir',     label: 'Choir',     emoji: '🎵', file: require('./assets/angelic-choir.mp3') },
+  { key: 'bells',     label: 'Bells',     emoji: '🔔', file: require('./assets/celestial-bells.mp3') },
+  { key: 'harp',      label: 'Harp',      emoji: '🎶', file: require('./assets/golden-harp.mp3') },
+];
 
 // ─── Mystery Data ────────────────────────────────────────────────────────────
-
 const MYSTERY_TYPES = {
   joyful: {
     key: 'joyful', name: 'Joyful Mysteries', emoji: '✨', days: [1, 6], dayNames: 'Monday & Saturday',
@@ -51,65 +77,43 @@ const MYSTERY_TYPES = {
 };
 
 const PRAYERS = {
-  signOfCross:    { title: 'Sign of the Cross',   text: 'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.' },
-  apostlesCreed:  { title: "Apostles' Creed",      text: "I believe in God, the Father Almighty, Creator of Heaven and earth; and in Jesus Christ, His only Son, Our Lord, Who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried. He descended into hell; the third day He arose again from the dead; He ascended into Heaven, sitteth at the right hand of God, the Father Almighty; from thence He shall come to judge the living and the dead. I believe in the Holy Spirit, the holy Catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body and life everlasting. Amen." },
-  ourFather:      { title: 'Our Father',           text: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen." },
-  hailMary:       { title: 'Hail Mary',            text: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen." },
-  gloryBe:        { title: 'Glory Be',             text: "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen." },
-  fatimaPrayer:   { title: 'Fatima Prayer',        text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen." },
-  hailHolyQueen:  { title: 'Hail, Holy Queen',     text: "Hail, Holy Queen, Mother of Mercy, our life, our sweetness and our hope. To thee do we cry, poor banished children of Eve; to thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us; and after this, our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary! Pray for us, O Holy Mother of God, that we may be made worthy of the promises of Christ. Amen." },
-  finalPrayer:    { title: 'Closing Prayer',       text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen." },
+  signOfCross:   { title: 'Sign of the Cross',  text: 'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.' },
+  apostlesCreed: { title: "Apostles' Creed",     text: "I believe in God, the Father Almighty, Creator of Heaven and earth; and in Jesus Christ, His only Son, Our Lord, Who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried. He descended into hell; the third day He arose again from the dead; He ascended into Heaven, sitteth at the right hand of God, the Father Almighty; from thence He shall come to judge the living and the dead. I believe in the Holy Spirit, the holy Catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body and life everlasting. Amen." },
+  ourFather:     { title: 'Our Father',          text: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen." },
+  hailMary:      { title: 'Hail Mary',           text: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen." },
+  gloryBe:       { title: 'Glory Be',            text: "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen." },
+  fatimaPrayer:  { title: 'Fatima Prayer',       text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen." },
+  hailHolyQueen: { title: 'Hail, Holy Queen',    text: "Hail, Holy Queen, Mother of Mercy, our life, our sweetness and our hope. To thee do we cry, poor banished children of Eve; to thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us; and after this, our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary! Pray for us, O Holy Mother of God, that we may be made worthy of the promises of Christ. Amen." },
+  finalPrayer:   { title: 'Closing Prayer',      text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen." },
 };
 
 // ─── Step Generator ──────────────────────────────────────────────────────────
-
 const generateSteps = (mysteryTypeKey) => {
   const mt = MYSTERY_TYPES[mysteryTypeKey];
   const steps = [];
   const ordinals = ['1st', '2nd', '3rd', '4th', '5th'];
 
-  // Opening
   steps.push({ id: 'open-soc',   ...PRAYERS.signOfCross,   section: 'Opening Prayers', decade: 0 });
   steps.push({ id: 'open-creed', ...PRAYERS.apostlesCreed, section: 'Opening Prayers', decade: 0 });
   steps.push({ id: 'open-of',    ...PRAYERS.ourFather,     section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-hm1',   ...PRAYERS.hailMary, title: 'Hail Mary — for Faith',    section: 'Opening Prayers', decade: 0, hmIndex: 1 });
-  steps.push({ id: 'open-hm2',   ...PRAYERS.hailMary, title: 'Hail Mary — for Hope',     section: 'Opening Prayers', decade: 0, hmIndex: 2 });
-  steps.push({ id: 'open-hm3',   ...PRAYERS.hailMary, title: 'Hail Mary — for Charity',  section: 'Opening Prayers', decade: 0, hmIndex: 3 });
+  steps.push({ id: 'open-hm1',   ...PRAYERS.hailMary, title: 'Hail Mary — for Faith',   section: 'Opening Prayers', decade: 0, hmIndex: 1 });
+  steps.push({ id: 'open-hm2',   ...PRAYERS.hailMary, title: 'Hail Mary — for Hope',    section: 'Opening Prayers', decade: 0, hmIndex: 2 });
+  steps.push({ id: 'open-hm3',   ...PRAYERS.hailMary, title: 'Hail Mary — for Charity', section: 'Opening Prayers', decade: 0, hmIndex: 3 });
   steps.push({ id: 'open-gb',    ...PRAYERS.gloryBe,       section: 'Opening Prayers', decade: 0 });
 
-  // 5 Decades
   for (let d = 0; d < 5; d++) {
     const mystery = mt.mysteries[d];
     const dec = d + 1;
     const shortMysteryType = mt.name.replace(' Mysteries', '');
-
-    steps.push({
-      id: `d${dec}-announce`,
-      title: `${ordinals[d]} ${shortMysteryType} Mystery`,
-      text: mystery.name + '\n\n' + mystery.meditation,
-      section: `Decade ${dec} of 5`,
-      decade: dec,
-      isAnnouncement: true,
-      mysteryName: mystery.name,
-    });
+    steps.push({ id: `d${dec}-announce`, title: `${ordinals[d]} ${shortMysteryType} Mystery`, text: mystery.name + '\n\n' + mystery.meditation, section: `Decade ${dec} of 5`, decade: dec, isAnnouncement: true, mysteryName: mystery.name });
     steps.push({ id: `d${dec}-of`, ...PRAYERS.ourFather, section: `Decade ${dec} of 5`, decade: dec });
-
     for (let hm = 1; hm <= 10; hm++) {
-      steps.push({
-        id: `d${dec}-hm${hm}`,
-        ...PRAYERS.hailMary,
-        title: `Hail Mary ${hm} of 10`,
-        section: `Decade ${dec} of 5`,
-        decade: dec,
-        hmIndex: hm,
-      });
+      steps.push({ id: `d${dec}-hm${hm}`, ...PRAYERS.hailMary, title: `Hail Mary ${hm} of 10`, section: `Decade ${dec} of 5`, decade: dec, hmIndex: hm });
     }
-
-    steps.push({ id: `d${dec}-gb`,     ...PRAYERS.gloryBe,      section: `Decade ${dec} of 5`, decade: dec });
-    steps.push({ id: `d${dec}-fatima`, ...PRAYERS.fatimaPrayer,  section: `Decade ${dec} of 5`, decade: dec });
+    steps.push({ id: `d${dec}-gb`,     ...PRAYERS.gloryBe,     section: `Decade ${dec} of 5`, decade: dec });
+    steps.push({ id: `d${dec}-fatima`, ...PRAYERS.fatimaPrayer, section: `Decade ${dec} of 5`, decade: dec });
   }
 
-  // Closing
   steps.push({ id: 'close-hhq', ...PRAYERS.hailHolyQueen, section: 'Closing Prayers', decade: 6 });
   steps.push({ id: 'close-fp',  ...PRAYERS.finalPrayer,   section: 'Closing Prayers', decade: 6 });
   steps.push({ id: 'close-soc', ...PRAYERS.signOfCross,   section: 'Closing Prayers', decade: 6 });
@@ -118,7 +122,6 @@ const generateSteps = (mysteryTypeKey) => {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
 const getTodaysMystery = () => {
   const day = new Date().getDay();
   if (day === 1 || day === 6) return 'joyful';
@@ -134,26 +137,78 @@ const AUTO_SPEEDS = {
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
-
 export default function RosaryScreen({ onExit, onComplete }) {
-  const [screen, setScreen] = useState('setup');
+  const [screen, setScreen]         = useState('setup');
   const [mysteryType, setMysteryType] = useState(getTodaysMystery());
-  const [playMode, setPlayMode] = useState('manual');
-  const [autoSpeed, setAutoSpeed] = useState('medium');
-  const [steps, setSteps] = useState([]);
+  const [playMode, setPlayMode]     = useState('manual');
+  const [autoSpeed, setAutoSpeed]   = useState('medium');
+  const [musicChoice, setMusicChoice] = useState('cathedral');
+  const [isMuted, setIsMuted]       = useState(false);
+  const [steps, setSteps]           = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [startTime, setStartTime] = useState(null);
+  const [isPaused, setIsPaused]     = useState(false);
+  const [startTime, setStartTime]   = useState(null);
 
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim    = useRef(new Animated.Value(0)).current;
   const progressAnimRef = useRef(null);
-  const autoTimerRef = useRef(null);
+  const autoTimerRef    = useRef(null);
+  const soundRef        = useRef(null);
 
+  // Keep refs to advance/goBack so PanResponder can call the latest version
+  const advanceRef = useRef(null);
+  const goBackRef  = useRef(null);
+
+  useEffect(() => { setSteps(generateSteps(mysteryType)); }, [mysteryType]);
+
+  // ── Music: load / unload when screen or music choice changes ──────────────
   useEffect(() => {
-    setSteps(generateSteps(mysteryType));
-  }, [mysteryType]);
+    if (screen !== 'praying' || musicChoice === 'off') {
+      unloadMusic();
+      return;
+    }
+    loadMusic();
+    return () => {};
+  }, [screen, musicChoice]);
 
-  // Auto-play engine
+  // ── Music: respond to mute toggle without reloading ───────────────────────
+  useEffect(() => {
+    if (!soundRef.current) return;
+    soundRef.current.setVolumeAsync(isMuted ? 0 : 0.35).catch(() => {});
+  }, [isMuted]);
+
+  // ── Cleanup on unmount ────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      stopAutoTimer();
+      unloadMusic();
+    };
+  }, []);
+
+  const loadMusic = async () => {
+    await unloadMusic();
+    const option = MUSIC_OPTIONS.find(o => o.key === musicChoice);
+    if (!option || !option.file) return;
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(option.file, {
+        shouldPlay: true,
+        isLooping: true,
+        volume: isMuted ? 0 : 0.35,
+      });
+      soundRef.current = sound;
+    } catch (e) {
+      console.log('[Rosary] Music load error:', e);
+    }
+  };
+
+  const unloadMusic = async () => {
+    if (soundRef.current) {
+      try { await soundRef.current.unloadAsync(); } catch (_) {}
+      soundRef.current = null;
+    }
+  };
+
+  // ── Auto-play engine ──────────────────────────────────────────────────────
   useEffect(() => {
     if (screen !== 'praying' || playMode !== 'auto' || isPaused || steps.length === 0) {
       stopAutoTimer();
@@ -173,21 +228,14 @@ export default function RosaryScreen({ onExit, onComplete }) {
     stopAutoTimer();
     const duration = AUTO_SPEEDS[autoSpeed].seconds * 1000;
     progressAnimRef.current = Animated.timing(progressAnim, {
-      toValue: 1,
-      duration,
-      useNativeDriver: false,
+      toValue: 1, duration, useNativeDriver: false,
     });
-    progressAnimRef.current.start(({ finished }) => {
-      if (finished) advance();
-    });
+    progressAnimRef.current.start(({ finished }) => { if (finished) advance(); });
   };
 
   const advance = () => {
     setCurrentStep(prev => {
-      if (prev >= steps.length - 1) {
-        finishRosary();
-        return prev;
-      }
+      if (prev >= steps.length - 1) { finishRosary(); return prev; }
       return prev + 1;
     });
   };
@@ -195,6 +243,22 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const goBack = () => {
     if (currentStep > 0) setCurrentStep(prev => prev - 1);
   };
+
+  // Keep refs current so PanResponder closure always calls latest
+  advanceRef.current = advance;
+  goBackRef.current  = goBack;
+
+  // ── Swipe gesture (horizontal) ────────────────────────────────────────────
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 15 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.8,
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < -60)      advanceRef.current?.();  // swipe left  → next
+        else if (gs.dx > 60)  goBackRef.current?.();   // swipe right → back
+      },
+    })
+  ).current;
 
   const finishRosary = () => {
     stopAutoTimer();
@@ -212,17 +276,21 @@ export default function RosaryScreen({ onExit, onComplete }) {
   };
 
   const handleExitConfirm = () => {
-    Alert.alert(
-      'Leave Rosary?',
-      'Your progress will be lost. Are you sure?',
-      [
-        { text: 'Stay', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: () => { stopAutoTimer(); onExit(); } },
-      ]
-    );
+    Alert.alert('Leave Rosary?', 'Your progress will be lost. Are you sure?', [
+      { text: 'Stay', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: async () => {
+        stopAutoTimer();
+        await unloadMusic();
+        onExit();
+      }},
+    ]);
   };
 
-  // ── SETUP SCREEN ──────────────────────────────────────────────────────────
+  const autoBarWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SETUP SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
   if (screen === 'setup') {
     const todayType = getTodaysMystery();
     return (
@@ -240,9 +308,10 @@ export default function RosaryScreen({ onExit, onComplete }) {
           <View style={rs.card}>
             <Text style={{ fontSize: 36, marginBottom: 10 }}>📿</Text>
             <Text style={rs.cardTitle}>Solo Rosary</Text>
-            <Text style={rs.cardSubtitle}>Pray all 5 decades at your own pace. Choose your mysteries and mode, then begin.</Text>
+            <Text style={rs.cardSubtitle}>Pray all 5 decades at your own pace. Choose your mysteries, music, and mode — then begin.</Text>
           </View>
 
+          {/* Mysteries */}
           <Text style={rs.sectionLabel}>MYSTERIES</Text>
           {Object.values(MYSTERY_TYPES).map((mt) => (
             <TouchableOpacity
@@ -267,6 +336,25 @@ export default function RosaryScreen({ onExit, onComplete }) {
             </TouchableOpacity>
           ))}
 
+          {/* Music */}
+          <Text style={[rs.sectionLabel, { marginTop: 8 }]}>BACKGROUND MUSIC</Text>
+          <View style={rs.card}>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {MUSIC_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[rs.musicBtn, musicChoice === opt.key && rs.musicBtnSelected]}
+                  onPress={() => setMusicChoice(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 20, marginBottom: 3 }}>{opt.emoji}</Text>
+                  <Text style={[rs.musicBtnLabel, musicChoice === opt.key && { color: '#2563eb' }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Mode */}
           <Text style={[rs.sectionLabel, { marginTop: 8 }]}>MODE</Text>
           <View style={rs.card}>
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -315,29 +403,45 @@ export default function RosaryScreen({ onExit, onComplete }) {
     );
   }
 
-  // ── PRAYING SCREEN ────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRAYING SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
   if (screen === 'praying' && steps.length > 0) {
-    const step = steps[currentStep];
-    const totalSteps = steps.length;
-    const overallPct = Math.round(((currentStep + 1) / totalSteps) * 100);
+    const step        = steps[currentStep];
+    const totalSteps  = steps.length;
+    const overallPct  = Math.round(((currentStep + 1) / totalSteps) * 100);
     const currentDecade = step.decade;
-    const hmIndex = step.hmIndex || 0;
-    const isLastStep = currentStep >= totalSteps - 1;
-
-    const autoBarWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+    const hmIndex     = step.hmIndex || 0;
+    const isLastStep  = currentStep >= totalSteps - 1;
+    const musicLabel  = MUSIC_OPTIONS.find(o => o.key === musicChoice)?.label || '';
 
     return (
-      <View style={rs.container}>
+      <View style={rs.container} {...panResponder.panHandlers}>
         <StatusBar style="light" />
+
+        {/* Header */}
         <LinearGradient colors={['#0f172a', '#1e3a5f', '#2563eb']} style={rs.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <TouchableOpacity onPress={handleExitConfirm} style={rs.headerBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={rs.headerBackText}>✕</Text>
           </TouchableOpacity>
-          <View style={{ alignItems: 'center' }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
             <Text style={rs.headerTitle}>{MYSTERY_TYPES[mysteryType].name}</Text>
             <Text style={rs.headerSub}>{step.section}</Text>
           </View>
-          <View style={{ minWidth: 48 }} />
+          {/* Mute / music toggle */}
+          <TouchableOpacity
+            onPress={() => setIsMuted(m => !m)}
+            style={rs.muteBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={musicChoice === 'off'}
+          >
+            <Text style={{ fontSize: 18 }}>{musicChoice === 'off' ? '🔇' : isMuted ? '🔇' : '🎵'}</Text>
+            {musicChoice !== 'off' && (
+              <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+                {isMuted ? 'Muted' : musicLabel}
+              </Text>
+            )}
+          </TouchableOpacity>
         </LinearGradient>
 
         {/* Overall progress bar */}
@@ -347,9 +451,9 @@ export default function RosaryScreen({ onExit, onComplete }) {
 
         {/* Decade tracker */}
         <View style={rs.decadeRow}>
-          {[0, 1, 2, 3, 4, 5, 6].map((d, idx) => {
+          {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const active = d === currentDecade;
-            const done = d < currentDecade;
+            const done   = d < currentDecade;
             if (d === 0 || d === 6) {
               return (
                 <View key={d} style={[rs.decadeSmall, done && rs.decadeDone, active && rs.decadeActive]}>
@@ -368,25 +472,23 @@ export default function RosaryScreen({ onExit, onComplete }) {
           })}
         </View>
 
-        {/* Hail Mary bead tracker — only shown during a decade */}
+        {/* Hail Mary bead tracker */}
         {currentDecade >= 1 && currentDecade <= 5 && (
           <View style={rs.hmRow}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
               <View
                 key={i}
-                style={[
-                  rs.hmBead,
-                  hmIndex > i && rs.hmBeadDone,
-                  hmIndex === i && rs.hmBeadCurrent,
-                ]}
+                style={[rs.hmBead, hmIndex > i && rs.hmBeadDone, hmIndex === i && rs.hmBeadCurrent]}
               />
             ))}
           </View>
         )}
 
-        <ScrollView style={rs.scroll} contentContainerStyle={[rs.scrollContent, { paddingBottom: 40 }]} showsVerticalScrollIndicator={false}>
+        {/* Swipe hint */}
+        <Text style={rs.swipeHint}>← swipe to go back or forward →</Text>
 
-          {/* Mystery announcement card */}
+        {/* Scrollable prayer content */}
+        <ScrollView style={rs.scroll} contentContainerStyle={[rs.scrollContent, { paddingBottom: 16 }]} showsVerticalScrollIndicator={false}>
           {step.isAnnouncement ? (
             <View style={rs.announceCard}>
               <Text style={rs.announceDecade}>{step.title}</Text>
@@ -401,24 +503,28 @@ export default function RosaryScreen({ onExit, onComplete }) {
               <Text style={rs.prayerText}>{step.text}</Text>
             </View>
           )}
-
           <Text style={rs.stepCount}>Prayer {currentStep + 1} of {totalSteps}</Text>
+        </ScrollView>
 
-          {/* Auto-play progress bar */}
-          {playMode === 'auto' && !isPaused && (
-            <View style={rs.autoBar}>
-              <Animated.View style={[rs.autoBarFill, { width: autoBarWidth }]} />
-            </View>
-          )}
+        {/* Auto-play progress bar (above buttons, outside scroll) */}
+        {playMode === 'auto' && (
+          <View style={rs.autoBar}>
+            <Animated.View style={[rs.autoBarFill, { width: autoBarWidth }]} />
+          </View>
+        )}
 
-          {/* Controls */}
+        {/* ── Fixed bottom controls ── */}
+        <View style={rs.bottomControls}>
           {playMode === 'manual' ? (
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              {currentStep > 0 && (
-                <TouchableOpacity style={rs.backBtn} onPress={goBack} activeOpacity={0.8}>
-                  <Text style={rs.backBtnText}>← Back</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={[rs.backBtn, currentStep === 0 && { opacity: 0.3 }]}
+                onPress={goBack}
+                disabled={currentStep === 0}
+                activeOpacity={0.8}
+              >
+                <Text style={rs.backBtnText}>← Back</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={isLastStep ? finishRosary : advance} activeOpacity={0.85} style={{ flex: 1 }}>
                 <LinearGradient
                   colors={isLastStep ? ['#16a34a', '#15803d'] : ['#2563eb', '#1e40af']}
@@ -439,12 +545,25 @@ export default function RosaryScreen({ onExit, onComplete }) {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
+        </View>
+
+        {/* ── Banner Ad (below buttons, at very bottom) ── */}
+        {isAdMobAvailable && BannerAd && ROSARY_BANNER_ID && (
+          <View style={rs.bannerContainer}>
+            <BannerAd
+              unitId={ROSARY_BANNER_ID}
+              size={BannerAdSize.BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+            />
+          </View>
+        )}
       </View>
     );
   }
 
-  // ── COMPLETE SCREEN ───────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // COMPLETE SCREEN
+  // ══════════════════════════════════════════════════════════════════════════
   if (screen === 'complete') {
     const elapsed = startTime ? Math.round((new Date() - startTime) / 60000) : 0;
     const mt = MYSTERY_TYPES[mysteryType];
@@ -465,7 +584,6 @@ export default function RosaryScreen({ onExit, onComplete }) {
             Well done! You have prayed the {mt.name} and offered {steps.length} prayers to Our Lady.
           </Text>
 
-          {/* Stats */}
           <View style={[rs.card, { width: '100%', marginBottom: 24 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <View style={{ alignItems: 'center' }}>
@@ -515,7 +633,6 @@ export default function RosaryScreen({ onExit, onComplete }) {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-
 const rs = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#f1f5f9' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 54 : 44, paddingBottom: 16, paddingHorizontal: 16 },
@@ -523,8 +640,9 @@ const rs = StyleSheet.create({
   headerBackText: { fontSize: 22, color: '#fff', fontWeight: '600' },
   headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
   headerSub:    { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  muteBtn:      { minWidth: 48, alignItems: 'center', padding: 4 },
 
-  scroll:       { flex: 1 },
+  scroll:        { flex: 1 },
   scrollContent: { padding: 16 },
 
   card:         { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
@@ -543,10 +661,14 @@ const rs = StyleSheet.create({
   radioSelected:      { borderColor: '#2563eb' },
   radioDot:           { width: 11, height: 11, borderRadius: 6, backgroundColor: '#2563eb' },
 
-  modeBtn:        { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: 'transparent' },
+  musicBtn:         { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: 'transparent', minWidth: 58 },
+  musicBtnSelected: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+  musicBtnLabel:    { fontSize: 12, fontWeight: '600', color: '#64748b' },
+
+  modeBtn:         { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: 'transparent' },
   modeBtnSelected: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
-  modeBtnLabel:   { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
-  modeBtnDesc:    { fontSize: 12, color: '#94a3b8', textAlign: 'center' },
+  modeBtnLabel:    { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
+  modeBtnDesc:     { fontSize: 12, color: '#94a3b8', textAlign: 'center' },
 
   speedBtn:         { flex: 1, padding: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 2, borderColor: 'transparent' },
   speedBtnSelected: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
@@ -559,23 +681,25 @@ const rs = StyleSheet.create({
   overallBar:     { height: 4, backgroundColor: '#e2e8f0' },
   overallBarFill: { height: 4, backgroundColor: '#2563eb' },
 
-  decadeRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  decadeDot:    { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
-  decadeSmall:  { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
-  decadeActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  decadeDone:   { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
-  decadeDotTxt: { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
-  decadeLine:   { height: 2, flex: 1, backgroundColor: '#e2e8f0', maxWidth: 20 },
+  swipeHint: { textAlign: 'center', fontSize: 11, color: '#cbd5e1', paddingVertical: 4, backgroundColor: '#fff' },
+
+  decadeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  decadeDot:      { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
+  decadeSmall:    { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
+  decadeActive:   { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  decadeDone:     { backgroundColor: '#dbeafe', borderColor: '#93c5fd' },
+  decadeDotTxt:   { fontSize: 14, fontWeight: '700', color: '#94a3b8' },
+  decadeLine:     { height: 2, flex: 1, backgroundColor: '#e2e8f0', maxWidth: 20 },
   decadeLineDone: { backgroundColor: '#93c5fd' },
 
-  hmRow:        { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 10, gap: 5, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  hmBead:       { width: 14, height: 14, borderRadius: 7, backgroundColor: '#e2e8f0', borderWidth: 1.5, borderColor: '#cbd5e1' },
-  hmBeadDone:   { backgroundColor: '#93c5fd', borderColor: '#3b82f6' },
+  hmRow:         { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', paddingVertical: 10, gap: 5, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  hmBead:        { width: 14, height: 14, borderRadius: 7, backgroundColor: '#e2e8f0', borderWidth: 1.5, borderColor: '#cbd5e1' },
+  hmBeadDone:    { backgroundColor: '#93c5fd', borderColor: '#3b82f6' },
   hmBeadCurrent: { backgroundColor: '#2563eb', borderColor: '#1d4ed8', width: 20, height: 20, borderRadius: 10 },
 
-  announceCard:      { backgroundColor: '#1e3a5f', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 5 },
-  announceDecade:    { fontSize: 12, fontWeight: '700', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
-  announceMystery:   { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  announceCard:       { backgroundColor: '#1e3a5f', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 5 },
+  announceDecade:     { fontSize: 12, fontWeight: '700', color: '#93c5fd', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
+  announceMystery:    { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
   announceMeditation: { fontSize: 15, color: 'rgba(255,255,255,0.85)', lineHeight: 24 },
 
   prayerCard:    { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
@@ -583,10 +707,12 @@ const rs = StyleSheet.create({
   prayerDivider: { height: 2, backgroundColor: '#eff6ff', borderRadius: 1, marginBottom: 16 },
   prayerText:    { fontSize: 20, color: '#0f172a', lineHeight: 34, fontWeight: '400' },
 
-  stepCount: { textAlign: 'center', color: '#94a3b8', fontSize: 13, marginBottom: 14 },
+  stepCount: { textAlign: 'center', color: '#94a3b8', fontSize: 13, marginBottom: 8 },
 
-  autoBar:     { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginBottom: 16, overflow: 'hidden' },
-  autoBarFill: { height: 6, backgroundColor: '#2563eb', borderRadius: 3 },
+  autoBar:     { height: 6, backgroundColor: '#e2e8f0', overflow: 'hidden' },
+  autoBarFill: { height: 6, backgroundColor: '#2563eb' },
+
+  bottomControls: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
 
   backBtn:     { paddingVertical: 16, paddingHorizontal: 18, borderRadius: 14, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', justifyContent: 'center' },
   backBtnText: { fontSize: 15, color: '#64748b', fontWeight: '600' },
@@ -595,4 +721,6 @@ const rs = StyleSheet.create({
   pauseBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   skipBtn:      { paddingVertical: 16, paddingHorizontal: 20, borderRadius: 14, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', justifyContent: 'center' },
   skipBtnText:  { color: '#64748b', fontSize: 15, fontWeight: '600' },
+
+  bannerContainer: { alignItems: 'center', backgroundColor: '#fff', paddingBottom: Platform.OS === 'ios' ? 4 : 0 },
 });

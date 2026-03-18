@@ -73,15 +73,18 @@ let isAdMobAvailable = false;
 
 try {
   const adMobModule = require('react-native-google-mobile-ads');
-  mobileAds = adMobModule.default;
+  console.log('📺 AdMob module keys:', Object.keys(adMobModule));
+  mobileAds = adMobModule.default || adMobModule.mobileAds;
   BannerAd = adMobModule.BannerAd;
   BannerAdSize = adMobModule.BannerAdSize;
   TestIds = adMobModule.TestIds;
   InterstitialAd = adMobModule.InterstitialAd;
   AdEventType = adMobModule.AdEventType;
+  console.log('📺 AdMob exports — mobileAds:', !!mobileAds, 'InterstitialAd:', !!InterstitialAd, 'TestIds:', !!TestIds);
   isAdMobAvailable = true;
+  console.log('📺 ✅ AdMob available = true');
 } catch (e) {
-  console.log('AdMob not available (running in Expo Go)');
+  console.log('📺 ❌ AdMob require FAILED:', e?.message || String(e));
 }
 
 // AdMob Banner Ad Unit ID - use test ID in development
@@ -949,17 +952,20 @@ function App() {
   useEffect(() => {
     checkStoredAuth();
     
+    // Log execution environment for debugging
+    console.log('📺 Execution env:', Constants.executionEnvironment, '| isAdMobAvailable:', isAdMobAvailable);
+
     // Initialize AdMob (only if available - not in Expo Go)
     if (isAdMobAvailable && mobileAds) {
       mobileAds()
         .initialize()
         .then(adapterStatuses => {
-          console.log('AdMob initialized:', adapterStatuses);
+          console.log('📺 AdMob initialized OK:', JSON.stringify(adapterStatuses));
           // Load the first interstitial ad after initialization
           loadInterstitialAd();
         })
         .catch(error => {
-          console.log('AdMob initialization error:', error);
+          console.log('📺 AdMob initialization error:', error?.message || error);
         });
     }
     

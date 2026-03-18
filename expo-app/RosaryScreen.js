@@ -23,13 +23,14 @@ try {
         : 'ca-app-pub-9861737616974560/9395514909');
 } catch (_) {}
 
-// ─── Music Options ────────────────────────────────────────────────────────────
+// ─── Music Options (streaming from Internet Archive — public domain) ──────────
+const ARCHIVE_BASE = 'https://archive.org/download/100ClassicalMusicMasterpieces/';
 const MUSIC_OPTIONS = [
-  { key: 'off',       label: 'Off',       emoji: '🔇', file: null },
-  { key: 'cathedral', label: 'Cathedral', emoji: '⛪', file: require('./assets/resonant-cathedral.mp3') },
-  { key: 'choir',     label: 'Choir',     emoji: '🎵', file: require('./assets/angelic-choir.mp3') },
-  { key: 'bells',     label: 'Bells',     emoji: '🔔', file: require('./assets/celestial-bells.mp3') },
-  { key: 'harp',      label: 'Harp',      emoji: '🎶', file: require('./assets/golden-harp.mp3') },
+  { key: 'off',     label: 'Off',          emoji: '🔇', uri: null },
+  { key: 'air',     label: 'Bach – Air',   emoji: '🕊️', uri: ARCHIVE_BASE + '1727%20Bach%20%2C%20Air%20%28from%20Orchestral%20Suite%20No.%203%20in%20D%29.mp3' },
+  { key: 'canon',   label: 'Canon in D',   emoji: '📿', uri: ARCHIVE_BASE + '1698%20Pachelbel%20%2C%20Canon%20in%20D.mp3' },
+  { key: 'handel',  label: 'Water Music',  emoji: '💧', uri: ARCHIVE_BASE + '1717%20Handel%20%2C%20Water%20Music%2C%20Suite%20No.%202%20in%20D.mp3' },
+  { key: 'vivaldi', label: 'Four Seasons', emoji: '🌸', uri: ARCHIVE_BASE + '1725%20Vivaldi%20%2C%20The%20Four%20Seasons%20-%20Spring.mp3' },
 ];
 
 // ─── Mystery Data ────────────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const [mysteryType, setMysteryType] = useState(getTodaysMystery());
   const [playMode, setPlayMode]     = useState('manual');
   const [autoSpeed, setAutoSpeed]   = useState('medium');
-  const [musicChoice, setMusicChoice] = useState('cathedral');
+  const [musicChoice, setMusicChoice] = useState('air');
   const [isMuted, setIsMuted]       = useState(false);
   const [steps, setSteps]           = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -187,14 +188,13 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const loadMusic = async () => {
     await unloadMusic();
     const option = MUSIC_OPTIONS.find(o => o.key === musicChoice);
-    if (!option || !option.file) return;
+    if (!option || !option.uri) return;
     try {
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(option.file, {
-        shouldPlay: true,
-        isLooping: true,
-        volume: isMuted ? 0 : 0.35,
-      });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: option.uri },
+        { shouldPlay: true, isLooping: true, volume: isMuted ? 0 : 0.35 }
+      );
       soundRef.current = sound;
     } catch (e) {
       console.log('[Rosary] Music load error:', e);
@@ -635,7 +635,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const rs = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#f1f5f9' },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 54 : 44, paddingBottom: 16, paddingHorizontal: 16 },
+  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 64 : 52, paddingBottom: 22, paddingHorizontal: 16 },
   headerBack:   { padding: 8, minWidth: 48, alignItems: 'flex-start' },
   headerBackText: { fontSize: 22, color: '#fff', fontWeight: '600' },
   headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
@@ -712,7 +712,7 @@ const rs = StyleSheet.create({
   autoBar:     { height: 6, backgroundColor: '#e2e8f0', overflow: 'hidden' },
   autoBarFill: { height: 6, backgroundColor: '#2563eb' },
 
-  bottomControls: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  bottomControls: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 22, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
 
   backBtn:     { paddingVertical: 16, paddingHorizontal: 18, borderRadius: 14, backgroundColor: '#f1f5f9', borderWidth: 1.5, borderColor: '#e2e8f0', justifyContent: 'center' },
   backBtnText: { fontSize: 15, color: '#64748b', fontWeight: '600' },

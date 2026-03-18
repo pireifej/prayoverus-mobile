@@ -180,7 +180,6 @@ export default function PrayerDetailScreen({
   const swipeAnim = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const isSwipingRef = useRef(false);
   const isLoadingRef = useRef(false);
   const loadingTimeoutRef = useRef(null);
   
@@ -201,105 +200,54 @@ export default function PrayerDetailScreen({
     canGoNextRef.current = isInFeedList && index < prayerIds.length - 1;
   }, [isInFeedList, index, prayerIds]);
   
-  // PanResponder for swipe gestures
+  // PanResponder for swipe gestures — Rosary-style: detect threshold on release only,
+  // no per-frame move tracking, so the JS thread stays free and swipes feel native-smooth.
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Block swipes while loading to prevent race conditions
-        if (isLoadingRef.current) {
-          return false;
-        }
-        // Only respond to horizontal swipes (more horizontal than vertical)
-        const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
-        const isSignificantMove = Math.abs(gestureState.dx) > 10;
-        return isHorizontalSwipe && isSignificantMove;
+      onMoveShouldSetPanResponder: (_, gs) => {
+        if (isLoadingRef.current) return false;
+        return Math.abs(gs.dx) > 15 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.8;
       },
-      onPanResponderGrant: () => {
-        isSwipingRef.current = true;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        // Limit swipe distance and add resistance at edges
-        let dx = gestureState.dx;
-        
-        // Add resistance if can't navigate in that direction
-        if (dx > 0 && !canGoPreviousRef.current) {
-          dx = dx * 0.3; // Resistance when swiping right but can't go previous
-        }
-        if (dx < 0 && !canGoNextRef.current) {
-          dx = dx * 0.3; // Resistance when swiping left but can't go next
-        }
-        
-        swipeAnim.setValue(dx);
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        isSwipingRef.current = false;
-        
-        if (gestureState.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
-          // Swipe right - go to previous
-          // Show loading overlay immediately
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
           setIsLoadingNewPrayer(true);
           isLoadingRef.current = true;
-          
-          Animated.timing(swipeAnim, {
-            toValue: SCREEN_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            // Reset all animations to default
-            swipeAnim.setValue(0);
-            slideAnim.setValue(0);
-            contentOpacity.setValue(1);
-            // Navigate to previous - use refs to get current values
-            const currentIdx = indexRef.current;
-            const ids = prayerIdsRef.current;
-            const newIndex = currentIdx - 1;
-            setIndex(newIndex);
-            if (onNavigate && ids[newIndex] !== undefined) {
-              onNavigate(ids[newIndex], newIndex);
-            }
-          });
-        } else if (gestureState.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
-          // Swipe left - go to next
-          // Show loading overlay immediately
-          setIsLoadingNewPrayer(true);
-          isLoadingRef.current = true;
-          
           Animated.timing(swipeAnim, {
             toValue: -SCREEN_WIDTH,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
-            // Reset all animations to default
             swipeAnim.setValue(0);
             slideAnim.setValue(0);
             contentOpacity.setValue(1);
-            // Navigate to next - use refs to get current values
-            const currentIdx = indexRef.current;
+            const newIndex = indexRef.current + 1;
             const ids = prayerIdsRef.current;
-            const newIndex = currentIdx + 1;
             setIndex(newIndex);
             if (onNavigate && ids[newIndex] !== undefined) {
               onNavigate(ids[newIndex], newIndex);
             }
           });
-        } else {
-          // Snap back
-          Animated.spring(swipeAnim, {
-            toValue: 0,
+        } else if (gs.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
+          setIsLoadingNewPrayer(true);
+          isLoadingRef.current = true;
+          Animated.timing(swipeAnim, {
+            toValue: SCREEN_WIDTH,
+            duration: 200,
             useNativeDriver: true,
-            tension: 100,
-            friction: 10,
-          }).start();
+          }).start(() => {
+            swipeAnim.setValue(0);
+            slideAnim.setValue(0);
+            contentOpacity.setValue(1);
+            const newIndex = indexRef.current - 1;
+            const ids = prayerIdsRef.current;
+            setIndex(newIndex);
+            if (onNavigate && ids[newIndex] !== undefined) {
+              onNavigate(ids[newIndex], newIndex);
+            }
+          });
         }
       },
-      onPanResponderTerminate: () => {
-        isSwipingRef.current = false;
-        Animated.spring(swipeAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      },
+      onPanResponderTerminate: () => {},
     })
   ).current;
   
@@ -487,7 +435,37 @@ export default function PrayerDetailScreen({
       isInitialLoadRef.current = false;
     }
   }, [requestId, index]);
-  
+
+  // Pre-fetch adjacent prayers silently so swipe navigation is instant from cache
+  useEffect(() => {
+    if (!prayerIds.length || index < 0) return;
+    const prefetch = async (id) => {
+      if (!id || prayerCacheRef.current[id]) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/getRequestById`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': API_AUTH },
+          body: JSON.stringify({ requestId: id, userId, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York' }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.error === 0 && data.request) {
+          const r = data.request;
+          prayerCacheRef.current[id] = {
+            id: r.request_id, title: r.request_title, content: r.request_text,
+            author: r.real_name || r.user_name, real_name: r.real_name,
+            picture: r.request_picture, date: r.timestamp, category: null,
+            prayer_count: r.prayer_count || 0, user_has_prayed: r.user_has_prayed || false,
+            prayed_by_people: r.prayed_by_people || (r.prayed_by_names || []).map(n => ({ name: n, picture: null })),
+            user_picture: r.user_picture, church_id: r.church_id, my_church_only: r.my_church_only,
+          };
+        }
+      } catch (_) {}
+    };
+    if (index + 1 < prayerIds.length) prefetch(prayerIds[index + 1]);
+    if (index + 2 < prayerIds.length) prefetch(prayerIds[index + 2]);
+  }, [index]);
+
   const handlePrevious = () => {
     if (index > 0) {
       const newIndex = index - 1;

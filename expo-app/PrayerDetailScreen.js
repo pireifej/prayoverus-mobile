@@ -209,42 +209,33 @@ export default function PrayerDetailScreen({
         return Math.abs(gs.dx) > 15 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.8;
       },
       onPanResponderRelease: (_, gs) => {
+        const navigate = (newIndex) => {
+          isLoadingRef.current = true;
+          const ids = prayerIdsRef.current;
+          Animated.timing(contentOpacity, {
+            toValue: 0,
+            duration: 120,
+            useNativeDriver: true,
+          }).start(() => {
+            swipeAnim.setValue(0);
+            slideAnim.setValue(0);
+            setIsLoadingNewPrayer(true);
+            setIndex(newIndex);
+            if (onNavigate && ids[newIndex] !== undefined) {
+              onNavigate(ids[newIndex], newIndex);
+            }
+            Animated.timing(contentOpacity, {
+              toValue: 1,
+              duration: 120,
+              useNativeDriver: true,
+            }).start();
+          });
+        };
+
         if (gs.dx < -SWIPE_THRESHOLD && canGoNextRef.current) {
-          setIsLoadingNewPrayer(true);
-          isLoadingRef.current = true;
-          Animated.timing(swipeAnim, {
-            toValue: -SCREEN_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            swipeAnim.setValue(0);
-            slideAnim.setValue(0);
-            contentOpacity.setValue(1);
-            const newIndex = indexRef.current + 1;
-            const ids = prayerIdsRef.current;
-            setIndex(newIndex);
-            if (onNavigate && ids[newIndex] !== undefined) {
-              onNavigate(ids[newIndex], newIndex);
-            }
-          });
+          navigate(indexRef.current + 1);
         } else if (gs.dx > SWIPE_THRESHOLD && canGoPreviousRef.current) {
-          setIsLoadingNewPrayer(true);
-          isLoadingRef.current = true;
-          Animated.timing(swipeAnim, {
-            toValue: SCREEN_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            swipeAnim.setValue(0);
-            slideAnim.setValue(0);
-            contentOpacity.setValue(1);
-            const newIndex = indexRef.current - 1;
-            const ids = prayerIdsRef.current;
-            setIndex(newIndex);
-            if (onNavigate && ids[newIndex] !== undefined) {
-              onNavigate(ids[newIndex], newIndex);
-            }
-          });
+          navigate(indexRef.current - 1);
         }
       },
       onPanResponderTerminate: () => {},

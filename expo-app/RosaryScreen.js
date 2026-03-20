@@ -5,6 +5,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FONT_SIZES   = [15, 18, 21, 25, 30];
+const LINE_HEIGHTS = [23, 27, 34, 40, 48];
+const FONT_LABELS  = ['ᴬ', 'A', 'A', 'A', 'A'];
+const FONT_WEIGHTS = ['400', '400', '400', '600', '700'];
 
 // ─── AdMob (same conditional-import pattern as App.js) ────────────────────────
 let BannerAd, BannerAdSize, TestIds;
@@ -148,8 +154,11 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPaused, setIsPaused]     = useState(false);
   const [startTime, setStartTime]   = useState(null);
+  const [fontSizeIdx, setFontSizeIdx] = useState(2);
 
   const progressAnim    = useRef(new Animated.Value(0)).current;
+  const nudgeAnim       = useRef(new Animated.Value(0)).current;
+  const hasNudged       = useRef(false);
   const progressAnimRef = useRef(null);
   const autoTimerRef    = useRef(null);
   const soundRef        = useRef(null);
@@ -159,6 +168,33 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const goBackRef  = useRef(null);
 
   useEffect(() => { setSteps(generateSteps(mysteryType)); }, [mysteryType]);
+
+  // ── Load saved font size ──────────────────────────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem('@rosary_font_size').then(v => {
+      if (v !== null) setFontSizeIdx(parseInt(v));
+    }).catch(() => {});
+  }, []);
+
+  const changeFontSize = (idx) => {
+    setFontSizeIdx(idx);
+    AsyncStorage.setItem('@rosary_font_size', String(idx)).catch(() => {});
+  };
+
+  // ── Nudge animation: play once when praying screen first opens ────────────
+  useEffect(() => {
+    if (screen !== 'praying' || hasNudged.current) return;
+    hasNudged.current = true;
+    setTimeout(() => {
+      Animated.sequence([
+        Animated.timing(nudgeAnim, { toValue: -28, duration: 220, useNativeDriver: true }),
+        Animated.spring(nudgeAnim,  { toValue: 0,   useNativeDriver: true, tension: 120, friction: 7 }),
+        Animated.delay(250),
+        Animated.timing(nudgeAnim, { toValue: 28,  duration: 220, useNativeDriver: true }),
+        Animated.spring(nudgeAnim,  { toValue: 0,   useNativeDriver: true, tension: 120, friction: 7 }),
+      ]).start();
+    }, 600);
+  }, [screen]);
 
   // ── Music: load / unload when screen or music choice changes ──────────────
   useEffect(() => {
@@ -434,12 +470,12 @@ export default function RosaryScreen({ onExit, onComplete }) {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             disabled={musicChoice === 'off'}
           >
-            <Text style={{ fontSize: 18 }}>{musicChoice === 'off' ? '🔇' : isMuted ? '🔇' : '🎵'}</Text>
-            {musicChoice !== 'off' && (
-              <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-                {isMuted ? 'Muted' : musicLabel}
+            <View style={[rs.muteBtnInner, musicChoice !== 'off' && !isMuted && rs.muteBtnActive]}>
+              <Text style={{ fontSize: 22 }}>{musicChoice === 'off' ? '🔇' : isMuted ? '🔇' : '🎵'}</Text>
+              <Text style={{ fontSize: 10, color: musicChoice === 'off' ? 'rgba(255,255,255,0.4)' : '#fff', marginTop: 2, fontWeight: '600' }}>
+                {musicChoice === 'off' ? 'Off' : isMuted ? 'Muted' : 'Mute'}
               </Text>
-            )}
+            </View>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -453,11 +489,21 @@ export default function RosaryScreen({ onExit, onComplete }) {
           {[0, 1, 2, 3, 4, 5, 6].map((d) => {
             const active = d === currentDecade;
             const done   = d < currentDecade;
-            if (d === 0 || d === 6) {
+            if (d === 0) {
               return (
                 <View key={d} style={[rs.decadeSmall, done && rs.decadeDone, active && rs.decadeActive]}>
-                  <Text style={{ fontSize: 9, color: active ? '#fff' : done ? '#93c5fd' : '#94a3b8' }}>{d === 0 ? '✝' : '🙏'}</Text>
+                  <Text style={{ fontSize: 9, color: active ? '#fff' : done ? '#93c5fd' : '#94a3b8' }}>✝</Text>
                 </View>
+              );
+            }
+            if (d === 6) {
+              return (
+                <React.Fragment key={d}>
+                  <View style={rs.decadeGap} />
+                  <View style={[rs.decadeSmall, done && rs.decadeDone, active && rs.decadeActive]}>
+                    <Text style={{ fontSize: 14 }}>🙏</Text>
+                  </View>
+                </React.Fragment>
               );
             }
             return (
@@ -483,27 +529,45 @@ export default function RosaryScreen({ onExit, onComplete }) {
           </View>
         )}
 
-        {/* Swipe hint */}
-        <Text style={rs.swipeHint}>← swipe to go back or forward →</Text>
+        {/* Scrollable prayer content with nudge animation + side swipe arrows */}
+        <View style={{ flex: 1 }}>
+          <Animated.View style={{ flex: 1, transform: [{ translateX: nudgeAnim }] }}>
+            <ScrollView style={rs.scroll} contentContainerStyle={[rs.scrollContent, { paddingBottom: 16 }]} showsVerticalScrollIndicator={false}>
+              {step.isAnnouncement ? (
+                <View style={rs.announceCard}>
+                  <Text style={rs.announceDecade}>{step.title}</Text>
+                  <Text style={rs.announceMystery}>{step.mysteryName}</Text>
+                  <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 14 }} />
+                  <Text style={[rs.announceMeditation, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text.split('\n\n')[1]}</Text>
+                </View>
+              ) : (
+                <View style={rs.prayerCard}>
+                  <Text style={rs.prayerTitle}>{step.title}</Text>
+                  <View style={rs.prayerDivider} />
+                  <Text style={[rs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
+                </View>
+              )}
+              <Text style={rs.stepCount}>Prayer {currentStep + 1} of {totalSteps}</Text>
+            </ScrollView>
+          </Animated.View>
 
-        {/* Scrollable prayer content */}
-        <ScrollView style={rs.scroll} contentContainerStyle={[rs.scrollContent, { paddingBottom: 16 }]} showsVerticalScrollIndicator={false}>
-          {step.isAnnouncement ? (
-            <View style={rs.announceCard}>
-              <Text style={rs.announceDecade}>{step.title}</Text>
-              <Text style={rs.announceMystery}>{step.mysteryName}</Text>
-              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 14 }} />
-              <Text style={rs.announceMeditation}>{step.text.split('\n\n')[1]}</Text>
-            </View>
-          ) : (
-            <View style={rs.prayerCard}>
-              <Text style={rs.prayerTitle}>{step.title}</Text>
-              <View style={rs.prayerDivider} />
-              <Text style={rs.prayerText}>{step.text}</Text>
-            </View>
-          )}
-          <Text style={rs.stepCount}>Prayer {currentStep + 1} of {totalSteps}</Text>
-        </ScrollView>
+          {/* Side swipe arrows — tap OR swipe */}
+          <TouchableOpacity
+            style={[rs.sideArrow, rs.sideArrowLeft, currentStep === 0 && { opacity: 0.2 }]}
+            onPress={goBack}
+            disabled={currentStep === 0}
+            activeOpacity={0.7}
+          >
+            <Text style={rs.sideArrowText}>‹</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[rs.sideArrow, rs.sideArrowRight]}
+            onPress={isLastStep ? finishRosary : advance}
+            activeOpacity={0.7}
+          >
+            <Text style={rs.sideArrowText}>{isLastStep ? '✓' : '›'}</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Auto-play progress bar (above buttons, outside scroll) */}
         {playMode === 'auto' && (
@@ -511,6 +575,15 @@ export default function RosaryScreen({ onExit, onComplete }) {
             <Animated.View style={[rs.autoBarFill, { width: autoBarWidth }]} />
           </View>
         )}
+
+        {/* ── Font size selector ── */}
+        <View style={rs.fontSizeRow}>
+          {FONT_SIZES.map((_, idx) => (
+            <TouchableOpacity key={idx} onPress={() => changeFontSize(idx)} style={[rs.fontSizeBtn, fontSizeIdx === idx && rs.fontSizeBtnActive]} activeOpacity={0.7}>
+              <Text style={[rs.fontSizeBtnText, { fontSize: 10 + idx * 3 }, fontSizeIdx === idx && rs.fontSizeBtnTextActive]}>A</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* ── Fixed bottom controls ── */}
         <View style={rs.bottomControls}>
@@ -639,7 +712,9 @@ const rs = StyleSheet.create({
   headerBackText: { fontSize: 22, color: '#fff', fontWeight: '600' },
   headerTitle:  { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
   headerSub:    { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  muteBtn:      { minWidth: 48, alignItems: 'center', padding: 4 },
+  muteBtn:       { minWidth: 52, alignItems: 'center', padding: 4 },
+  muteBtnInner:  { alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)' },
+  muteBtnActive: { borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)' },
 
   scroll:        { flex: 1 },
   scrollContent: { padding: 16 },
@@ -680,9 +755,8 @@ const rs = StyleSheet.create({
   overallBar:     { height: 8, backgroundColor: '#e2e8f0' },
   overallBarFill: { height: 8, backgroundColor: '#f59e0b' },
 
-  swipeHint: { textAlign: 'center', fontSize: 11, color: '#cbd5e1', paddingVertical: 4, backgroundColor: '#fff' },
-
   decadeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  decadeGap:      { width: 20 },
   decadeDot:      { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
   decadeSmall:    { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#e2e8f0' },
   decadeActive:   { backgroundColor: '#2563eb', borderColor: '#2563eb' },
@@ -722,4 +796,15 @@ const rs = StyleSheet.create({
   skipBtnText:  { color: '#64748b', fontSize: 15, fontWeight: '600' },
 
   bannerContainer: { alignItems: 'center', backgroundColor: '#fff', paddingBottom: Platform.OS === 'ios' ? 4 : 0 },
+
+  sideArrow:      { position: 'absolute', top: '35%', width: 44, height: 64, borderRadius: 32, backgroundColor: 'rgba(37,99,235,0.18)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+  sideArrowLeft:  { left: 4 },
+  sideArrowRight: { right: 4 },
+  sideArrowText:  { fontSize: 38, color: '#2563eb', fontWeight: '300', lineHeight: 46, marginTop: -2 },
+
+  fontSizeRow:         { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#f8fafc', borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  fontSizeBtn:         { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e2e8f0' },
+  fontSizeBtnActive:   { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  fontSizeBtnText:     { color: '#64748b', fontWeight: '600' },
+  fontSizeBtnTextActive: { color: '#fff' },
 });

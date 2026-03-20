@@ -471,7 +471,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
             disabled={musicChoice === 'off'}
           >
             <View style={[rs.muteBtnInner, musicChoice !== 'off' && !isMuted && rs.muteBtnActive]}>
-              <Text style={{ fontSize: 22 }}>{musicChoice === 'off' ? '🔇' : isMuted ? '🔇' : '🎵'}</Text>
+              <Text style={{ fontSize: 24, color: musicChoice === 'off' || isMuted ? 'rgba(255,255,255,0.4)' : '#fff' }}>{musicChoice === 'off' || isMuted ? '♪' : '♫'}</Text>
               <Text style={{ fontSize: 10, color: musicChoice === 'off' ? 'rgba(255,255,255,0.4)' : '#fff', marginTop: 2, fontWeight: '600' }}>
                 {musicChoice === 'off' ? 'Off' : isMuted ? 'Muted' : 'Mute'}
               </Text>

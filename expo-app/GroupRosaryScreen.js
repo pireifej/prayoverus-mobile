@@ -141,10 +141,12 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
   // Computed
   const isHost   = userId && hostId && userId === hostId;
+  // Participant ID may come as p.id or p.userId from the server
+  const getPId = (p) => p?.id || p?.userId || p?.participantId;
+
   // Recompute decade assignments on the frontend — host never leads a decade,
   // only non-host participants rotate through decades 1-5 round-robin.
-  // This overrides whatever the server sends so the rule is always correct.
-  const nonHostIds = participants.filter(p => p.id !== hostId).map(p => p.id);
+  const nonHostIds = participants.filter(p => getPId(p) !== hostId).map(p => getPId(p));
   const localDecadeAssignments = {};
   for (let d = 1; d <= 5; d++) {
     if (nonHostIds.length > 0) {
@@ -158,6 +160,17 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
       ? (step.decade === 0 || step.decade === 6)
       : nonHostIds.includes(userId) && localDecadeAssignments[step.decade] === userId
   ) : false;
+
+  // Debug — logs on every step change so you can see what's happening
+  useEffect(() => {
+    if (screen === 'praying') {
+      console.log('🙏 DEBUG step:', currentStep, '| decade:', step?.decade, '| isHost:', isHost, '| isMyTurn:', isMyTurn);
+      console.log('🙏 DEBUG userId:', userId, '| hostId:', hostId);
+      console.log('🙏 DEBUG participants:', JSON.stringify(participants));
+      console.log('🙏 DEBUG nonHostIds:', JSON.stringify(nonHostIds));
+      console.log('🙏 DEBUG localDecadeAssignments:', JSON.stringify(localDecadeAssignments));
+    }
+  }, [currentStep, screen]);
   const totalSteps  = steps.length;
   const isLastStep  = currentStep >= totalSteps - 1;
   const progress    = totalSteps > 0 ? (currentStep + 1) / totalSteps : 0;
@@ -486,11 +499,11 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
   const leaderName = (() => {
     if (step.decade === 0 || step.decade === 6) {
-      const host = participants.find(p => p.id === hostId);
+      const host = participants.find(p => getPId(p) === hostId);
       return host ? pName(host) : 'Host';
     }
     const leaderId = localDecadeAssignments[step.decade];
-    const leader = participants.find(p => p.id === leaderId);
+    const leader = participants.find(p => getPId(p) === leaderId);
     return leader ? pName(leader) : '';
   })();
 
@@ -600,11 +613,11 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         {/* Participant mini-list */}
         <View style={gs.participantStrip}>
           {participants.slice(0, 6).map((p) => {
-            const isLeader = p.id === hostId
+            const isLeader = getPId(p) === hostId
               ? (step.decade === 0 || step.decade === 6)
-              : localDecadeAssignments[step.decade] === p.id;
+              : localDecadeAssignments[step.decade] === getPId(p);
             return (
-              <View key={p.id} style={[gs.stripAvatar, isLeader && gs.stripAvatarActive]}>
+              <View key={getPId(p)} style={[gs.stripAvatar, isLeader && gs.stripAvatarActive]}>
                 <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>
               </View>
             );

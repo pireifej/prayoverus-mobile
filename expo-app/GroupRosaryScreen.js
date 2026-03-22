@@ -136,6 +136,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const userIdRef = useRef(null);
   const roomCodeRef = useRef(null);
 
+  // Normalize participant name — server may use 'name' or 'userName'
+  const pName = (p) => p?.name || p?.userName || p?.displayName || '?';
+
   // Computed
   const isHost   = userId && hostId && userId === hostId;
   const myDecade = Object.entries(decadeAssignments).find(([, uid]) => uid === userId)?.[0];
@@ -390,9 +393,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
             {participants.map((p) => (
               <View key={p.id} style={gs.participantRow}>
                 <View style={[gs.participantAvatar, p.id === hostId && { backgroundColor: '#f59e0b' }]}>
-                  <Text style={gs.participantInitial}>{(p.name || '?')[0].toUpperCase()}</Text>
+                  <Text style={gs.participantInitial}>{pName(p)[0].toUpperCase()}</Text>
                 </View>
-                <Text style={gs.participantName}>{p.name || 'Unknown'}</Text>
+                <Text style={gs.participantName}>{pName(p)}</Text>
                 {p.id === hostId && <View style={gs.hostBadge}><Text style={gs.hostBadgeText}>HOST</Text></View>}
               </View>
             ))}
@@ -452,9 +455,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
           {participants.map((p) => (
             <View key={p.id} style={[gs.participantRow, { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, marginBottom: 6 }]}>
               <View style={[gs.participantAvatar, { backgroundColor: '#2563eb' }]}>
-                <Text style={gs.participantInitial}>{(p.name || '?')[0].toUpperCase()}</Text>
+                <Text style={gs.participantInitial}>{pName(p)[0].toUpperCase()}</Text>
               </View>
-              <Text style={[gs.participantName, { color: '#fff' }]}>{p.name}</Text>
+              <Text style={[gs.participantName, { color: '#fff' }]}>{pName(p)}</Text>
             </View>
           ))}
         </View>
@@ -473,11 +476,11 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const leaderName = (() => {
     if (step.decade === 0 || step.decade === 6) {
       const host = participants.find(p => p.id === hostId);
-      return host ? host.name : 'Host';
+      return host ? pName(host) : 'Host';
     }
     const leaderId = decadeAssignments[String(step.decade)];
     const leader = participants.find(p => p.id === leaderId);
-    return leader ? leader.name : '';
+    return leader ? pName(leader) : '';
   })();
 
   return (
@@ -591,7 +594,7 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
               : decadeAssignments[String(step.decade)] === p.id;
             return (
               <View key={p.id} style={[gs.stripAvatar, isLeader && gs.stripAvatarActive]}>
-                <Text style={gs.stripInitial}>{(p.name || '?')[0].toUpperCase()}</Text>
+                <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>
               </View>
             );
           })}

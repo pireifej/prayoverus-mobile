@@ -221,6 +221,7 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         break;
 
       case 'room_updated':
+        console.log('🙏 room_updated participants:', JSON.stringify(msg.participants));
         setParticipants(msg.participants || []);
         setHostId(msg.hostId);
         break;

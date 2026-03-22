@@ -158,10 +158,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
     }).catch(() => {});
   }, []);
 
-  // Pulse animation when it's your turn
+  // Pulse animation — start/stop when turn changes
   useEffect(() => {
     if (isMyTurn && !prevMyTurn.current) {
-      Vibration.vibrate(400);
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 0.35, duration: 700, useNativeDriver: true }),
@@ -175,6 +174,13 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
     }
     prevMyTurn.current = isMyTurn;
   }, [isMyTurn]);
+
+  // Vibrate on every step advance when it's your turn to read
+  useEffect(() => {
+    if (isMyTurn && currentStep > 0) {
+      Vibration.vibrate(300);
+    }
+  }, [currentStep]);
 
   // Cleanup WS on unmount
   useEffect(() => {

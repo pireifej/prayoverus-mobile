@@ -5634,16 +5634,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   communityPrayerCard: {
-    backgroundColor: 'white',
     padding: 20,
-    marginHorizontal: 12,
-    marginVertical: 6,
-    borderRadius: 16,
-    shadowColor: '#1e3a5f',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
   },
   prayerTitle: {
     fontSize: 18,

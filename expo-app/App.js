@@ -9,6 +9,7 @@ import { LoginScreen, ForgotPasswordScreen, ResetPasswordScreen } from './UserAu
 import NotificationService from './NotificationService';
 import PrayerDetailScreen from './PrayerDetailScreen';
 import RosaryScreen from './RosaryScreen';
+import GroupRosaryScreen from './GroupRosaryScreen';
 import { Buffer } from 'buffer';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
@@ -3283,6 +3284,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  if (currentScreen === 'groupRosary') {
+    return (
+      <GroupRosaryScreen
+        onExit={() => setCurrentScreen('groups')}
+        currentUser={user}
+      />
+    );
+  }
+
   if (currentScreen === 'groups') {
     return (
       <View style={styles.container}>
@@ -3302,23 +3312,41 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           style={{ flex: 1, backgroundColor: '#f1f5f9' }}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         >
-          {/* Rosary card */}
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>PRAYER</Text>
-          <TouchableOpacity
-            onPress={() => setCurrentScreen('soloRosary')}
-            activeOpacity={0.85}
-          >
+          {/* Rosary cards */}
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>ROSARY</Text>
+
+          {/* Solo Rosary */}
+          <TouchableOpacity onPress={() => setCurrentScreen('soloRosary')} activeOpacity={0.85}>
             <LinearGradient
               colors={['#1e3a5f', '#2563eb']}
-              style={{ borderRadius: 18, padding: 24, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16 }}
+              style={{ borderRadius: 18, padding: 24, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 16 }}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               <Text style={{ fontSize: 48 }}>📿</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Pray the Rosary</Text>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Solo Rosary</Text>
                 <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 20 }}>
-                  Solo guided Rosary — all 5 decades, manual or auto-play. Group Rosary coming soon.
+                  Guided through all 5 decades — manual or auto-play with music.
+                </Text>
+              </View>
+              <Text style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)' }}>›</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Group Rosary */}
+          <TouchableOpacity onPress={() => setCurrentScreen('groupRosary')} activeOpacity={0.85} style={{ marginBottom: 20 }}>
+            <LinearGradient
+              colors={['#78350f', '#d97706', '#f59e0b']}
+              style={{ borderRadius: 18, padding: 24, flexDirection: 'row', alignItems: 'center', gap: 16 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={{ fontSize: 48 }}>🕯️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Group Rosary</Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>
+                  Pray together in the same room — host leads, everyone stays in sync.
                 </Text>
               </View>
               <Text style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)' }}>›</Text>
@@ -3326,7 +3354,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
 
           {/* Coming soon placeholder */}
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10, marginTop: 4 }}>GROUPS</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>GROUPS</Text>
           <View style={{
             backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center',
             shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
@@ -3334,7 +3362,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={{ fontSize: 36, marginBottom: 10 }}>👥</Text>
             <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 6 }}>Prayer Groups Coming Soon</Text>
             <Text style={{ fontSize: 14, color: '#64748b', textAlign: 'center', lineHeight: 21 }}>
-              Join your church group, share a prayer feed, and eventually pray the Rosary together in real time.
+              Join your church group, share a prayer feed, and pray the Rosary together in real time.
             </Text>
           </View>
         </ScrollView>

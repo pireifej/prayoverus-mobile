@@ -3288,7 +3288,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return (
       <GroupRosaryScreen
         onExit={() => setCurrentScreen('groups')}
-        currentUser={user}
+        currentUser={currentUser}
       />
     );
   }

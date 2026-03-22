@@ -148,7 +148,7 @@ export default function RosaryScreen({ onExit, onComplete }) {
   const [mysteryType, setMysteryType] = useState(getTodaysMystery());
   const [playMode, setPlayMode]     = useState('manual');
   const [autoSpeed, setAutoSpeed]   = useState('medium');
-  const [musicChoice, setMusicChoice] = useState('jesu');
+  const [musicChoice, setMusicChoice] = useState('off');
   const [isMuted, setIsMuted]       = useState(false);
   const [steps, setSteps]           = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -585,6 +585,17 @@ export default function RosaryScreen({ onExit, onComplete }) {
           ))}
         </View>
 
+        {/* ── Banner Ad (between prayer text and next button) ── */}
+        {isAdMobAvailable && BannerAd && ROSARY_BANNER_ID && (
+          <View style={rs.bannerContainer}>
+            <BannerAd
+              unitId={ROSARY_BANNER_ID}
+              size={BannerAdSize.BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+            />
+          </View>
+        )}
+
         {/* ── Fixed bottom controls ── */}
         <View style={rs.bottomControls}>
           {playMode === 'manual' ? (
@@ -619,16 +630,6 @@ export default function RosaryScreen({ onExit, onComplete }) {
           )}
         </View>
 
-        {/* ── Banner Ad (below buttons, at very bottom) ── */}
-        {isAdMobAvailable && BannerAd && ROSARY_BANNER_ID && (
-          <View style={rs.bannerContainer}>
-            <BannerAd
-              unitId={ROSARY_BANNER_ID}
-              size={BannerAdSize.BANNER}
-              requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-            />
-          </View>
-        )}
       </View>
     );
   }

@@ -141,12 +141,22 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
   // Computed
   const isHost   = userId && hostId && userId === hostId;
-  const myDecade = Object.entries(decadeAssignments).find(([, uid]) => uid === userId)?.[0];
+  // Recompute decade assignments on the frontend — host never leads a decade,
+  // only non-host participants rotate through decades 1-5 round-robin.
+  // This overrides whatever the server sends so the rule is always correct.
+  const nonHostIds = participants.filter(p => p.id !== hostId).map(p => p.id);
+  const localDecadeAssignments = {};
+  for (let d = 1; d <= 5; d++) {
+    if (nonHostIds.length > 0) {
+      localDecadeAssignments[d] = nonHostIds[(d - 1) % nonHostIds.length];
+    }
+  }
+
   const step     = steps[currentStep] || null;
   const isMyTurn = step ? (
     isHost
       ? (step.decade === 0 || step.decade === 6)
-      : myDecade && parseInt(myDecade) === step.decade
+      : nonHostIds.includes(userId) && localDecadeAssignments[step.decade] === userId
   ) : false;
   const totalSteps  = steps.length;
   const isLastStep  = currentStep >= totalSteps - 1;
@@ -479,7 +489,7 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
       const host = participants.find(p => p.id === hostId);
       return host ? pName(host) : 'Host';
     }
-    const leaderId = decadeAssignments[String(step.decade)];
+    const leaderId = localDecadeAssignments[step.decade];
     const leader = participants.find(p => p.id === leaderId);
     return leader ? pName(leader) : '';
   })();
@@ -592,7 +602,7 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
           {participants.slice(0, 6).map((p) => {
             const isLeader = p.id === hostId
               ? (step.decade === 0 || step.decade === 6)
-              : decadeAssignments[String(step.decade)] === p.id;
+              : localDecadeAssignments[step.decade] === p.id;
             return (
               <View key={p.id} style={[gs.stripAvatar, isLeader && gs.stripAvatarActive]}>
                 <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>

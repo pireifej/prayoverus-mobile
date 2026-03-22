@@ -161,16 +161,6 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
       : nonHostIds.includes(userId) && localDecadeAssignments[step.decade] === userId
   ) : false;
 
-  // Debug — logs on every step change so you can see what's happening
-  useEffect(() => {
-    if (screen === 'praying') {
-      console.log('🙏 DEBUG step:', currentStep, '| decade:', step?.decade, '| isHost:', isHost, '| isMyTurn:', isMyTurn);
-      console.log('🙏 DEBUG userId:', userId, '| hostId:', hostId);
-      console.log('🙏 DEBUG participants:', JSON.stringify(participants));
-      console.log('🙏 DEBUG nonHostIds:', JSON.stringify(nonHostIds));
-      console.log('🙏 DEBUG localDecadeAssignments:', JSON.stringify(localDecadeAssignments));
-    }
-  }, [currentStep, screen]);
   const totalSteps  = steps.length;
   const isLastStep  = currentStep >= totalSteps - 1;
   const progress    = totalSteps > 0 ? (currentStep + 1) / totalSteps : 0;

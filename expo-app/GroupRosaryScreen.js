@@ -77,32 +77,46 @@ const PRAYERS = {
   finalPrayer:   { title: 'Closing Prayer',      text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen.", leaderOnly: true },
 };
 
+// Prayers with call/response get split into two consecutive steps: 'call' then 'response'.
+// Prayers marked leaderOnly (or announcements) remain a single step.
+const pushPrayer = (steps, id, prayer, section, decade) => {
+  if (prayer.call && prayer.response && !prayer.leaderOnly) {
+    steps.push({ id: `${id}-c`, ...prayer, phase: 'call',     section, decade });
+    steps.push({ id: `${id}-r`, ...prayer, phase: 'response', section, decade });
+  } else {
+    steps.push({ id, ...prayer, section, decade });
+  }
+};
+
 const generateSteps = (mysteryTypeKey) => {
   const mt = MYSTERY_TYPES[mysteryTypeKey] || MYSTERY_TYPES.joyful;
   const steps = [];
   const ordinals = ['1st', '2nd', '3rd', '4th', '5th'];
-  steps.push({ id: 'open-soc',   ...PRAYERS.signOfCross,   section: 'Opening Prayers', decade: 0 });
+
+  pushPrayer(steps, 'open-soc',   PRAYERS.signOfCross,   'Opening Prayers', 0);
   steps.push({ id: 'open-creed', ...PRAYERS.apostlesCreed, section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-of',    ...PRAYERS.ourFather,     section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-hm1',   ...PRAYERS.hailMary, title: 'Hail Mary — for Faith',   section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-hm2',   ...PRAYERS.hailMary, title: 'Hail Mary — for Hope',    section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-hm3',   ...PRAYERS.hailMary, title: 'Hail Mary — for Charity', section: 'Opening Prayers', decade: 0 });
-  steps.push({ id: 'open-gb',    ...PRAYERS.gloryBe,       section: 'Opening Prayers', decade: 0 });
+  pushPrayer(steps, 'open-of',    PRAYERS.ourFather,     'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm1',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Faith'    }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm2',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Hope'     }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm3',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Charity'  }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-gb',    PRAYERS.gloryBe,       'Opening Prayers', 0);
+
   for (let d = 0; d < 5; d++) {
     const mystery = mt.mysteries[d];
     const dec = d + 1;
     const shortMysteryType = mt.name.replace(' Mysteries', '');
     steps.push({ id: `d${dec}-announce`, title: `${ordinals[d]} ${shortMysteryType} Mystery`, text: mystery.name + '\n\n' + mystery.meditation, section: `Decade ${dec} of 5`, decade: dec, isAnnouncement: true });
-    steps.push({ id: `d${dec}-of`, ...PRAYERS.ourFather, section: `Decade ${dec} of 5`, decade: dec });
+    pushPrayer(steps, `d${dec}-of`, PRAYERS.ourFather, `Decade ${dec} of 5`, dec);
     for (let hm = 1; hm <= 10; hm++) {
-      steps.push({ id: `d${dec}-hm${hm}`, ...PRAYERS.hailMary, title: `Hail Mary ${hm} of 10`, section: `Decade ${dec} of 5`, decade: dec });
+      pushPrayer(steps, `d${dec}-hm${hm}`, { ...PRAYERS.hailMary, title: `Hail Mary ${hm} of 10` }, `Decade ${dec} of 5`, dec);
     }
-    steps.push({ id: `d${dec}-gb`,     ...PRAYERS.gloryBe,     section: `Decade ${dec} of 5`, decade: dec });
-    steps.push({ id: `d${dec}-fatima`, ...PRAYERS.fatimaPrayer, section: `Decade ${dec} of 5`, decade: dec });
+    pushPrayer(steps, `d${dec}-gb`,     PRAYERS.gloryBe,     `Decade ${dec} of 5`, dec);
+    pushPrayer(steps, `d${dec}-fatima`, PRAYERS.fatimaPrayer, `Decade ${dec} of 5`, dec);
   }
+
   steps.push({ id: 'close-hhq', ...PRAYERS.hailHolyQueen, section: 'Closing Prayers', decade: 6 });
   steps.push({ id: 'close-fp',  ...PRAYERS.finalPrayer,   section: 'Closing Prayers', decade: 6 });
-  steps.push({ id: 'close-soc', ...PRAYERS.signOfCross,   section: 'Closing Prayers', decade: 6 });
+  pushPrayer(steps, 'close-soc', PRAYERS.signOfCross, 'Closing Prayers', 6);
   return steps;
 };
 
@@ -154,12 +168,10 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const getPId = (p) => p?.id || p?.userId || p?.participantId;
 
   const step = steps[currentStep] || null;
-  // Opening (decade 0) and closing (decade 6) are always led by the host.
-  // Decades 1-5 use the server-assigned currentLeaderId (rotates each decade).
-  const isLeader = step
-    ? (step.decade === 0 || step.decade === 6 ? isHost : userId !== null && userId === currentLeaderId)
-    : false;
-  const isMyTurn = isLeader;
+  // Host always leads — no rotation.
+  const isLeader = isHost;
+  // Non-host participants are "active" during the response phase.
+  const isResponding = !isHost && step?.phase === 'response';
 
   const totalSteps  = steps.length;
   const isLastStep  = currentStep >= totalSteps - 1;
@@ -174,9 +186,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
     }).catch(() => {});
   }, []);
 
-  // Pulse animation — start/stop when turn changes
+  // Pulse animation — fires for participants when the response phase begins
   useEffect(() => {
-    if (isMyTurn && !prevMyTurn.current) {
+    if (isResponding && !prevMyTurn.current) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 0.35, duration: 700, useNativeDriver: true }),
@@ -184,16 +196,16 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         ])
       );
       pulseLoop.current.start();
-    } else if (!isMyTurn && prevMyTurn.current) {
+    } else if (!isResponding && prevMyTurn.current) {
       pulseLoop.current?.stop();
       pulseAnim.setValue(1);
     }
-    prevMyTurn.current = isMyTurn;
-  }, [isMyTurn]);
+    prevMyTurn.current = isResponding;
+  }, [isResponding]);
 
-  // Vibrate on every step advance when it's your turn to read
+  // Vibrate for participants when the group's response phase starts
   useEffect(() => {
-    if (isMyTurn && currentStep > 0) {
+    if (isResponding) {
       Vibration.vibrate(300);
     }
   }, [currentStep]);
@@ -290,12 +302,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   };
 
   const advance = () => {
-    if (!isLeader) return;
+    if (!isHost) return;
     if (isLastStep) { setScreen('complete'); return; }
-    // If ending a rosary decade (1-5), tell the server so it rotates the leader.
-    const nextStep = steps[currentStep + 1];
-    const endingDecade = step && step.decade >= 1 && step.decade <= 5 && nextStep?.decade !== step.decade;
-    send({ type: endingDecade ? 'decade_complete' : 'advance_step' });
+    send({ type: 'advance_step' });
   };
 
   const goBack = () => {
@@ -495,11 +504,8 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   // ── Render: Praying ────────────────────────────────────────────────────────
   if (!step) return null;
 
-  const leaderName = (() => {
-    const effectiveLeaderId = (step.decade === 0 || step.decade === 6) ? hostId : currentLeaderId;
-    const leader = participants.find(p => getPId(p) === effectiveLeaderId);
-    return leader ? pName(leader) : 'Leader';
-  })();
+  const hostParticipant = participants.find(p => getPId(p) === hostId);
+  const hostName = hostParticipant ? pName(hostParticipant) : 'Host';
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -528,26 +534,29 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         <Text style={{ fontSize: 11, color: '#94a3b8' }}>{currentStep + 1} / {totalSteps}</Text>
       </View>
 
-      {/* YOUR TURN banner */}
-      {isMyTurn && (
-        <Animated.View style={[gs.yourTurnBanner, { opacity: pulseAnim }]}>
-          <Text style={gs.yourTurnText}>📢  YOUR TURN — READ ALOUD</Text>
-        </Animated.View>
-      )}
-
-      {/* Leader indicator (when not your turn) */}
-      {!isMyTurn && leaderName ? (
-        <View style={gs.leaderBanner}>
-          <Text style={gs.leaderText}>🗣  {leaderName} is leading</Text>
+      {/* Phase-aware status banner */}
+      {isHost ? (
+        <View style={[gs.yourTurnBanner, step?.phase === 'response' && gs.yourTurnBannerListen]}>
+          <Text style={gs.yourTurnText}>
+            {step?.phase === 'response' ? '🙏  Group responds in unison' : '📢  Read aloud — then tap Next for group response'}
+          </Text>
         </View>
-      ) : null}
+      ) : isResponding ? (
+        <Animated.View style={[gs.responseBanner, { opacity: pulseAnim }]}>
+          <Text style={gs.yourTurnText}>🙏  RESPOND IN UNISON</Text>
+        </Animated.View>
+      ) : (
+        <View style={gs.leaderBanner}>
+          <Text style={gs.leaderText}>🗣  {hostName} is leading</Text>
+        </View>
+      )}
 
       {/* Prayer content */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 16, gap: 12 }}>
         {step.isAnnouncement ? (
-          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
-            {isLeader && <Text style={gs.callRoleLabel}>📢  YOU ANNOUNCE</Text>}
-            {!isLeader && <Text style={gs.followRoleLabel}>🗣  {leaderName} is announcing</Text>}
+          <View style={[gs.prayerCard, isHost && gs.prayerCardActive]}>
+            {isHost && <Text style={gs.callRoleLabel}>📢  YOU ANNOUNCE</Text>}
+            {!isHost && <Text style={gs.followRoleLabel}>🗣  {hostName} is announcing</Text>}
             <Text style={[gs.announceMystery, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>
               {step.text?.split('\n\n')[0]}
             </Text>
@@ -558,31 +567,38 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
             )}
           </View>
         ) : step.leaderOnly ? (
-          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
-            {isLeader && <Text style={gs.callRoleLabel}>📢  YOU LEAD</Text>}
-            {!isLeader && <Text style={gs.followRoleLabel}>🗣  {leaderName} leads</Text>}
+          <View style={[gs.prayerCard, isHost && gs.prayerCardActive]}>
+            {isHost && <Text style={gs.callRoleLabel}>📢  YOU LEAD</Text>}
+            {!isHost && <Text style={gs.followRoleLabel}>🗣  {hostName} leads</Text>}
             <Text style={gs.prayerTitle}>{step.title}</Text>
             <Text style={[gs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
           </View>
-        ) : step.call ? (
+        ) : step.phase === 'call' ? (
           <>
-            {/* Call box — gold border for leader */}
-            <View style={[gs.callBox, isLeader && gs.callBoxActive]}>
-              <Text style={gs.callBoxLabel}>{isLeader ? '📢  YOU SAY (leader):' : `🗣  ${leaderName} says:`}</Text>
-              <Text style={[gs.callBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }, !isLeader && gs.dimText]}>
-                {step.call}
-              </Text>
+            {/* CALL — host reads, gold and bright; response dimmed as preview */}
+            <View style={[gs.callBox, gs.callBoxActive]}>
+              <Text style={gs.callBoxLabel}>{isHost ? '📢  YOU SAY:' : `🗣  ${hostName} says:`}</Text>
+              <Text style={[gs.callBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.call}</Text>
             </View>
-            {/* Response box — blue border for everyone else */}
-            <View style={[gs.responseBox, !isLeader && gs.responseBoxActive]}>
-              <Text style={gs.responseBoxLabel}>{!isLeader ? '🙏  ALL RESPOND:' : '🙏  All respond:'}</Text>
-              <Text style={[gs.responseBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }, isLeader && gs.dimText]}>
-                {step.response}
-              </Text>
+            <View style={gs.responseBox}>
+              <Text style={gs.responseBoxLabel}>🙏  All respond — coming up next:</Text>
+              <Text style={[gs.responseBoxText, gs.dimText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.response}</Text>
+            </View>
+          </>
+        ) : step.phase === 'response' ? (
+          <>
+            {/* RESPONSE — group reads in unison; call dimmed */}
+            <View style={gs.callBox}>
+              <Text style={[gs.callBoxLabel, gs.dimText]}>{isHost ? 'You said:' : `${hostName} said:`}</Text>
+              <Text style={[gs.callBoxText, gs.dimText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.call}</Text>
+            </View>
+            <View style={[gs.responseBox, gs.responseBoxActive]}>
+              <Text style={gs.responseBoxLabel}>🙏  {isHost ? 'ALL RESPOND IN UNISON:' : 'RESPOND IN UNISON:'}</Text>
+              <Text style={[gs.responseBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.response}</Text>
             </View>
           </>
         ) : (
-          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
+          <View style={[gs.prayerCard, isHost && gs.prayerCardActive]}>
             <Text style={gs.prayerTitle}>{step.title}</Text>
             <Text style={[gs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
           </View>
@@ -600,47 +616,45 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
       {/* Bottom controls */}
       <View style={gs.bottomControls}>
-        {isLeader ? (
+        {isHost ? (
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            {isHost && (
-              <TouchableOpacity
-                style={[gs.backNavBtn, currentStep === 0 && { opacity: 0.3 }]}
-                onPress={goBack}
-                disabled={currentStep === 0}
-                activeOpacity={0.8}
-              >
-                <Text style={gs.backNavBtnText}>← Back</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[gs.backNavBtn, currentStep === 0 && { opacity: 0.3 }]}
+              onPress={goBack}
+              disabled={currentStep === 0}
+              activeOpacity={0.8}
+            >
+              <Text style={gs.backNavBtnText}>← Back</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={advance} activeOpacity={0.85} style={{ flex: 1 }}>
               <LinearGradient
-                colors={isLastStep ? ['#16a34a', '#15803d'] : ['#2563eb', '#1e40af']}
+                colors={isLastStep ? ['#16a34a', '#15803d'] : step?.phase === 'call' ? ['#b45309', '#92400e'] : ['#2563eb', '#1e40af']}
                 style={gs.nextBtn}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={gs.nextBtnText}>{isLastStep ? 'Complete Rosary  🙏' : 'Next Prayer  →'}</Text>
+                <Text style={gs.nextBtnText}>
+                  {isLastStep ? 'Complete Rosary  🙏' : step?.phase === 'call' ? 'Group responds  →' : 'Next Prayer  →'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={gs.followingRow}>
-            <View style={gs.followingDot} />
-            <Text style={gs.followingText}>🙏  {leaderName} is leading — respond when your box lights up</Text>
+            <View style={[gs.followingDot, isResponding && { backgroundColor: '#2563eb' }]} />
+            <Text style={gs.followingText}>
+              {isResponding ? 'Read your response in unison with the group' : `${hostName} is leading — your response box will light up`}
+            </Text>
           </View>
         )}
 
-        {/* Participant mini-list — gold ring on current leader */}
+        {/* Participant strip — gold ring always on host */}
         <View style={gs.participantStrip}>
-          {participants.slice(0, 6).map((p) => {
-            const effectiveLeaderId = (step.decade === 0 || step.decade === 6) ? hostId : currentLeaderId;
-            const pIsLeader = getPId(p) === effectiveLeaderId;
-            return (
-              <View key={getPId(p)} style={[gs.stripAvatar, pIsLeader && gs.stripAvatarActive]}>
-                <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>
-              </View>
-            );
-          })}
+          {participants.slice(0, 6).map((p) => (
+            <View key={getPId(p)} style={[gs.stripAvatar, getPId(p) === hostId && gs.stripAvatarActive]}>
+              <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>
+            </View>
+          ))}
           {participants.length > 6 && (
             <Text style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>+{participants.length - 6}</Text>
           )}
@@ -702,11 +716,13 @@ const gs = StyleSheet.create({
   prayHeaderTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   prayHeaderSub:   { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  // YOUR TURN
-  yourTurnBanner:  { backgroundColor: '#f59e0b', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
-  yourTurnText:    { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
-  leaderBanner:    { backgroundColor: '#eff6ff', paddingVertical: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#dbeafe' },
-  leaderText:      { fontSize: 13, color: '#3b82f6', fontWeight: '600' },
+  // Status banners
+  yourTurnBanner:      { backgroundColor: '#f59e0b', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
+  yourTurnBannerListen:{ backgroundColor: '#2563eb' },
+  responseBanner:      { backgroundColor: '#2563eb', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
+  yourTurnText:        { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3, textAlign: 'center' },
+  leaderBanner:        { backgroundColor: '#eff6ff', paddingVertical: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#dbeafe' },
+  leaderText:          { fontSize: 13, color: '#3b82f6', fontWeight: '600' },
 
   // Prayer card
   prayerCard:      { backgroundColor: '#fff', borderRadius: 18, padding: 20, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3, borderWidth: 2, borderColor: 'transparent' },

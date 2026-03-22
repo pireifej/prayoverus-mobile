@@ -110,8 +110,8 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   // Screen flow: 'entry' → 'waiting' → 'praying' → 'complete'
   const [screen, setScreen]       = useState('entry');
   const [tab, setTab]             = useState('host'); // 'host' | 'join'
-  const [userName, setUserName]   = useState(currentUser?.firstName || currentUser?.name || '');
   const [codeInput, setCodeInput] = useState('');
+  const userName = currentUser?.firstName || currentUser?.real_name || currentUser?.email?.split('@')[0] || 'Guest';
   const [connecting, setConnecting] = useState(false);
 
   // Room state
@@ -249,14 +249,12 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   }, [handleMessage]);
 
   const handleCreateRoom = () => {
-    if (!userName.trim()) { Alert.alert('Name required', 'Please enter your name so others know who you are.'); return; }
-    connect(() => send({ type: 'create_room', userName: userName.trim() }));
+    connect(() => send({ type: 'create_room', userName }));
   };
 
   const handleJoinRoom = () => {
-    if (!userName.trim()) { Alert.alert('Name required', 'Please enter your name so others know who you are.'); return; }
     if (codeInput.trim().length !== 4) { Alert.alert('Invalid code', 'Please enter the 4-digit room code from the host.'); return; }
-    connect(() => send({ type: 'join_room', code: codeInput.trim(), userName: userName.trim() }));
+    connect(() => send({ type: 'join_room', code: codeInput.trim(), userName }));
   };
 
   const handleStart = () => {
@@ -304,18 +302,7 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
           <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 8 }} keyboardShouldPersistTaps="handled">
             <Text style={gs.entryEmoji}>📿</Text>
             <Text style={gs.entrySubtitle}>Pray together in the same room, perfectly in sync.</Text>
-
-            {/* Name input */}
-            <Text style={gs.inputLabel}>Your Name</Text>
-            <TextInput
-              style={gs.nameInput}
-              value={userName}
-              onChangeText={setUserName}
-              placeholder="e.g. Mary"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              autoCapitalize="words"
-              maxLength={30}
-            />
+            <Text style={gs.entryName}>Joining as  <Text style={{ fontWeight: '800' }}>{userName}</Text></Text>
 
             {/* Host / Join tabs */}
             <View style={gs.tabRow}>
@@ -617,7 +604,8 @@ const gs = StyleSheet.create({
   entryHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingHorizontal: 16, paddingBottom: 12 },
   entryTitle:      { fontSize: 20, fontWeight: '800', color: '#fff' },
   entryEmoji:      { fontSize: 64, textAlign: 'center', marginTop: 8, marginBottom: 12 },
-  entrySubtitle:   { fontSize: 16, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 24, marginBottom: 28 },
+  entrySubtitle:   { fontSize: 16, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 24, marginBottom: 14 },
+  entryName:       { fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 24 },
   backBtn:         { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   backBtnText:     { fontSize: 20, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
   inputLabel:      { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 0.8, marginBottom: 8 },

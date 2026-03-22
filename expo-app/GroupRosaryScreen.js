@@ -58,14 +58,23 @@ const MYSTERY_TYPES = {
 };
 
 const PRAYERS = {
-  signOfCross:   { title: 'Sign of the Cross',  text: 'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.' },
-  apostlesCreed: { title: "Apostles' Creed",     text: "I believe in God, the Father Almighty, Creator of Heaven and earth; and in Jesus Christ, His only Son, Our Lord, Who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried. He descended into hell; the third day He arose again from the dead; He ascended into Heaven, sitteth at the right hand of God, the Father Almighty; from thence He shall come to judge the living and the dead. I believe in the Holy Spirit, the holy Catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body and life everlasting. Amen." },
-  ourFather:     { title: 'Our Father',          text: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen." },
-  hailMary:      { title: 'Hail Mary',           text: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen." },
-  gloryBe:       { title: 'Glory Be',            text: "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen." },
-  fatimaPrayer:  { title: 'Fatima Prayer',       text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen." },
-  hailHolyQueen: { title: 'Hail, Holy Queen',    text: "Hail, Holy Queen, Mother of Mercy, our life, our sweetness and our hope. To thee do we cry, poor banished children of Eve; to thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us; and after this, our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary! Pray for us, O Holy Mother of God, that we may be made worthy of the promises of Christ. Amen." },
-  finalPrayer:   { title: 'Closing Prayer',      text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen." },
+  signOfCross:   { title: 'Sign of the Cross',  text: 'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.',
+    call: 'In the name of the Father, and of the Son, and of the Holy Spirit.', response: 'Amen.' },
+  apostlesCreed: { title: "Apostles' Creed",    text: "I believe in God, the Father Almighty, Creator of Heaven and earth; and in Jesus Christ, His only Son, Our Lord, Who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried. He descended into hell; the third day He arose again from the dead; He ascended into Heaven, sitteth at the right hand of God, the Father Almighty; from thence He shall come to judge the living and the dead. I believe in the Holy Spirit, the holy Catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body and life everlasting. Amen.", leaderOnly: true },
+  ourFather:     { title: 'Our Father',          text: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen.",
+    call: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us;",
+    response: "and lead us not into temptation, but deliver us from evil. Amen." },
+  hailMary:      { title: 'Hail Mary',           text: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen.",
+    call: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus.",
+    response: "Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen." },
+  gloryBe:       { title: 'Glory Be',            text: "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen.",
+    call: "Glory be to the Father, and to the Son, and to the Holy Spirit.",
+    response: "As it was in the beginning, is now, and ever shall be, world without end. Amen." },
+  fatimaPrayer:  { title: 'Fatima Prayer',       text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen.",
+    call: "O my Jesus, forgive us our sins, save us from the fires of hell;",
+    response: "lead all souls to heaven, especially those who are most in need of Thy mercy. Amen." },
+  hailHolyQueen: { title: 'Hail, Holy Queen',    text: "Hail, Holy Queen, Mother of Mercy, our life, our sweetness and our hope. To thee do we cry, poor banished children of Eve; to thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us; and after this, our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary! Pray for us, O Holy Mother of God, that we may be made worthy of the promises of Christ. Amen.", leaderOnly: true },
+  finalPrayer:   { title: 'Closing Prayer',      text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen.", leaderOnly: true },
 };
 
 const generateSteps = (mysteryTypeKey) => {
@@ -115,14 +124,14 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const [connecting, setConnecting] = useState(false);
 
   // Room state
-  const [roomCode, setRoomCode]             = useState(null);
-  const [userId, setUserId]                 = useState(null);
-  const [participants, setParticipants]     = useState([]);
-  const [hostId, setHostId]                 = useState(null);
-  const [mysteryType, setMysteryType]       = useState(getTodaysMystery());
-  const [steps, setSteps]                   = useState([]);
-  const [currentStep, setCurrentStep]       = useState(0);
-  const [decadeAssignments, setDecadeAssignments] = useState({});
+  const [roomCode, setRoomCode]         = useState(null);
+  const [userId, setUserId]             = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [hostId, setHostId]             = useState(null);
+  const [mysteryType, setMysteryType]   = useState(getTodaysMystery());
+  const [steps, setSteps]               = useState([]);
+  const [currentStep, setCurrentStep]   = useState(0);
+  const [currentLeaderId, setCurrentLeaderId] = useState(null);
 
   // Font size
   const [fontSizeIdx, setFontSizeIdx] = useState(2);
@@ -140,26 +149,17 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const pName = (p) => p?.name || p?.userName || p?.displayName || '?';
 
   // Computed
-  const isHost   = userId && hostId && userId === hostId;
+  const isHost = userId && hostId && userId === hostId;
   // Participant ID may come as p.id or p.userId from the server
   const getPId = (p) => p?.id || p?.userId || p?.participantId;
 
-  // Recompute decade assignments on the frontend — host never leads a decade,
-  // only non-host participants rotate through decades 1-5 round-robin.
-  const nonHostIds = participants.filter(p => getPId(p) !== hostId).map(p => getPId(p));
-  const localDecadeAssignments = {};
-  for (let d = 1; d <= 5; d++) {
-    if (nonHostIds.length > 0) {
-      localDecadeAssignments[d] = nonHostIds[(d - 1) % nonHostIds.length];
-    }
-  }
-
-  const step     = steps[currentStep] || null;
-  const isMyTurn = step ? (
-    isHost
-      ? (step.decade === 0 || step.decade === 6)
-      : nonHostIds.includes(userId) && localDecadeAssignments[step.decade] === userId
-  ) : false;
+  const step = steps[currentStep] || null;
+  // Opening (decade 0) and closing (decade 6) are always led by the host.
+  // Decades 1-5 use the server-assigned currentLeaderId (rotates each decade).
+  const isLeader = step
+    ? (step.decade === 0 || step.decade === 6 ? isHost : userId !== null && userId === currentLeaderId)
+    : false;
+  const isMyTurn = isLeader;
 
   const totalSteps  = steps.length;
   const isLastStep  = currentStep >= totalSteps - 1;
@@ -234,21 +234,26 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         break;
 
       case 'room_updated':
-        console.log('🙏 room_updated participants:', JSON.stringify(msg.participants));
         setParticipants(msg.participants || []);
         setHostId(msg.hostId);
+        if (msg.currentLeaderId) setCurrentLeaderId(msg.currentLeaderId);
         break;
 
       case 'session_started':
         setMysteryType(msg.mysteryType);
         setSteps(generateSteps(msg.mysteryType));
         setCurrentStep(msg.currentStep || 0);
-        setDecadeAssignments(msg.decadeAssignments || {});
+        setCurrentLeaderId(msg.currentLeaderId || msg.hostId);
         setScreen('praying');
         break;
 
       case 'step_changed':
         setCurrentStep(msg.currentStep);
+        break;
+
+      case 'decade_complete':
+        setCurrentStep(msg.currentStep);
+        setCurrentLeaderId(msg.currentLeaderId);
         break;
 
       case 'error':
@@ -285,9 +290,12 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   };
 
   const advance = () => {
-    if (!isHost) return;
+    if (!isLeader) return;
     if (isLastStep) { setScreen('complete'); return; }
-    send({ type: 'advance_step' });
+    // If ending a rosary decade (1-5), tell the server so it rotates the leader.
+    const nextStep = steps[currentStep + 1];
+    const endingDecade = step && step.decade >= 1 && step.decade <= 5 && nextStep?.decade !== step.decade;
+    send({ type: endingDecade ? 'decade_complete' : 'advance_step' });
   };
 
   const goBack = () => {
@@ -488,13 +496,9 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   if (!step) return null;
 
   const leaderName = (() => {
-    if (step.decade === 0 || step.decade === 6) {
-      const host = participants.find(p => getPId(p) === hostId);
-      return host ? pName(host) : 'Host';
-    }
-    const leaderId = localDecadeAssignments[step.decade];
-    const leader = participants.find(p => getPId(p) === leaderId);
-    return leader ? pName(leader) : '';
+    const effectiveLeaderId = (step.decade === 0 || step.decade === 6) ? hostId : currentLeaderId;
+    const leader = participants.find(p => getPId(p) === effectiveLeaderId);
+    return leader ? pName(leader) : 'Leader';
   })();
 
   return (
@@ -539,26 +543,50 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
       ) : null}
 
       {/* Prayer content */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 16 }}>
-        <View style={[gs.prayerCard, isMyTurn && gs.prayerCardActive]}>
-          {step.isAnnouncement ? (
-            <>
-              <Text style={[gs.announceMystery, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>
-                {step.text?.split('\n\n')[0]}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 16, gap: 12 }}>
+        {step.isAnnouncement ? (
+          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
+            {isLeader && <Text style={gs.callRoleLabel}>📢  YOU ANNOUNCE</Text>}
+            {!isLeader && <Text style={gs.followRoleLabel}>🗣  {leaderName} is announcing</Text>}
+            <Text style={[gs.announceMystery, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>
+              {step.text?.split('\n\n')[0]}
+            </Text>
+            {step.text?.split('\n\n')[1] && (
+              <Text style={[gs.announceMeditation, { fontSize: Math.max(14, FONT_SIZES[fontSizeIdx] - 3), lineHeight: LINE_HEIGHTS[fontSizeIdx] - 4 }]}>
+                {step.text.split('\n\n')[1]}
               </Text>
-              {step.text?.split('\n\n')[1] && (
-                <Text style={[gs.announceMeditation, { fontSize: Math.max(14, FONT_SIZES[fontSizeIdx] - 3), lineHeight: LINE_HEIGHTS[fontSizeIdx] - 4 }]}>
-                  {step.text.split('\n\n')[1]}
-                </Text>
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={gs.prayerTitle}>{step.title}</Text>
-              <Text style={[gs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
-            </>
-          )}
-        </View>
+            )}
+          </View>
+        ) : step.leaderOnly ? (
+          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
+            {isLeader && <Text style={gs.callRoleLabel}>📢  YOU LEAD</Text>}
+            {!isLeader && <Text style={gs.followRoleLabel}>🗣  {leaderName} leads</Text>}
+            <Text style={gs.prayerTitle}>{step.title}</Text>
+            <Text style={[gs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
+          </View>
+        ) : step.call ? (
+          <>
+            {/* Call box — gold border for leader */}
+            <View style={[gs.callBox, isLeader && gs.callBoxActive]}>
+              <Text style={gs.callBoxLabel}>{isLeader ? '📢  YOU SAY (leader):' : `🗣  ${leaderName} says:`}</Text>
+              <Text style={[gs.callBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }, !isLeader && gs.dimText]}>
+                {step.call}
+              </Text>
+            </View>
+            {/* Response box — blue border for everyone else */}
+            <View style={[gs.responseBox, !isLeader && gs.responseBoxActive]}>
+              <Text style={gs.responseBoxLabel}>{!isLeader ? '🙏  ALL RESPOND:' : '🙏  All respond:'}</Text>
+              <Text style={[gs.responseBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }, isLeader && gs.dimText]}>
+                {step.response}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <View style={[gs.prayerCard, isLeader && gs.prayerCardActive]}>
+            <Text style={gs.prayerTitle}>{step.title}</Text>
+            <Text style={[gs.prayerText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Font size row */}
@@ -572,16 +600,18 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
       {/* Bottom controls */}
       <View style={gs.bottomControls}>
-        {isHost ? (
+        {isLeader ? (
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity
-              style={[gs.backNavBtn, currentStep === 0 && { opacity: 0.3 }]}
-              onPress={goBack}
-              disabled={currentStep === 0}
-              activeOpacity={0.8}
-            >
-              <Text style={gs.backNavBtnText}>← Back</Text>
-            </TouchableOpacity>
+            {isHost && (
+              <TouchableOpacity
+                style={[gs.backNavBtn, currentStep === 0 && { opacity: 0.3 }]}
+                onPress={goBack}
+                disabled={currentStep === 0}
+                activeOpacity={0.8}
+              >
+                <Text style={gs.backNavBtnText}>← Back</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={advance} activeOpacity={0.85} style={{ flex: 1 }}>
               <LinearGradient
                 colors={isLastStep ? ['#16a34a', '#15803d'] : ['#2563eb', '#1e40af']}
@@ -596,18 +626,17 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         ) : (
           <View style={gs.followingRow}>
             <View style={gs.followingDot} />
-            <Text style={gs.followingText}>Following — {leaderName || 'host'} is leading the pace</Text>
+            <Text style={gs.followingText}>🙏  {leaderName} is leading — respond when your box lights up</Text>
           </View>
         )}
 
-        {/* Participant mini-list */}
+        {/* Participant mini-list — gold ring on current leader */}
         <View style={gs.participantStrip}>
           {participants.slice(0, 6).map((p) => {
-            const isLeader = getPId(p) === hostId
-              ? (step.decade === 0 || step.decade === 6)
-              : localDecadeAssignments[step.decade] === getPId(p);
+            const effectiveLeaderId = (step.decade === 0 || step.decade === 6) ? hostId : currentLeaderId;
+            const pIsLeader = getPId(p) === effectiveLeaderId;
             return (
-              <View key={getPId(p)} style={[gs.stripAvatar, isLeader && gs.stripAvatarActive]}>
+              <View key={getPId(p)} style={[gs.stripAvatar, pIsLeader && gs.stripAvatarActive]}>
                 <Text style={gs.stripInitial}>{pName(p)[0].toUpperCase()}</Text>
               </View>
             );
@@ -709,4 +738,19 @@ const gs = StyleSheet.create({
   stripAvatar:      { width: 32, height: 32, borderRadius: 16, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
   stripAvatarActive: { borderColor: '#f59e0b', backgroundColor: '#fef3c7' },
   stripInitial:     { fontSize: 13, fontWeight: '700', color: '#1e40af' },
+
+  // Call-and-response boxes
+  callBox:          { borderRadius: 16, padding: 18, backgroundColor: '#fffbeb', borderWidth: 2, borderColor: '#e2e8f0' },
+  callBoxActive:    { borderColor: '#f59e0b', backgroundColor: '#fef3c7' },
+  callBoxLabel:     { fontSize: 11, fontWeight: '800', color: '#b45309', letterSpacing: 0.8, marginBottom: 10, textTransform: 'uppercase' },
+  callBoxText:      { color: '#1e293b', lineHeight: 30 },
+
+  responseBox:      { borderRadius: 16, padding: 18, backgroundColor: '#f0f9ff', borderWidth: 2, borderColor: '#e2e8f0' },
+  responseBoxActive: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
+  responseBoxLabel: { fontSize: 11, fontWeight: '800', color: '#1d4ed8', letterSpacing: 0.8, marginBottom: 10, textTransform: 'uppercase' },
+  responseBoxText:  { color: '#1e293b', lineHeight: 30 },
+
+  dimText:          { opacity: 0.38 },
+  callRoleLabel:    { fontSize: 11, fontWeight: '800', color: '#b45309', letterSpacing: 0.8, marginBottom: 10, textTransform: 'uppercase' },
+  followRoleLabel:  { fontSize: 11, fontWeight: '700', color: '#3b82f6', letterSpacing: 0.5, marginBottom: 10 },
 });

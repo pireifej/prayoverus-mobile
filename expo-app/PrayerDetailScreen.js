@@ -94,27 +94,28 @@ const base64Encode = (str) => {
 
 const API_AUTH = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
-  
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now - date;
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  const diffWeeks = Math.floor(diffDays / 7);
-  const diffMonths = Math.floor(diffDays / 30);
-  const diffYears = Math.floor(diffDays / 365);
 
-  if (diffSecs < 60) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffWeeks < 4) return `${diffWeeks}w ago`;
-  if (diffMonths < 12) return `${diffMonths}mo ago`;
-  return `${diffYears}y ago`;
+  const now  = new Date();
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+
+  const diffMs    = now - date;
+  const diffSecs  = Math.floor(diffMs / 1000);
+  const diffMins  = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays  = Math.floor(diffHours / 24);
+
+  if (diffSecs  <  60) return 'Just now';
+  if (diffMins  <  60) return `${diffMins}m ago`;
+  if (diffHours <  24) return `${diffHours}h ago`;
+  if (diffDays  <   7) return `${diffDays}d ago`;
+
+  const label = `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+  return date.getFullYear() === now.getFullYear() ? label : `${label}, ${date.getFullYear()}`;
 };
 
 const AnimatedButton = ({ children, style, onPress, disabled, ...props }) => {

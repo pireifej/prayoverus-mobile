@@ -249,23 +249,19 @@ function getRelativeTime(dateString) {
   
   const now = new Date();
   const diffMs = now - date;
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  
-  if (diffSeconds < 60) {
-    return 'just now';
-  } else if (diffMinutes < 60) {
-    return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-  } else if (diffDays < 7) {
-    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
-  } else {
-    // Return original date for older dates
-    return dateString;
-  }
+  const diffSecs  = Math.floor(diffMs / 1000);
+  const diffMins  = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays  = Math.floor(diffHours / 24);
+
+  if (diffSecs  <  60) return 'Just now';
+  if (diffMins  <  60) return `${diffMins}m ago`;
+  if (diffHours <  24) return `${diffHours}h ago`;
+  if (diffDays  <   7) return `${diffDays}d ago`;
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const label = `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+  return date.getFullYear() === now.getFullYear() ? label : `${label}, ${date.getFullYear()}`;
 }
 
 // Animated Prayer Hands Component

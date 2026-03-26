@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StatusBar,
   StyleSheet, TextInput, Alert, Platform, Vibration, Animated,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView, PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -173,6 +173,22 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   const wsRef    = useRef(null);
   const userIdRef = useRef(null);
   const roomCodeRef = useRef(null);
+
+  // Refs so the PanResponder (created once) can always call the latest advance/goBack
+  const advanceFnRef = useRef(null);
+  const goBackFnRef  = useRef(null);
+
+  const swipePanResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when it is clearly horizontal
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 12,
+      onPanResponderRelease: (_, { dx }) => {
+        if (dx < -50) advanceFnRef.current?.();  // swipe left  → next
+        else if (dx > 50) goBackFnRef.current?.(); // swipe right → back
+      },
+    })
+  ).current;
 
   // Normalize participant name — server may use 'name' or 'userName'
   const pName = (p) => p?.name || p?.userName || p?.displayName || '?';
@@ -519,11 +535,15 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
   // ── Render: Praying ────────────────────────────────────────────────────────
   if (!step) return null;
 
+  // Keep swipe refs current on every render so PanResponder always calls the latest functions
+  advanceFnRef.current = advance;
+  goBackFnRef.current  = goBack;
+
   const hostParticipant = participants.find(p => getPId(p) === hostId);
   const hostName = hostParticipant ? pName(hostParticipant) : 'Host';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }} {...(isHost ? swipePanResponder.panHandlers : {})}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
@@ -549,22 +569,27 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
         <Text style={{ fontSize: 11, color: '#94a3b8' }}>{currentStep + 1} / {totalSteps}</Text>
       </View>
 
-      {/* Phase-aware status banner */}
-      {isHost ? (
-        <View style={[gs.yourTurnBanner, step?.phase === 'response' && gs.yourTurnBannerListen]}>
-          <Text style={gs.yourTurnText}>
-            {step?.phase === 'response' ? '🙏  Group responds in unison' : '📢  Read aloud — then tap Next for group response'}
+      {/* Fixed-height status banner — same height in all states so layout never jumps */}
+      <View style={[
+        gs.statusBanner,
+        isHost
+          ? (step?.phase === 'response' ? gs.statusBannerBlue : gs.statusBannerGold)
+          : isResponding ? gs.statusBannerBlue : gs.statusBannerNeutral,
+      ]}>
+        {isHost ? (
+          <Text style={[gs.statusBannerText, { color: '#fff' }]}>
+            {step?.phase === 'response' ? 'Group responds in unison' : '📢  Read aloud — swipe or tap Next'}
           </Text>
-        </View>
-      ) : isResponding ? (
-        <Animated.View style={[gs.responseBanner, { opacity: pulseAnim }]}>
-          <Text style={gs.yourTurnText}>🙏  RESPOND IN UNISON</Text>
-        </Animated.View>
-      ) : (
-        <View style={gs.leaderBanner}>
-          <Text style={gs.leaderText}>🗣  {hostName} is leading</Text>
-        </View>
-      )}
+        ) : isResponding ? (
+          <Animated.Text style={[gs.statusBannerText, { color: '#fff', opacity: pulseAnim }]}>
+            Respond in Unison
+          </Animated.Text>
+        ) : (
+          <Text style={[gs.statusBannerText, { color: '#3b82f6' }]}>
+            🗣  {hostName} is leading
+          </Text>
+        )}
+      </View>
 
       {/* Prayer content */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 16, gap: 12 }}>
@@ -766,13 +791,12 @@ const gs = StyleSheet.create({
   prayHeaderTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
   prayHeaderSub:   { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  // Status banners
-  yourTurnBanner:      { backgroundColor: '#f59e0b', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
-  yourTurnBannerListen:{ backgroundColor: '#2563eb' },
-  responseBanner:      { backgroundColor: '#2563eb', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
-  yourTurnText:        { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3, textAlign: 'center' },
-  leaderBanner:        { backgroundColor: '#eff6ff', paddingVertical: 8, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#dbeafe' },
-  leaderText:          { fontSize: 13, color: '#3b82f6', fontWeight: '600' },
+  // Status banner — fixed height so the layout never jumps between states
+  statusBanner:        { height: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 },
+  statusBannerGold:    { backgroundColor: '#f59e0b' },
+  statusBannerBlue:    { backgroundColor: '#2563eb' },
+  statusBannerNeutral: { backgroundColor: '#eff6ff', borderBottomWidth: 1, borderBottomColor: '#dbeafe' },
+  statusBannerText:    { fontSize: 13, fontWeight: '700', textAlign: 'center', letterSpacing: 0.2 },
 
   // Prayer card
   prayerCard:      { backgroundColor: '#fff', borderRadius: 18, padding: 20, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3, borderWidth: 2, borderColor: 'transparent' },

@@ -7,6 +7,23 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ─── AdMob ────────────────────────────────────────────────────────────────────
+let BannerAd, BannerAdSize, TestIds;
+let isAdMobAvailable = false;
+let GROUP_BANNER_ID = null;
+try {
+  const adMobModule = require('react-native-google-mobile-ads');
+  BannerAd     = adMobModule.BannerAd;
+  BannerAdSize = adMobModule.BannerAdSize;
+  TestIds      = adMobModule.TestIds;
+  isAdMobAvailable = true;
+  GROUP_BANNER_ID = __DEV__
+    ? TestIds.BANNER
+    : (Platform.OS === 'ios'
+        ? 'ca-app-pub-9861737616974560/9395514909'
+        : 'ca-app-pub-9861737616974560/9395514909');
+} catch (e) {}
+
 const WS_URL = 'wss://shouldcallpaul.replit.app';
 const API_URL = 'https://shouldcallpaul.replit.app';
 
@@ -61,18 +78,16 @@ const PRAYERS = {
   signOfCross:   { title: 'Sign of the Cross',  text: 'In the name of the Father, and of the Son, and of the Holy Spirit. Amen.',
     call: 'In the name of the Father, and of the Son, and of the Holy Spirit.', response: 'Amen.' },
   apostlesCreed: { title: "Apostles' Creed",    text: "I believe in God, the Father Almighty, Creator of Heaven and earth; and in Jesus Christ, His only Son, Our Lord, Who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried. He descended into hell; the third day He arose again from the dead; He ascended into Heaven, sitteth at the right hand of God, the Father Almighty; from thence He shall come to judge the living and the dead. I believe in the Holy Spirit, the holy Catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body and life everlasting. Amen.", leaderOnly: true },
-  ourFather:     { title: 'Our Father',          text: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen.",
-    call: "Our Father, Who art in heaven, hallowed be Thy name; Thy kingdom come; Thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us;",
-    response: "and lead us not into temptation, but deliver us from evil. Amen." },
+  ourFather:     { title: 'Our Father',          text: "Our Father, who art in heaven, hallowed be thy name; thy kingdom come, thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen.",
+    call: "Our Father, who art in heaven, hallowed be thy name; thy kingdom come, thy will be done on earth as it is in heaven.",
+    response: "Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen." },
   hailMary:      { title: 'Hail Mary',           text: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen.",
     call: "Hail Mary, full of grace. The Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus.",
     response: "Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen." },
   gloryBe:       { title: 'Glory Be',            text: "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen.",
     call: "Glory be to the Father, and to the Son, and to the Holy Spirit.",
     response: "As it was in the beginning, is now, and ever shall be, world without end. Amen." },
-  fatimaPrayer:  { title: 'Fatima Prayer',       text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen.",
-    call: "O my Jesus, forgive us our sins, save us from the fires of hell;",
-    response: "lead all souls to heaven, especially those who are most in need of Thy mercy. Amen." },
+  fatimaPrayer:  { title: 'Fatima Prayer',       text: "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those who are most in need of Thy mercy. Amen.", communal: true },
   hailHolyQueen: { title: 'Hail, Holy Queen',    text: "Hail, Holy Queen, Mother of Mercy, our life, our sweetness and our hope. To thee do we cry, poor banished children of Eve; to thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us; and after this, our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary! Pray for us, O Holy Mother of God, that we may be made worthy of the promises of Christ. Amen.", leaderOnly: true },
   finalPrayer:   { title: 'Closing Prayer',      text: "O God, whose only-begotten Son, by His life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech Thee, that while meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ Our Lord. Amen.", leaderOnly: true },
 };
@@ -96,9 +111,9 @@ const generateSteps = (mysteryTypeKey) => {
   pushPrayer(steps, 'open-soc',   PRAYERS.signOfCross,   'Opening Prayers', 0);
   steps.push({ id: 'open-creed', ...PRAYERS.apostlesCreed, section: 'Opening Prayers', decade: 0 });
   pushPrayer(steps, 'open-of',    PRAYERS.ourFather,     'Opening Prayers', 0);
-  pushPrayer(steps, 'open-hm1',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Faith'    }, 'Opening Prayers', 0);
-  pushPrayer(steps, 'open-hm2',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Hope'     }, 'Opening Prayers', 0);
-  pushPrayer(steps, 'open-hm3',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Charity'  }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm1',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Faith',    hmCurrent: 1, hmTotal: 3 }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm2',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Hope',     hmCurrent: 2, hmTotal: 3 }, 'Opening Prayers', 0);
+  pushPrayer(steps, 'open-hm3',   { ...PRAYERS.hailMary, title: 'Hail Mary — for Charity',  hmCurrent: 3, hmTotal: 3 }, 'Opening Prayers', 0);
   pushPrayer(steps, 'open-gb',    PRAYERS.gloryBe,       'Opening Prayers', 0);
 
   for (let d = 0; d < 5; d++) {
@@ -108,7 +123,7 @@ const generateSteps = (mysteryTypeKey) => {
     steps.push({ id: `d${dec}-announce`, title: `${ordinals[d]} ${shortMysteryType} Mystery`, text: mystery.name + '\n\n' + mystery.meditation, section: `Decade ${dec} of 5`, decade: dec, isAnnouncement: true });
     pushPrayer(steps, `d${dec}-of`, PRAYERS.ourFather, `Decade ${dec} of 5`, dec);
     for (let hm = 1; hm <= 10; hm++) {
-      pushPrayer(steps, `d${dec}-hm${hm}`, { ...PRAYERS.hailMary, title: `Hail Mary ${hm} of 10` }, `Decade ${dec} of 5`, dec);
+      pushPrayer(steps, `d${dec}-hm${hm}`, { ...PRAYERS.hailMary, title: 'Hail Mary', hmCurrent: hm, hmTotal: 10 }, `Decade ${dec} of 5`, dec);
     }
     pushPrayer(steps, `d${dec}-gb`,     PRAYERS.gloryBe,     `Decade ${dec} of 5`, dec);
     pushPrayer(steps, `d${dec}-fatima`, PRAYERS.fatimaPrayer, `Decade ${dec} of 5`, dec);
@@ -203,10 +218,10 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
     prevMyTurn.current = isResponding;
   }, [isResponding]);
 
-  // Vibrate for participants when the group's response phase starts
+  // Vibrate for participants once when the response phase step begins
   useEffect(() => {
-    if (isResponding) {
-      Vibration.vibrate(300);
+    if (!isHost && steps[currentStep]?.phase === 'response') {
+      Vibration.vibrate(150);
     }
   }, [currentStep]);
 
@@ -553,6 +568,28 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
       {/* Prayer content */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 16, gap: 12 }}>
+
+        {/* Hail Mary progress indicator */}
+        {step.hmTotal && (
+          <View style={gs.hmProgressRow}>
+            <Text style={gs.hmProgressLabel}>
+              Hail Mary {step.hmCurrent} of {step.hmTotal}
+            </Text>
+            <View style={gs.hmDots}>
+              {Array.from({ length: step.hmTotal }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    gs.hmDot,
+                    i < step.hmCurrent && gs.hmDotFilled,
+                    i === step.hmCurrent - 1 && gs.hmDotCurrent,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
         {step.isAnnouncement ? (
           <View style={[gs.prayerCard, isHost && gs.prayerCardActive]}>
             {isHost && <Text style={gs.callRoleLabel}>📢  YOU ANNOUNCE</Text>}
@@ -597,6 +634,12 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
               <Text style={[gs.responseBoxText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.response}</Text>
             </View>
           </>
+        ) : step.communal ? (
+          <View style={gs.communalBox}>
+            <Text style={gs.communalLabel}>🙏  ALL PRAY TOGETHER:</Text>
+            <Text style={gs.prayerTitle}>{step.title}</Text>
+            <Text style={[gs.communalText, { fontSize: FONT_SIZES[fontSizeIdx], lineHeight: LINE_HEIGHTS[fontSizeIdx] }]}>{step.text}</Text>
+          </View>
         ) : (
           <View style={[gs.prayerCard, isHost && gs.prayerCardActive]}>
             <Text style={gs.prayerTitle}>{step.title}</Text>
@@ -613,6 +656,13 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Banner Ad */}
+      {isAdMobAvailable && BannerAd && GROUP_BANNER_ID && (
+        <View style={gs.bannerContainer}>
+          <BannerAd unitId={GROUP_BANNER_ID} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+        </View>
+      )}
 
       {/* Bottom controls */}
       <View style={gs.bottomControls}>
@@ -769,4 +819,20 @@ const gs = StyleSheet.create({
   dimText:          { opacity: 0.38 },
   callRoleLabel:    { fontSize: 11, fontWeight: '800', color: '#b45309', letterSpacing: 0.8, marginBottom: 10, textTransform: 'uppercase' },
   followRoleLabel:  { fontSize: 11, fontWeight: '700', color: '#3b82f6', letterSpacing: 0.5, marginBottom: 10 },
+
+  // Hail Mary progress
+  hmProgressRow:    { backgroundColor: '#f8fafc', borderRadius: 14, padding: 12, alignItems: 'center', gap: 8 },
+  hmProgressLabel:  { fontSize: 12, fontWeight: '700', color: '#475569', letterSpacing: 0.5 },
+  hmDots:           { flexDirection: 'row', flexWrap: 'wrap', gap: 5, justifyContent: 'center' },
+  hmDot:            { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e2e8f0' },
+  hmDotFilled:      { backgroundColor: '#93c5fd' },
+  hmDotCurrent:     { backgroundColor: '#2563eb', width: 10, height: 10, borderRadius: 5 },
+
+  // Communal prayer (all pray together)
+  communalBox:      { borderRadius: 16, padding: 18, backgroundColor: '#f0fdf4', borderWidth: 2, borderColor: '#86efac' },
+  communalLabel:    { fontSize: 11, fontWeight: '800', color: '#16a34a', letterSpacing: 0.8, marginBottom: 10, textTransform: 'uppercase' },
+  communalText:     { color: '#1e293b', lineHeight: 30 },
+
+  // Banner ad
+  bannerContainer:  { alignItems: 'center', backgroundColor: '#f8fafc' },
 });

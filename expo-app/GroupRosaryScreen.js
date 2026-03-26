@@ -144,7 +144,7 @@ const getTodaysMystery = () => {
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function GroupRosaryScreen({ onExit, currentUser }) {
+export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
   // Screen flow: 'entry' → 'waiting' → 'praying' → 'complete'
   const [screen, setScreen]       = useState('entry');
   const [tab, setTab]             = useState('host'); // 'host' | 'join'
@@ -334,7 +334,20 @@ export default function GroupRosaryScreen({ onExit, currentUser }) {
 
   const advance = () => {
     if (!isHost) return;
-    if (isLastStep) { setScreen('complete'); return; }
+    if (isLastStep) {
+      setScreen('complete');
+      if (currentUser?.id) {
+        fetch(`${API_URL}/rosary/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id }),
+        })
+          .then(r => r.json())
+          .then(data => { if (onComplete) onComplete(data.rosaryCount); })
+          .catch(() => { if (onComplete) onComplete(); });
+      }
+      return;
+    }
     send({ type: 'advance_step' });
   };
 

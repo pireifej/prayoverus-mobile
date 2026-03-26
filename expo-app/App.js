@@ -3279,7 +3279,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return (
       <RosaryScreen
         onExit={() => setCurrentScreen('groups')}
-        onComplete={() => {}}
+        currentUser={currentUser}
+        onComplete={(newCount) => {
+          if (newCount !== undefined) {
+            setCurrentUser(prev => ({ ...prev, rosary_count: newCount }));
+          }
+        }}
       />
     );
   }
@@ -3289,6 +3294,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <GroupRosaryScreen
         onExit={() => setCurrentScreen('groups')}
         currentUser={currentUser}
+        onComplete={(newCount) => {
+          if (newCount !== undefined) {
+            setCurrentUser(prev => ({ ...prev, rosary_count: newCount }));
+          }
+        }}
       />
     );
   }
@@ -3665,6 +3675,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{currentUser.prayer_count ?? currentUser.prayerCount ?? '—'}</Text>
                   <Text style={styles.memberStatLabel}>Prayers</Text>
+                </View>
+                <View style={styles.memberStatDivider} />
+                <View style={styles.memberStatBox}>
+                  <Text style={styles.memberStatNumber}>🌹 {currentUser.rosary_count ?? 0}</Text>
+                  <Text style={styles.memberStatLabel}>Rosaries</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>

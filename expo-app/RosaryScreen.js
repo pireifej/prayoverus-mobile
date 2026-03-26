@@ -143,7 +143,9 @@ const AUTO_SPEEDS = {
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function RosaryScreen({ onExit, onComplete }) {
+const BACKEND_URL = 'https://shouldcallpaul.replit.app';
+
+export default function RosaryScreen({ onExit, onComplete, currentUser }) {
   const [screen, setScreen]         = useState('setup');
   const [mysteryType, setMysteryType] = useState(getTodaysMystery());
   const [playMode, setPlayMode]     = useState('manual');
@@ -295,10 +297,24 @@ export default function RosaryScreen({ onExit, onComplete }) {
     })
   ).current;
 
-  const finishRosary = () => {
+  const finishRosary = async () => {
     stopAutoTimer();
     setScreen('complete');
-    if (onComplete) onComplete();
+    if (currentUser?.id) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/rosary/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id }),
+        });
+        const data = await res.json();
+        if (onComplete) onComplete(data.rosaryCount);
+      } catch (e) {
+        if (onComplete) onComplete();
+      }
+    } else {
+      if (onComplete) onComplete();
+    }
   };
 
   const handleBegin = () => {

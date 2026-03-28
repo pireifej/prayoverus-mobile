@@ -3630,7 +3630,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>
-                  <Text style={styles.memberStatNumber}>🌹 {currentUser.rosary_count ?? 0}</Text>
+                  <Text style={styles.memberStatNumber}>{currentUser.rosary_count ?? 0}</Text>
                   <Text style={styles.memberStatLabel}>Rosaries</Text>
                 </View>
                 <View style={styles.memberStatDivider} />

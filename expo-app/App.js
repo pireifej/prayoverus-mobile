@@ -11,7 +11,7 @@ import PrayerDetailScreen from './PrayerDetailScreen';
 import RosaryScreen from './RosaryScreen';
 import GroupRosaryScreen from './GroupRosaryScreen';
 import { Buffer } from 'buffer';
-import { getRelativeTime } from './utils';
+import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
 import * as Updates from 'expo-updates';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
@@ -820,7 +820,8 @@ function App() {
     title: '',
     about: '',
     churchId: null,
-    churchName: ''
+    churchName: '',
+    avatar_emoji: null,
   });
   const [churches, setChurches] = useState([]);
   const [showChurchPicker, setShowChurchPicker] = useState(false);
@@ -2774,7 +2775,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       title: currentUser.title || '',
       about: currentUser.about || '',
       churchId: currentUser.churchId || null,
-      churchName: currentUser.churchName || ''
+      churchName: currentUser.churchName || '',
+      avatar_emoji: currentUser.avatar_emoji || null,
     });
     setIsEditingProfile(true);
   };
@@ -2782,7 +2784,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Cancel editing
   const cancelEditProfile = () => {
     setIsEditingProfile(false);
-    setProfileForm({ firstName: '', lastName: '', title: '', about: '', churchId: null, churchName: '' });
+    setProfileForm({ firstName: '', lastName: '', title: '', about: '', churchId: null, churchName: '', avatar_emoji: null });
   };
 
   // Save profile updates
@@ -2818,7 +2820,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             title: data.user.user_title,
             about: data.user.user_about,
             churchId: profileForm.churchId,
-            churchName: profileForm.churchName
+            churchName: profileForm.churchName,
+            avatar_emoji: profileForm.avatar_emoji,
           };
           
           setCurrentUser(updatedUser);
@@ -3035,13 +3038,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <ScrollView style={styles.screenContent} contentContainerStyle={{paddingBottom: 40}}>
           <View style={styles.memberProfileCard}>
             <View style={styles.memberProfileTop}>
-              {profilePicUri ? (
-                <Image source={{ uri: profilePicUri }} style={styles.memberProfilePicLarge} />
-              ) : (
-                <View style={[styles.memberProfilePicLarge, styles.memberProfilePicPlaceholder]}>
-                  <Text style={{fontSize: 40}}>👤</Text>
-                </View>
-              )}
+              <Avatar
+                picUri={profilePicUri}
+                name={member.first_name}
+                lastName={member.last_name}
+                size={100}
+                style={{ marginBottom: 14, borderWidth: 3, borderColor: '#2563eb' }}
+              />
               <Text style={styles.memberProfileName}>{member.first_name} {member.last_name || ''}</Text>
               {member.title ? <Text style={styles.memberProfileTitle}>{member.title}</Text> : null}
               <View style={styles.memberRankRow}>
@@ -3136,13 +3139,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   onPress={() => setViewingMember(member)}
                   activeOpacity={0.7}
                 >
-                  {picUri ? (
-                    <Image source={{ uri: picUri }} style={styles.memberCardPic} />
-                  ) : (
-                    <View style={[styles.memberCardPic, styles.memberCardPicPlaceholder]}>
-                      <Text style={{fontSize: 20}}>👤</Text>
-                    </View>
-                  )}
+                  <Avatar
+                    picUri={picUri}
+                    name={member.first_name}
+                    lastName={member.last_name}
+                    size={48}
+                    style={{ marginRight: 12 }}
+                  />
                   <View style={styles.memberCardInfo}>
                     <Text style={styles.memberCardName}>{member.first_name} {member.last_name || ''}</Text>
                     {member.title ? <Text style={styles.memberCardTitle}>{member.title}</Text> : null}
@@ -3560,13 +3563,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <View style={styles.memberProfileCard}>
             <View style={styles.memberProfileTop}>
               <View style={{ position: 'relative' }}>
-                {myProfilePicUri ? (
-                  <Image source={{ uri: myProfilePicUri }} style={styles.memberProfilePicLarge} />
-                ) : (
-                  <View style={[styles.memberProfilePicLarge, styles.memberProfilePicPlaceholder]}>
-                    <Text style={{fontSize: 40}}>👤</Text>
-                  </View>
-                )}
+                <Avatar
+                  picUri={myProfilePicUri}
+                  name={currentUser.firstName}
+                  lastName={currentUser.lastName}
+                  emoji={isEditingProfile ? profileForm.avatar_emoji : currentUser.avatar_emoji}
+                  size={100}
+                  style={{ marginBottom: 14, borderWidth: 3, borderColor: '#2563eb' }}
+                />
                 <TouchableOpacity 
                   style={styles.profileCameraOverlay}
                   onPress={pickProfilePicture}
@@ -3583,6 +3587,40 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
               {isEditingProfile ? (
                 <View style={{ width: '100%', alignItems: 'center', marginTop: 12 }}>
+                  <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 8, alignSelf: 'flex-start', paddingLeft: 4 }}>
+                    Profile icon (optional)
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 2, marginBottom: 16, alignItems: 'center' }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => setProfileForm({ ...profileForm, avatar_emoji: null })}
+                      style={[
+                        { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginRight: 6, borderWidth: 2 },
+                        !profileForm.avatar_emoji
+                          ? { borderColor: '#2563eb', backgroundColor: '#eff6ff' }
+                          : { borderColor: '#e2e8f0' },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '600' }}>None</Text>
+                    </TouchableOpacity>
+                    {RELIGIOUS_EMOJIS.map((emoji) => (
+                      <TouchableOpacity
+                        key={emoji}
+                        onPress={() => setProfileForm({ ...profileForm, avatar_emoji: emoji })}
+                        style={[
+                          { padding: 6, borderRadius: 8, marginRight: 6, borderWidth: 2 },
+                          profileForm.avatar_emoji === emoji
+                            ? { borderColor: '#2563eb', backgroundColor: '#eff6ff' }
+                            : { borderColor: '#e2e8f0' },
+                        ]}
+                      >
+                        <Text style={{ fontSize: 26 }}>{emoji}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                   <TextInput
                     style={styles.profileEditInlineInput}
                     value={profileForm.firstName}

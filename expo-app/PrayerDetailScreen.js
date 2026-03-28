@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getRelativeTime } from './utils';
+import { getRelativeTime, Avatar, resolveAvatarUri } from './utils';
 
 const FAITH_RANKS = [
   { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
@@ -598,18 +598,12 @@ export default function PrayerDetailScreen({
         >
         <View style={styles.authorCard}>
           <View style={styles.authorCardLeft}>
-            {prayer?.user_picture && prayer.user_picture.startsWith('http') ? (
-              <Image 
-                source={{ uri: prayer.user_picture }} 
-                style={styles.authorAvatarLarge}
-              />
-            ) : (
-              <View style={styles.authorAvatarPlaceholderLarge}>
-                <Text style={styles.authorAvatarTextLarge}>
-                  {prayer?.author ? prayer.author.charAt(0).toUpperCase() : '?'}
-                </Text>
-              </View>
-            )}
+            <Avatar
+              picUri={resolveAvatarUri(prayer?.user_picture)}
+              name={prayer?.real_name || prayer?.author || ''}
+              size={48}
+              style={{ marginRight: 12, borderWidth: 2, borderColor: '#dbeafe' }}
+            />
             <View style={styles.authorCardInfo}>
               {prayer?.real_name && (
                 <Text style={styles.realName}>{prayer.real_name}</Text>
@@ -658,18 +652,11 @@ export default function PrayerDetailScreen({
                     const personRank = getFaithRank(person.faith_points, person.faith_rank);
                     return (
                       <View key={idx} style={styles.prayerNameRow}>
-                        {person.picture && person.picture.startsWith('http') ? (
-                          <Image 
-                            source={{ uri: person.picture }} 
-                            style={styles.prayerNameAvatarImage}
-                          />
-                        ) : (
-                          <View style={styles.prayerNameAvatar}>
-                            <Text style={styles.prayerNameAvatarText}>
-                              {person.name.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
+                        <Avatar
+                          picUri={resolveAvatarUri(person.picture)}
+                          name={person.name || ''}
+                          size={32}
+                        />
                         <Text style={styles.prayerNameText}>{person.name}</Text>
                         <TouchableOpacity
                           style={styles.faithBadge}

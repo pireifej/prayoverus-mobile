@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getRelativeTime } from './utils';
 
 const FAITH_RANKS = [
   { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
@@ -93,30 +94,6 @@ const base64Encode = (str) => {
 };
 
 const API_AUTH = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-const getRelativeTime = (dateString) => {
-  if (!dateString) return '';
-
-  const now  = new Date();
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-
-  const diffMs    = now - date;
-  const diffSecs  = Math.floor(diffMs / 1000);
-  const diffMins  = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays  = Math.floor(diffHours / 24);
-
-  if (diffSecs  <  60) return 'Just now';
-  if (diffMins  <  60) return `${diffMins}m ago`;
-  if (diffHours <  24) return `${diffHours}h ago`;
-  if (diffDays  <   7) return `${diffDays}d ago`;
-
-  const label = `${MONTHS[date.getMonth()]} ${date.getDate()}`;
-  return date.getFullYear() === now.getFullYear() ? label : `${label}, ${date.getFullYear()}`;
-};
 
 const AnimatedButton = ({ children, style, onPress, disabled, ...props }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;

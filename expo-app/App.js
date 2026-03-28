@@ -11,6 +11,7 @@ import PrayerDetailScreen from './PrayerDetailScreen';
 import RosaryScreen from './RosaryScreen';
 import GroupRosaryScreen from './GroupRosaryScreen';
 import { Buffer } from 'buffer';
+import { getRelativeTime } from './utils';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -214,54 +215,6 @@ function HtmlText({ html, style }) {
       ))}
     </Text>
   );
-}
-
-// Helper function to format relative time (e.g., "5 minutes ago", "4 hours ago")
-function getRelativeTime(dateString) {
-  if (!dateString) return '';
-  
-  // Parse different date formats
-  let date;
-  
-  // Check if it's already a relative format like "2 hours ago"
-  if (dateString.includes('ago') || dateString.includes('just now')) {
-    return dateString;
-  }
-  
-  // Try parsing as a date
-  if (dateString.includes('/')) {
-    // Format: MM/DD/YYYY or similar
-    const parts = dateString.split('/');
-    if (parts.length === 3) {
-      date = new Date(parts[2], parts[0] - 1, parts[1]);
-    }
-  } else if (dateString.includes('-')) {
-    // Format: YYYY-MM-DD
-    date = new Date(dateString);
-  } else {
-    // Try natural language like "December 31, 2025"
-    date = new Date(dateString);
-  }
-  
-  if (!date || isNaN(date.getTime())) {
-    return dateString; // Return original if parsing failed
-  }
-  
-  const now = new Date();
-  const diffMs = now - date;
-  const diffSecs  = Math.floor(diffMs / 1000);
-  const diffMins  = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays  = Math.floor(diffHours / 24);
-
-  if (diffSecs  <  60) return 'Just now';
-  if (diffMins  <  60) return `${diffMins}m ago`;
-  if (diffHours <  24) return `${diffHours}h ago`;
-  if (diffDays  <   7) return `${diffDays}d ago`;
-
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const label = `${MONTHS[date.getMonth()]} ${date.getDate()}`;
-  return date.getFullYear() === now.getFullYear() ? label : `${label}, ${date.getFullYear()}`;
 }
 
 // Animated Prayer Hands Component
@@ -1658,6 +1611,7 @@ function App() {
         isPublic: newPrayer.isPublic,
         author: currentUser?.firstName || 'You',
         userId: currentUser?.id,
+        timestamp: new Date().toISOString(),
         date: new Date().toLocaleDateString(),
         prayedFor: false
       };
@@ -4880,7 +4834,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     <Text style={styles.prayerCategory}> · {prayer.category}</Text>
                   )}
                 </View>
-                <Text style={styles.prayerTime}>{prayer.date}</Text>
+                <Text style={styles.prayerTime}>{getRelativeTime(prayer.timestamp || prayer.date)}</Text>
                 <View style={styles.prayButtonContainer}>
                   <AnimatedButton 
                     style={[

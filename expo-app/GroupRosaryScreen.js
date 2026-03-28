@@ -241,11 +241,31 @@ export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
     }
   }, [currentStep]);
 
-  // Cleanup WS on unmount
+  // Heartbeat — sends a ping every 25 s to prevent idle-timeout disconnects
+  const heartbeatRef = useRef(null);
+
+  const startHeartbeat = () => {
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    heartbeatRef.current = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 25000);
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+  };
+
+  // Cleanup WS and heartbeat on unmount
   useEffect(() => {
     return () => {
       wsRef.current?.close();
       pulseLoop.current?.stop();
+      stopHeartbeat();
     };
   }, []);
 
@@ -299,6 +319,9 @@ export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
         setCurrentLeaderId(msg.currentLeaderId);
         break;
 
+      case 'pong':
+        break; // heartbeat acknowledged — do nothing
+
       case 'error':
         setConnecting(false);
         Alert.alert('Group Rosary', msg.message || 'Something went wrong. Please try again.');
@@ -313,10 +336,10 @@ export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
     setConnecting(true);
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
-    ws.onopen    = onOpen;
+    ws.onopen    = () => { startHeartbeat(); onOpen(); };
     ws.onmessage = (e) => { try { handleMessage(JSON.parse(e.data)); } catch (err) {} };
-    ws.onerror   = () => { setConnecting(false); Alert.alert('Connection Error', 'Could not connect to the group server. Please check your internet connection.'); };
-    ws.onclose   = () => {};
+    ws.onerror   = () => { stopHeartbeat(); setConnecting(false); Alert.alert('Connection Error', 'Could not connect to the group server. Please check your internet connection.'); };
+    ws.onclose   = () => { stopHeartbeat(); };
   }, [handleMessage]);
 
   const handleCreateRoom = () => {

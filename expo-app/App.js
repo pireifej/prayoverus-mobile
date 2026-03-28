@@ -12,6 +12,7 @@ import RosaryScreen from './RosaryScreen';
 import GroupRosaryScreen from './GroupRosaryScreen';
 import { Buffer } from 'buffer';
 import { getRelativeTime } from './utils';
+import * as Updates from 'expo-updates';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -1357,15 +1358,16 @@ function App() {
                   ...parsedUserData,
                   firstName: user.real_name || parsedUserData.firstName,
                   lastName: user.last_name || parsedUserData.lastName,
-                  churchId: user.church_id,
-                  churchName: user.church_name,
+                  churchId: user.church_id || parsedUserData.churchId,
+                  churchName: user.church_name || parsedUserData.churchName,
                   title: user.user_title,
                   about: user.user_about,
                   picture: user.picture || user.profile_picture_url || parsedUserData.picture,
                   faith_points: user.faith_points || 0,
                   faith_rank: user.faith_rank || null,
                   prayer_count: parseInt(user.prayer_count, 10) || 0,
-                  request_count: parseInt(user.request_count, 10) || 0
+                  request_count: parseInt(user.request_count, 10) || 0,
+                  rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
                 };
                 console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
                 setCurrentUser(refreshedUser);
@@ -1375,7 +1377,7 @@ function App() {
           } catch (e) {
             console.log('Background profile refresh failed:', e.message);
           }
-        }, 500);
+        }, 0);
       } else {
         console.log('No stored user session found');
       }
@@ -3767,6 +3769,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           >
             <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
           </TouchableOpacity>
+
+          <View style={{ alignItems: 'center', paddingVertical: 16, opacity: 0.45 }}>
+            <Text style={{ fontSize: 11, color: '#64748b', letterSpacing: 0.3 }}>
+              v{Constants.expoConfig?.version || '—'}
+              {Updates.updateId ? `  ·  update ${Updates.updateId.slice(-8)}` : ''}
+            </Text>
+            {Updates.channel ? (
+              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                {Updates.channel} channel
+              </Text>
+            ) : null}
+          </View>
         </ScrollView>
         )}
 

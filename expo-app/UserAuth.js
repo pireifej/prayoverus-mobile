@@ -208,9 +208,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         newPassword: newPassword
       };
 
-      console.log('📱 PASSWORD RESET:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify({ token: token, newPassword: '***' }, null, 2));
+      console.log('📱 PASSWORD RESET: POST ' + endpoint);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -598,9 +596,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         env: "prod"
       };
       
-      console.log('📱 CREATING FACEBOOK USER:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
+      console.log('📱 CREATING FACEBOOK USER: POST ' + endpoint);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -675,10 +671,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         env: "prod"
       };
       
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
+      console.log('📱 MOBILE APP API CALL: POST ' + endpoint);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -745,10 +738,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         password: password
       };
       
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
+      console.log('📱 MOBILE APP API CALL: POST ' + endpoint);
       
       const response = await fetch(endpoint, {
         method: 'POST',

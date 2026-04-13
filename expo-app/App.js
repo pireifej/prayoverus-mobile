@@ -1078,7 +1078,7 @@ function App() {
       const route = url.replace(/.*?:\/\//g, '');
       
       // Check for password reset link (can be processed immediately)
-      const resetMatch = route.match(/reset-password\?token=([^&]+)/);
+      const resetMatch = route.match(/reset-password(?:\.html)?\?token=([^&]+)/);
       if (resetMatch && resetMatch[1]) {
         console.log('📱 Deep link detected: Password reset with token');
         setResetToken(resetMatch[1]);

@@ -62,6 +62,23 @@ const storage = new SimpleStorage();
 export function ForgotPasswordScreen({ onBack }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim  = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -10, duration: 2000, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0,   duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.6, duration: 2500, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.3, duration: 2500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   const handleSendResetLink = async () => {
     if (!email.trim()) {
@@ -126,11 +143,16 @@ export function ForgotPasswordScreen({ onBack }) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Image 
-          source={require('./assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <Animated.View style={[styles.logoGlow, { opacity: glowAnim }]} />
+          <Animated.Image
+            source={require('./assets/cross-hands.png')}
+            style={[styles.mascot, { transform: [{ translateY: floatAnim }] }]}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.welcomeText}>Welcome to</Text>
+        <Text style={styles.appName}>Pray Over Us</Text>
         <Text style={styles.subtitle}>Forgot Password?</Text>
         <Text style={styles.helpText}>
           Enter your email address and we'll send you a link to reset your password.
@@ -181,6 +203,23 @@ export function ResetPasswordScreen({ token, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim  = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -10, duration: 2000, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0,   duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.6, duration: 2500, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.3, duration: 2500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   const handleResetPassword = async () => {
     // Validation
@@ -255,11 +294,16 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Image 
-          source={require('./assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <Animated.View style={[styles.logoGlow, { opacity: glowAnim }]} />
+          <Animated.Image
+            source={require('./assets/cross-hands.png')}
+            style={[styles.mascot, { transform: [{ translateY: floatAnim }] }]}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.welcomeText}>Welcome to</Text>
+        <Text style={styles.appName}>Pray Over Us</Text>
         <Text style={styles.subtitle}>Reset Password</Text>
         <Text style={styles.helpText}>
           Enter your new password below.

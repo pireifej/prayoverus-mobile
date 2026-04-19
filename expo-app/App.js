@@ -3468,7 +3468,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           end={{ x: 1, y: 1 }}
         >
           <TouchableOpacity
-            onPress={() => setCurrentScreen('settings')}
+            onPress={() => setCurrentScreen('profile')}
             style={{ padding: 10, minWidth: 60 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >

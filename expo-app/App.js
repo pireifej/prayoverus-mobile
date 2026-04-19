@@ -1273,25 +1273,34 @@ function App() {
       const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional');
       const data = await res.json();
 
-      if (data && data.error === 0) {
-        const devotional = data.devotional || data;
-        if (devotional.title) {
-          setDailyDevotional(devotional);
-          setSelectedDevotional(devotional);
-          await AsyncStorage.setItem(DB_TODAY_KEY, today);
-          await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
+      // API returns {error:1} when no devotional is available yet
+      if (data && data.error !== 1 && data.title) {
+        // Normalize API snake_case fields to camelCase for display
+        const devotional = {
+          title: data.title,
+          content: data.article_body,
+          bibleVerse: data.bible_verse,
+          verseReference: data.verse_reference,
+          prayer: data.prayer,
+          imageURL: data.image_url,
+          date: data.date || new Date().toISOString(),
+        };
 
-          const alreadyInHistory = history.some(d =>
-            d.title === devotional.title && d.date === devotional.date
-          );
-          if (!alreadyInHistory) {
-            const updatedHistory = [devotional, ...history].slice(0, 60);
-            await AsyncStorage.setItem(DB_HISTORY_KEY, JSON.stringify(updatedHistory));
-            setPastDevotionals(updatedHistory);
-          }
+        setDailyDevotional(devotional);
+        setSelectedDevotional(devotional);
+        await AsyncStorage.setItem(DB_TODAY_KEY, today);
+        await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
 
-          scheduleDailyBreadNotification(devotional.title);
+        const alreadyInHistory = history.some(d =>
+          d.title === devotional.title && d.date === devotional.date
+        );
+        if (!alreadyInHistory) {
+          const updatedHistory = [devotional, ...history].slice(0, 60);
+          await AsyncStorage.setItem(DB_HISTORY_KEY, JSON.stringify(updatedHistory));
+          setPastDevotionals(updatedHistory);
         }
+
+        scheduleDailyBreadNotification(devotional.title);
       }
     } catch (e) {
       console.log('Daily Bread fetch error:', e);

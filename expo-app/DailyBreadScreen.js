@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  View, Text, ScrollView, Image, StyleSheet, TouchableOpacity,
+  View, Text, Animated, Image, StyleSheet, TouchableOpacity,
   Clipboard, Share, Platform, Dimensions, Modal, FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 const IMAGE_HEIGHT = Math.round(height * 0.40);
+const MIN_HEADER = Platform.OS === 'ios' ? 110 : 90;
 const CREAM = '#F9F7F2';
 const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -18,11 +19,23 @@ function formatDate(dateStr) {
 }
 
 export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
-  const [copied, setCopied] = useState(false);
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [showPast, setShowPast] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   if (!devotional) return null;
+
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, IMAGE_HEIGHT - MIN_HEADER],
+    outputRange: [IMAGE_HEIGHT, MIN_HEADER],
+    extrapolate: 'clamp',
+  });
+
+  const imageOpacity = scrollY.interpolate({
+    inputRange: [0, IMAGE_HEIGHT - MIN_HEADER],
+    outputRange: [1, 0.3],
+    extrapolate: 'clamp',
+  });
 
   const handleShare = async () => {
     const deepLink = 'https://prayoverus.com/download.html?open=dailybread';
@@ -41,22 +54,23 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Header image */}
-      <View style={styles.imageWrap}>
-        {devotional.imageURL ? (
-          <Image source={{ uri: devotional.imageURL }} style={styles.headerImage} resizeMode="cover" />
-        ) : (
-          <LinearGradient colors={['#1e3a5f', '#2563eb']} style={styles.headerImage} />
-        )}
+      {/* Collapsing header image */}
+      <Animated.View style={[styles.imageWrap, { height: headerHeight }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: imageOpacity }]}>
+          {devotional.imageURL ? (
+            <Image source={{ uri: devotional.imageURL }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : (
+            <LinearGradient colors={['#1e3a5f', '#2563eb']} style={StyleSheet.absoluteFill} />
+          )}
+        </Animated.View>
         <LinearGradient
-          colors={['rgba(0,0,0,0.28)', 'transparent', CREAM]}
-          locations={[0, 0.5, 1]}
-          style={styles.imageGradient}
+          colors={['rgba(0,0,0,0.35)', 'transparent', 'rgba(0,0,0,0.18)']}
+          style={StyleSheet.absoluteFill}
         />
 
-        {/* Top bar */}
+        {/* Top bar — always visible */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
             <Text style={styles.topBtnText}>← Back</Text>
@@ -72,22 +86,24 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Scrollable body */}
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
       >
-        {/* Label + date */}
         <Text style={styles.sectionLabel}>Daily Bread</Text>
         <Text style={styles.dateText}>{formatDate(devotional.date)}</Text>
 
-        {/* Title */}
         <Text style={styles.title}>{devotional.title}</Text>
 
-        {/* Bible verse blockquote */}
         {(devotional.bibleVerse || devotional.verseReference) ? (
           <View style={styles.verseBlock}>
             <View style={styles.verseBorder} />
@@ -102,12 +118,10 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           </View>
         ) : null}
 
-        {/* Body content */}
         {devotional.content ? (
           <Text style={styles.bodyText}>{devotional.content}</Text>
         ) : null}
 
-        {/* Prayer section */}
         {devotional.prayer ? (
           <View style={styles.prayerSection}>
             <Text style={styles.prayerLabel}>✝️ Today's Prayer</Text>
@@ -124,9 +138,8 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           </View>
         ) : null}
 
-        {/* Footer */}
         <Text style={styles.footer}>Curated by Paul Ireifej</Text>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Past Devotionals Modal */}
       <Modal visible={showPast} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPast(false)}>
@@ -178,17 +191,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     width: '100%',
-    height: IMAGE_HEIGHT,
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  imageGradient: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
-    height: IMAGE_HEIGHT,
+    overflow: 'hidden',
   },
   topBar: {
     position: 'absolute',
@@ -217,11 +220,10 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
     backgroundColor: CREAM,
-    marginTop: -24,
   },
   scrollContent: {
     paddingHorizontal: 22,
-    paddingTop: 28,
+    paddingTop: 24,
     paddingBottom: 60,
   },
   sectionLabel: {
@@ -327,8 +329,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
   },
-
-  // Past devotionals modal
   modalContainer: {
     flex: 1,
     backgroundColor: CREAM,

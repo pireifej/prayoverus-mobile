@@ -1,24 +1,24 @@
-# Test on Android phone (using Expo Go app)
-npx expo start --tunnel --go
+# Push OTA update to PREVIEW build only (your test device, safe for testing)
+cd expo-app && npx eas update --branch preview --message "test"
 
-# Test on iPad (using development build)
-npx expo start --tunnel
+# Push OTA update to ALL users (production - only when ready to release)
+cd expo-app && npx eas update --branch production --message "description of changes"
 
-# Build for Android (production)
-eas build --platform android
+# Build preview APK for Android (one-time per device, ~15 min)
+# Install the .apk on your test device, then use eas update --branch preview after that
+cd expo-app && npx eas build --profile preview --platform android
 
-# Build for iOS (production)
-eas build --platform ios
+# Build for Android (production - for Google Play Store)
+cd expo-app && npx eas build --platform android
+
+# Build for iOS (production - requires Apple Developer account $99/year)
+cd expo-app && npx eas build --platform ios
 
 # Submit to Google Play Store
-eas submit --platform android
+cd expo-app && npx eas submit --platform android
 
 # Submit to Apple App Store
-eas submit --platform ios
-
-# Push OTA update to all users (no app store review needed)
-# Use this for JavaScript-only changes (bug fixes, UI tweaks)
-cd expo-app && npx eas update --branch production
+cd expo-app && npx eas submit --platform ios
 
 # IMPORTANT: After releasing a new app version to the stores,
 # update CURRENT_APP_VERSION in server/routes.ts to notify users

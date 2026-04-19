@@ -1273,17 +1273,18 @@ function App() {
       const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional');
       const data = await res.json();
 
-      // API returns {error:1} when no devotional is available yet
-      if (data && data.error !== 1 && data.title) {
+      // API returns {error:0, result:{...}} on success, {error:1} when empty
+      const raw = data?.result;
+      if (data && data.error === 0 && raw && raw.title) {
         // Normalize API snake_case fields to camelCase for display
         const devotional = {
-          title: data.title,
-          content: data.article_body,
-          bibleVerse: data.bible_verse,
-          verseReference: data.verse_reference,
-          prayer: data.prayer,
-          imageURL: data.image_url,
-          date: data.date || new Date().toISOString(),
+          title: raw.title,
+          content: raw.article_body,
+          bibleVerse: raw.bible_verse,
+          verseReference: raw.verse_reference,
+          prayer: raw.prayer,
+          imageURL: raw.image_url,
+          date: raw.date || raw.created_at || new Date().toISOString(),
         };
 
         setDailyDevotional(devotional);

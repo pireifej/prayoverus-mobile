@@ -9,7 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "applicationId": "com.pireifej.prayoverus.preview"
+      }
     },
     "production": {
       "channel": "production"

@@ -1091,6 +1091,18 @@ function App() {
         return;
       }
       
+      // Check for Daily Bread deep link (?open=dailybread)
+      if (route.includes('open=dailybread')) {
+        console.log('📱 Deep link detected: Daily Bread');
+        if (currentUser) {
+          setSelectedDevotional(dailyDevotional);
+          setCurrentScreen('dailyBread');
+        } else {
+          setPendingInitialUrl(url);
+        }
+        return;
+      }
+
       // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
       const prayerMatch = route.match(/requestId=(\d+)/);
       if (prayerMatch && prayerMatch[1]) {
@@ -1138,6 +1150,17 @@ function App() {
     if (!isCheckingAuth && pendingInitialUrl) {
       console.log('📱 Auth check complete, processing pending deep link URL');
       const route = pendingInitialUrl.replace(/.*?:\/\//g, '');
+
+      // Daily Bread deep link
+      if (route.includes('open=dailybread')) {
+        if (currentUser) {
+          setSelectedDevotional(dailyDevotional);
+          setCurrentScreen('dailyBread');
+        }
+        setPendingInitialUrl(null);
+        return;
+      }
+
       const prayerMatch = route.match(/requestId=(\d+)/);
       
       if (prayerMatch && prayerMatch[1]) {

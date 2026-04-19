@@ -25,20 +25,11 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
   if (!devotional) return null;
 
   const handleShare = async () => {
-    const parts = [
-      devotional.title,
-      '',
-      devotional.bibleVerse ? `"${devotional.bibleVerse}"` : '',
-      devotional.verseReference ? `— ${devotional.verseReference}` : '',
-      '',
-      devotional.content || '',
-      '',
-      devotional.prayer ? `Prayer:\n${devotional.prayer}` : '',
-      '',
-      'Shared from Pray Over Us',
-    ].filter(Boolean);
+    const deepLink = 'https://prayoverus.com/download.html?open=dailybread';
+    const verse = devotional.verseReference ? ` (${devotional.verseReference})` : '';
+    const message = `"${devotional.title}"${verse}\n\nRead today's Daily Bread devotional in the Pray Over Us app:\n${deepLink}`;
     try {
-      await Share.share({ message: parts.join('\n') });
+      await Share.share({ message });
     } catch (e) {}
   };
 

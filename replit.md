@@ -40,6 +40,7 @@ shadcn/ui provides a consistent component library. Theming supports dark/light m
 *   **Error Handling**: Comprehensive error handling for prayer requests, distinguishing between network and server errors.
 *   **Church Filtering**: Server-side filtering of prayers by church affiliation for efficiency.
 *   **Profile Picture Upload**: Users can upload and update profile pictures with real-time updates and persistence.
+*   **Daily Bread Feature**: Full-screen devotional reader (`DailyBreadScreen.js`) with 40% header image, cream background, Georgia/serif typography, amber blockquote for Bible verses, share/copy-prayer buttons, and a 60-entry past-devotionals archive modal. Home screen shows a card at the top of the feed (image + title overlay). Fetches from `/getDailyDevotional` API, caches to AsyncStorage keyed by date, and schedules a daily 8 AM local notification. Gracefully shows nothing when no devotional is available yet (API returns error:1).
 *   **Live Rosary Feature**: UI for synchronized multi-user Rosary prayer sessions with progress indicators, real-time prayer text, and host controls, ready for WebSocket integration.
 *   **Prayer Feedback**: "X people prayed" badges, instant "✓ You Prayed" button updates, and "Hide Prayed ✓" filter.
 *   **Password Reset**: Complete forgot password and reset password flow with email integration and deep linking.

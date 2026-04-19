@@ -13,6 +13,8 @@ import GroupRosaryScreen from './GroupRosaryScreen';
 import { Buffer } from 'buffer';
 import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
 import * as Updates from 'expo-updates';
+import * as Notifications from 'expo-notifications';
+import DailyBreadScreen from './DailyBreadScreen';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -746,6 +748,9 @@ function App() {
   const [postSuccess, setPostSuccess] = useState(false);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
   const [resetToken, setResetToken] = useState(null);
+  const [dailyDevotional, setDailyDevotional] = useState(null);
+  const [selectedDevotional, setSelectedDevotional] = useState(null);
+  const [pastDevotionals, setPastDevotionals] = useState([]);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const headerExpandAnim = useRef(new Animated.Value(1)).current;
@@ -1218,6 +1223,88 @@ function App() {
       loadCommunityPrayers(true);
     }
   }, [currentScreen, currentUser, showChurchOnly]);
+
+  // ─── Daily Bread ───────────────────────────────────────────────────────────
+
+  const scheduleDailyBreadNotification = async (title) => {
+    try {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') return;
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const existing = scheduled.find(n => n.content?.data?.type === 'dailyBread');
+      if (existing) await Notifications.cancelScheduledNotificationAsync(existing.identifier);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Daily Bread 🍞',
+          body: `Your Daily Bread is ready: ${title}`,
+          sound: true,
+          data: { type: 'dailyBread' },
+        },
+        trigger: { hour: 8, minute: 0, repeats: true },
+      });
+    } catch (e) {
+      console.log('Daily Bread notification error:', e);
+    }
+  };
+
+  const fetchDailyDevotional = async () => {
+    try {
+      const DB_TODAY_KEY = '@db_today_date';
+      const DB_CACHE_KEY = '@db_today_data';
+      const DB_HISTORY_KEY = '@db_history';
+
+      const today = new Date().toDateString();
+      const [lastDate, cachedStr, historyStr] = await Promise.all([
+        AsyncStorage.getItem(DB_TODAY_KEY),
+        AsyncStorage.getItem(DB_CACHE_KEY),
+        AsyncStorage.getItem(DB_HISTORY_KEY),
+      ]);
+
+      const history = historyStr ? JSON.parse(historyStr) : [];
+      setPastDevotionals(history);
+
+      if (lastDate === today && cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        setDailyDevotional(cached);
+        setSelectedDevotional(cached);
+        return;
+      }
+
+      const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional');
+      const data = await res.json();
+
+      if (data && data.error === 0) {
+        const devotional = data.devotional || data;
+        if (devotional.title) {
+          setDailyDevotional(devotional);
+          setSelectedDevotional(devotional);
+          await AsyncStorage.setItem(DB_TODAY_KEY, today);
+          await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
+
+          const alreadyInHistory = history.some(d =>
+            d.title === devotional.title && d.date === devotional.date
+          );
+          if (!alreadyInHistory) {
+            const updatedHistory = [devotional, ...history].slice(0, 60);
+            await AsyncStorage.setItem(DB_HISTORY_KEY, JSON.stringify(updatedHistory));
+            setPastDevotionals(updatedHistory);
+          }
+
+          scheduleDailyBreadNotification(devotional.title);
+        }
+      }
+    } catch (e) {
+      console.log('Daily Bread fetch error:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchDailyDevotional();
+    }
+  }, [currentUser?.id]);
+
+  // ───────────────────────────────────────────────────────────────────────────
 
   const loadCommunityPrayers = async (showRefreshIndicator = false) => {
     console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id, 'Church Filter:', showChurchOnly);
@@ -4339,6 +4426,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   // ROSARY SCREENS
+  if (currentScreen === 'dailyBread') {
+    return (
+      <DailyBreadScreen
+        devotional={selectedDevotional}
+        onBack={() => setCurrentScreen('home')}
+        pastDevotionals={pastDevotionals}
+        onSelectPast={(item) => setSelectedDevotional(item)}
+      />
+    );
+  }
+
   if (currentScreen === 'rosary') {
     // Mock data for development
     const mockRosaryData = {
@@ -4708,6 +4806,50 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         }}
         scrollEventThrottle={16}
       >
+        {/* ── Daily Bread Card ── */}
+        {dailyDevotional && dailyDevotional.title ? (
+          <View style={styles.dailyBreadSection}>
+            <TouchableOpacity
+              style={styles.dailyBreadCard}
+              activeOpacity={0.90}
+              onPress={() => {
+                setSelectedDevotional(dailyDevotional);
+                setCurrentScreen('dailyBread');
+              }}
+            >
+              {dailyDevotional.imageURL ? (
+                <Image source={{ uri: dailyDevotional.imageURL }} style={styles.dailyBreadCardImage} resizeMode="cover" />
+              ) : (
+                <LinearGradient colors={['#1e3a5f', '#2563eb']} style={styles.dailyBreadCardImage} />
+              )}
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.72)']}
+                style={styles.dailyBreadCardOverlay}
+              >
+                <Text style={styles.dailyBreadPill}>🍞 Daily Bread</Text>
+                <Text style={styles.dailyBreadCardTitle} numberOfLines={2}>
+                  {dailyDevotional.title}
+                </Text>
+                {dailyDevotional.verseReference ? (
+                  <Text style={styles.dailyBreadCardVerse}>{dailyDevotional.verseReference}</Text>
+                ) : null}
+              </LinearGradient>
+            </TouchableOpacity>
+            {pastDevotionals.length > 1 && (
+              <TouchableOpacity
+                style={styles.pastIssuesRow}
+                activeOpacity={0.75}
+                onPress={() => {
+                  setSelectedDevotional(dailyDevotional);
+                  setCurrentScreen('dailyBread');
+                }}
+              >
+                <Text style={styles.pastIssuesRowText}>📚 View archive of past readings →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
+
         {/* Share Prayer Request Button - Opens dedicated screen */}
         <TouchableOpacity 
           style={styles.sharePrayerButton}
@@ -6658,6 +6800,61 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  dailyBreadSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  dailyBreadCard: {
+    height: 210,
+    borderRadius: 18,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  dailyBreadCardImage: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+  },
+  dailyBreadCardOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  dailyBreadPill: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: '#fbbf24',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  dailyBreadCardTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    lineHeight: 26,
+    marginBottom: 4,
+  },
+  dailyBreadCardVerse: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '500',
+  },
+  pastIssuesRow: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'flex-end',
+  },
+  pastIssuesRowText: {
+    fontSize: 13,
+    color: '#1e40af',
+    fontWeight: '600',
   },
   sharePrayerButton: {
     flexDirection: 'row',

@@ -6,9 +6,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
-const { height } = Dimensions.get('window');
-const IMAGE_HEIGHT = Math.round(height * 0.40);
-const MIN_HEADER = Platform.OS === 'ios' ? 110 : 90;
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.40);
+const SAFE_TOP = Platform.OS === 'ios' ? 54 : 36;
 const CREAM = '#F9F7F2';
 const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -25,15 +25,16 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 
   if (!devotional) return null;
 
+  // Image fades and compresses as user scrolls — fully gone by IMAGE_HEIGHT
   const headerHeight = scrollY.interpolate({
-    inputRange: [0, IMAGE_HEIGHT - MIN_HEADER],
-    outputRange: [IMAGE_HEIGHT, MIN_HEADER],
+    inputRange: [0, IMAGE_HEIGHT],
+    outputRange: [IMAGE_HEIGHT, 0],
     extrapolate: 'clamp',
   });
 
   const imageOpacity = scrollY.interpolate({
-    inputRange: [0, IMAGE_HEIGHT - MIN_HEADER],
-    outputRange: [1, 0.3],
+    inputRange: [0, IMAGE_HEIGHT * 0.65],
+    outputRange: [1, 0],
     extrapolate: 'clamp',
   });
 
@@ -56,7 +57,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Collapsing header image */}
+      {/* Image header — absolute, collapses behind scroll content */}
       <Animated.View style={[styles.imageWrap, { height: headerHeight }]}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: imageOpacity }]}>
           {devotional.imageURL ? (
@@ -64,34 +65,17 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           ) : (
             <LinearGradient colors={['#1e3a5f', '#2563eb']} style={StyleSheet.absoluteFill} />
           )}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.32)', 'transparent']}
+            style={StyleSheet.absoluteFill}
+          />
         </Animated.View>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.35)', 'transparent', 'rgba(0,0,0,0.18)']}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {/* Top bar — always visible */}
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
-            <Text style={styles.topBtnText}>← Back</Text>
-          </TouchableOpacity>
-          <View style={styles.topRight}>
-            {pastDevotionals.length > 1 && (
-              <TouchableOpacity onPress={() => setShowPast(true)} style={[styles.topBtn, { marginRight: 8 }]} activeOpacity={0.8}>
-                <Text style={styles.topBtnText}>📚 Archive</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
-              <Text style={styles.topBtnText}>Share ↗</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </Animated.View>
 
-      {/* Scrollable body */}
+      {/* Scroll content — full screen, cream card slides over image */}
       <Animated.ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={StyleSheet.absoluteFill}
+        contentContainerStyle={{ paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -99,47 +83,69 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           { useNativeDriver: false }
         )}
       >
-        <Text style={styles.sectionLabel}>Daily Bread</Text>
-        <Text style={styles.dateText}>{formatDate(devotional.date)}</Text>
+        {/* Transparent spacer reveals the image beneath */}
+        <View style={{ height: IMAGE_HEIGHT - 24 }} />
 
-        <Text style={styles.title}>{devotional.title}</Text>
+        {/* Cream content card slides up over the image */}
+        <View style={styles.contentCard}>
+          <Text style={styles.sectionLabel}>Daily Bread</Text>
+          <Text style={styles.dateText}>{formatDate(devotional.date)}</Text>
+          <Text style={styles.title}>{devotional.title}</Text>
 
-        {(devotional.bibleVerse || devotional.verseReference) ? (
-          <View style={styles.verseBlock}>
-            <View style={styles.verseBorder} />
-            <View style={styles.verseInner}>
-              {devotional.bibleVerse ? (
-                <Text style={styles.verseText}>"{devotional.bibleVerse}"</Text>
-              ) : null}
-              {devotional.verseReference ? (
-                <Text style={styles.verseRef}>— {devotional.verseReference}</Text>
-              ) : null}
+          {(devotional.bibleVerse || devotional.verseReference) ? (
+            <View style={styles.verseBlock}>
+              <View style={styles.verseBorder} />
+              <View style={styles.verseInner}>
+                {devotional.bibleVerse ? (
+                  <Text style={styles.verseText}>"{devotional.bibleVerse}"</Text>
+                ) : null}
+                {devotional.verseReference ? (
+                  <Text style={styles.verseRef}>— {devotional.verseReference}</Text>
+                ) : null}
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {devotional.content ? (
-          <Text style={styles.bodyText}>{devotional.content}</Text>
-        ) : null}
+          {devotional.content ? (
+            <Text style={styles.bodyText}>{devotional.content}</Text>
+          ) : null}
 
-        {devotional.prayer ? (
-          <View style={styles.prayerSection}>
-            <Text style={styles.prayerLabel}>✝️ Today's Prayer</Text>
-            <Text style={styles.prayerText}>{devotional.prayer}</Text>
-            <TouchableOpacity
-              style={[styles.copyBtn, prayerCopied && styles.copyBtnDone]}
-              onPress={handleCopyPrayer}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.copyBtnText}>
-                {prayerCopied ? '✓ Copied to Clipboard' : '🙏 Copy Prayer'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+          {devotional.prayer ? (
+            <View style={styles.prayerSection}>
+              <Text style={styles.prayerLabel}>✝️ Today's Prayer</Text>
+              <Text style={styles.prayerText}>{devotional.prayer}</Text>
+              <TouchableOpacity
+                style={[styles.copyBtn, prayerCopied && styles.copyBtnDone]}
+                onPress={handleCopyPrayer}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.copyBtnText}>
+                  {prayerCopied ? '✓ Copied to Clipboard' : '🙏 Copy Prayer'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
-        <Text style={styles.footer}>Curated by Paul Ireifej</Text>
+          <Text style={styles.footer}>Curated by Paul Ireifej</Text>
+        </View>
       </Animated.ScrollView>
+
+      {/* Floating buttons — always visible regardless of scroll position */}
+      <View style={[styles.topBar, { top: SAFE_TOP }]}>
+        <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
+          <Text style={styles.topBtnText}>← Back</Text>
+        </TouchableOpacity>
+        <View style={styles.topRight}>
+          {pastDevotionals.length > 1 && (
+            <TouchableOpacity onPress={() => setShowPast(true)} style={[styles.topBtn, { marginRight: 8 }]} activeOpacity={0.8}>
+              <Text style={styles.topBtnText}>📚 Archive</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
+            <Text style={styles.topBtnText}>Share ↗</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Past Devotionals Modal */}
       <Modal visible={showPast} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPast(false)}>
@@ -187,20 +193,22 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: '#1e3a5f',
   },
   imageWrap: {
-    width: '100%',
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
     overflow: 'hidden',
+    zIndex: 0,
   },
   topBar: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 36,
     left: 0, right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
+    zIndex: 10,
   },
   topRight: {
     flexDirection: 'row',
@@ -217,14 +225,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  scroll: {
-    flex: 1,
+  contentCard: {
     backgroundColor: CREAM,
-  },
-  scrollContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 60,
+    paddingTop: 28,
+    paddingBottom: 40,
+    minHeight: SCREEN_HEIGHT,
   },
   sectionLabel: {
     fontSize: 11,

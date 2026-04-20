@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
-  Clipboard, Share, Platform, Dimensions, Modal, FlatList,
+  Clipboard, Share, Platform, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.40);
-const SAFE_TOP = Platform.OS === 'ios' ? 54 : 36;
+const SAFE_TOP = Platform.OS === 'ios' ? 64 : 56;
 const CREAM = '#F9F7F2';
 const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
@@ -20,7 +20,6 @@ function formatDate(dateStr) {
 
 export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
-  const [showPast, setShowPast] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   if (!devotional) return null;
@@ -136,56 +135,12 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           <Text style={styles.topBtnText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.topRight}>
-          {pastDevotionals.length > 1 && (
-            <TouchableOpacity onPress={() => setShowPast(true)} style={[styles.topBtn, { marginRight: 8 }]} activeOpacity={0.8}>
-              <Text style={styles.topBtnText}>📚 Archive</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
             <Text style={styles.topBtnText}>Share ↗</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Past Devotionals Modal */}
-      <Modal visible={showPast} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPast(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Daily Bread Archive</Text>
-            <TouchableOpacity onPress={() => setShowPast(false)} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>✕ Close</Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={pastDevotionals}
-            keyExtractor={(item, i) => item.date || item.title || String(i)}
-            contentContainerStyle={{ padding: 16 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.pastItem}
-                activeOpacity={0.75}
-                onPress={() => {
-                  setShowPast(false);
-                  onSelectPast && onSelectPast(item);
-                }}
-              >
-                {item.imageURL ? (
-                  <Image source={{ uri: item.imageURL }} style={styles.pastItemImage} resizeMode="cover" />
-                ) : (
-                  <LinearGradient colors={['#1e3a5f', '#2563eb']} style={styles.pastItemImage} />
-                )}
-                <View style={styles.pastItemInfo}>
-                  <Text style={styles.pastItemDate}>{formatDate(item.date)}</Text>
-                  <Text style={styles.pastItemTitle} numberOfLines={2}>{item.title}</Text>
-                  {item.verseReference ? (
-                    <Text style={styles.pastItemVerse}>{item.verseReference}</Text>
-                  ) : null}
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -336,75 +291,5 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 8,
     marginBottom: 20,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: CREAM,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e2d8',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: SERIF,
-    color: '#1a1714',
-  },
-  modalClose: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  modalCloseText: {
-    color: '#64748b',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  pastItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  pastItemImage: {
-    width: 88,
-    height: 88,
-  },
-  pastItemInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  pastItemDate: {
-    fontSize: 11,
-    color: '#94928c',
-    marginBottom: 4,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  pastItemTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    fontFamily: SERIF,
-    color: '#1a1714',
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  pastItemVerse: {
-    fontSize: 12,
-    color: AMBER,
-    fontWeight: '600',
   },
 });

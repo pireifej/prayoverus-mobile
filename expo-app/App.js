@@ -1312,7 +1312,12 @@ function App() {
 
         setDailyDevotional(devotional);
         setSelectedDevotional(devotional);
-        await AsyncStorage.setItem(DB_TODAY_KEY, today);
+        // Only lock the cache to today if the API returned today's devotional.
+        // If the backend hasn't published today's yet, keep trying on each app open.
+        const devotionalDate = new Date(devotional.date).toDateString();
+        if (devotionalDate === today) {
+          await AsyncStorage.setItem(DB_TODAY_KEY, today);
+        }
         await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
 
         const alreadyInHistory = history.some(d =>

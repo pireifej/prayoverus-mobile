@@ -14,7 +14,10 @@ const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 function formatDate(dateStr) {
-  const d = dateStr ? new Date(dateStr) : new Date();
+  if (!dateStr) return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  // Split the date part only and construct as local time to avoid UTC offset shifting the day
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+  const d = new Date(year, month - 1, day);
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 

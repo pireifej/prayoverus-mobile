@@ -4873,18 +4873,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 ) : null}
               </LinearGradient>
             </TouchableOpacity>
-            {pastDevotionals.length > 1 && (
-              <TouchableOpacity
-                style={styles.pastIssuesRow}
-                activeOpacity={0.75}
-                onPress={() => {
-                  setSelectedDevotional(dailyDevotional);
-                  setCurrentScreen('dailyBread');
-                }}
-              >
-                <Text style={styles.pastIssuesRowText}>📚 View archive of past readings →</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ) : null}
 

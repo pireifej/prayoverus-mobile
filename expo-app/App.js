@@ -1286,19 +1286,29 @@ function App() {
       const history = historyStr ? JSON.parse(historyStr) : [];
       setPastDevotionals(history);
 
+      // Show cached version immediately for fast display
       if (lastDate === today && cachedStr) {
         const cached = JSON.parse(cachedStr);
         setDailyDevotional(cached);
         setSelectedDevotional(cached);
-        return;
       }
 
+      // Always fetch from API to check if a newer article was generated today
       const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional');
       const data = await res.json();
 
       // API returns {error:0, result:{...}} on success, {error:1} when empty
       const raw = data?.result;
       if (data && data.error === 0 && raw && raw.title) {
+        const cached = cachedStr ? JSON.parse(cachedStr) : null;
+        const cachedCreatedAt = cached?.createdAt || '';
+        const freshCreatedAt = raw.created_at || '';
+
+        // Skip updating if we already have this exact article cached
+        if (lastDate === today && cachedCreatedAt && cachedCreatedAt === freshCreatedAt) {
+          return;
+        }
+
         // Normalize API snake_case fields to camelCase for display
         const devotional = {
           title: raw.title,
@@ -1308,6 +1318,7 @@ function App() {
           prayer: raw.prayer,
           imageURL: raw.image_url,
           date: raw.date || raw.created_at || new Date().toISOString(),
+          createdAt: raw.created_at || '',
         };
 
         setDailyDevotional(devotional);

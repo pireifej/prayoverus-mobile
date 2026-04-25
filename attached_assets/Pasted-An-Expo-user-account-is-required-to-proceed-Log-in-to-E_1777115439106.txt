@@ -1,0 +1,51 @@
+An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+✔ Email or username … pireifej
+✔ Password … ***************
+
+✔ What would you like to submit? › Select a build from EAS
+✔ Which build would you like to submit? › - ID: bfe564c9-eab5-446d-a67a-fc5e77d99a11 (4 days ago)
+Ensuring your app exists on App Store Connect. This step can be skipped by providing ascAppId in the submit profile. Learn more: https://expo.fyi/asc-app-id
+
+› Log in to your Apple Developer account to continue
+✔ Apple ID: … paul.ireifej@gmail.com
+› The password is only used to authenticate with Apple and never stored on EAS servers
+  Learn more: https://bit.ly/2VtGWhU
+✔ Password (for paul.ireifej@gmail.com): … *****************
+› Saving Apple ID password to the local Keychain
+  Learn more: https://docs.expo.dev/distribution/security#keychain
+✔ Logged in, verify your Apple account to continue
+Two-factor Authentication (6 digit code) is enabled for paul.ireifej@gmail.com. Learn more: https://support.apple.com/en-us/HT204915
+
+✔ How do you want to validate your account? … device / sms
+✔ Please enter the 6 digit code you received at +1 (•••) •••-••86: … 647014
+✔ Valid code
+✔ Logged in and verified
+› Team Paul Ireifej (MC4R3L639K)
+› Provider Paul Ireifej (128110254)
+
+✔ Bundle identifier registered com.pireifej.prayoverus
+✔ Prepared App Store Connect for PrayOverUs com.pireifej.prayoverus
+Looking up credentials configuration for com.pireifej.prayoverus...
+✔ App Store Connect API Key already set up.
+Using Api Key ID: 4ABS55JBSL ([Expo] EAS Submit BVBp8UeSDK)
+
+ASC App ID:                 6751807110
+Project ID:                 91bdb01b-1012-49e1-abb4-fc8fae904ec8
+App Store Connect API Key:  
+    Key Name  :  [Expo] EAS Submit BVBp8UeSDK
+    Key ID    :  4ABS55JBSL
+    Key Source:  EAS servers
+Build:                      
+    Build ID    :  bfe564c9-eab5-446d-a67a-fc5e77d99a11
+    Build Date  :  4/20/2026, 10:45:19 PM
+    App Version :  1.0.25
+    Build number:  52
+
+✔ Scheduled iOS submission
+
+Submission details: https://expo.dev/accounts/pireifej/projects/pray-over-us/submissions/76925542-a14a-4025-870d-de0a687e6cca
+
+Waiting for submission to complete. You can press Ctrl+C to exit.
+✖ Something went wrong when submitting your app to Apple App Store Connect.

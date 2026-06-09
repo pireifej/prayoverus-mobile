@@ -13,6 +13,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Current app version - update this when releasing new versions
 const CURRENT_APP_VERSION = '1.0.24';
 
+// In-memory TTS audio cache keyed by devotional date (e.g. "2026-04-20")
+const ttsCache = new Map<string, Buffer>();
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -20,6 +23,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // App version endpoint for update checking
   app.get('/api/app-version', (req, res) => {
     res.json({ version: CURRENT_APP_VERSION });
+  });
+
+  // Daily Bread TTS — Step 1: POST to generate and cache audio
+  // Body: { date, title, content, bibleVerse, verseReference, prayer }
+  // Returns { ok: true } once audio is cached server-side
+  app.post('/api/daily-bread-audio', async (req, res) => {
+    try {
+      const { date, title, content, bibleVerse, verseReference, prayer } = req.body;
+      if (!date) return res.status(400).json({ message: 'date required' });
+
+      if (!ttsCache.has(date)) {
+        const parts: string[] = [];
+        if (title) parts.push(title + '.');
+        if (bibleVerse) parts.push(bibleVerse + (verseReference ? ` — ${verseReference}.` : ''));
+        if (content) parts.push(content);
+        if (prayer) parts.push(`Today's closing prayer. ${prayer}`);
+
+        const text = parts.join('\n\n').slice(0, 4000);
+
+        const mp3 = await openai.audio.speech.create({
+          model: 'tts-1-hd',
+          voice: 'nova',
+          input: text,
+          response_format: 'mp3',
+        });
+
+        const buffer = Buffer.from(await mp3.arrayBuffer());
+        ttsCache.set(date, buffer);
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('TTS generate error:', error);
+      res.status(500).json({ message: 'Failed to generate audio' });
+    }
+  });
+
+  // Daily Bread TTS — Step 2: GET to stream the cached audio
+  // Query: ?date=YYYY-MM-DD
+  app.get('/api/daily-bread-audio', async (req, res) => {
+    try {
+      const date = req.query.date as string;
+      if (!date) return res.status(400).json({ message: 'date required' });
+
+      if (!ttsCache.has(date)) {
+        return res.status(404).json({ message: 'Audio not ready — call POST first' });
+      }
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(ttsCache.get(date));
+    } catch (error) {
+      console.error('TTS stream error:', error);
+      res.status(500).json({ message: 'Failed to stream audio' });
+    }
   });
 
   // Auth routes

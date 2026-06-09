@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.expo/
+android/
+ios/
+*.orig.*
+firebase-service-account.json
+scripts/pwd.txt

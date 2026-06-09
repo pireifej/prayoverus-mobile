@@ -3,7 +3,7 @@ import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
   Clipboard, Share, Platform, Dimensions,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
@@ -14,9 +14,6 @@ const CREAM = '#F9F7F2';
 const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
-// URL of the Replit server that handles TTS generation.
-// Update this to your deployed URL when publishing a production build.
-const TTS_SERVER = 'https://40ccfa28-9b7f-4c4f-b8de-d2524b06adaa-00-2pkief8iahh21.riker.replit.dev';
 
 function formatDate(dateStr) {
   if (!dateStr) return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });

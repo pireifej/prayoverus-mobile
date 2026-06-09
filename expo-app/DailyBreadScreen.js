@@ -61,15 +61,12 @@ const waveStyles = StyleSheet.create({
 
 export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
-  const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
-  const soundRef = useRef(null);
+  const [speaking, setSpeaking] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Clean up audio when leaving the screen
+  // Stop speech when leaving the screen
   useEffect(() => {
-    return () => {
-      soundRef.current?.unloadAsync();
-    };
+    return () => { Speech.stop(); };
   }, []);
 
   if (!devotional) return null;
@@ -99,75 +96,32 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     setTimeout(() => setPrayerCopied(false), 2500);
   };
 
-  const handlePlayPause = async () => {
-    try {
-      if (audioStatus === 'playing') {
-        await soundRef.current?.pauseAsync();
-        setAudioStatus('paused');
-        return;
-      }
-      if (audioStatus === 'paused') {
-        await soundRef.current?.playAsync();
-        setAudioStatus('playing');
-        return;
-      }
-
-      // idle — generate then play
-      setAudioStatus('loading');
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
-
-      const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
-
-      // Step 1: POST to trigger generation and server-side caching
-      const genRes = await fetch(`${TTS_SERVER}/api/daily-bread-audio`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date,
-          title: devotional.title || '',
-          content: devotional.content || '',
-          bibleVerse: devotional.bibleVerse || '',
-          verseReference: devotional.verseReference || '',
-          prayer: devotional.prayer || '',
-        }),
-      });
-      if (!genRes.ok) throw new Error('Audio generation failed');
-
-      // Step 2: download fully then play (downloadFirst avoids Android ExoPlayer buffering issues)
-      await soundRef.current?.unloadAsync();
-      soundRef.current = null;
-
-      const audioUri = `${TTS_SERVER}/api/daily-bread-audio?date=${date}`;
-      console.log('[TTS] Loading audio from:', audioUri);
-
-      const { sound, status } = await Audio.Sound.createAsync(
-        { uri: audioUri },
-        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
-        (s) => {
-          console.log('[TTS] status:', JSON.stringify(s));
-          if (s.didJustFinish) {
-            setAudioStatus('idle');
-            soundRef.current?.unloadAsync();
-            soundRef.current = null;
-          }
-          if (s.error) {
-            console.log('[TTS] playback error:', s.error);
-            setAudioStatus('idle');
-          }
-        },
-        true // downloadFirst — fully buffer before playing
-      );
-
-      console.log('[TTS] initial status:', JSON.stringify(status));
-      soundRef.current = sound;
-      setAudioStatus('playing');
-    } catch (e) {
-      console.log('[TTS] createAsync error:', e?.message || e);
-      setAudioStatus('idle');
+  const handleListen = async () => {
+    if (speaking) {
+      Speech.stop();
+      setSpeaking(false);
+      return;
     }
+
+    const parts = [];
+    if (devotional.title) parts.push(devotional.title + '.');
+    if (devotional.bibleVerse) parts.push(devotional.bibleVerse + (devotional.verseReference ? ` — ${devotional.verseReference}.` : ''));
+    if (devotional.content) parts.push(devotional.content);
+    if (devotional.prayer) parts.push(`Today's closing prayer. ${devotional.prayer}`);
+    const text = parts.join('\n\n');
+
+    setSpeaking(true);
+    Speech.speak(text, {
+      language: 'en-US',
+      rate: 0.9,
+      pitch: 1.0,
+      onDone: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+      onStopped: () => setSpeaking(false),
+    });
   };
 
-  const audioLabel = audioStatus === 'loading' ? 'Loading...' : audioStatus === 'playing' ? 'Pause' : audioStatus === 'paused' ? '▶ Resume' : '🔊 Listen';
+  const audioLabel = speaking ? '⏹ Stop' : '🔊 Listen';
 
   return (
     <View style={styles.container}>
@@ -205,12 +159,11 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 
           {/* Listen button */}
           <TouchableOpacity
-            style={[styles.listenBtn, audioStatus === 'loading' && styles.listenBtnLoading]}
-            onPress={handlePlayPause}
+            style={[styles.listenBtn, speaking && styles.listenBtnActive]}
+            onPress={handleListen}
             activeOpacity={0.8}
-            disabled={audioStatus === 'loading'}
           >
-            {audioStatus === 'playing' && <SoundWave playing />}
+            {speaking && <SoundWave playing />}
             <Text style={styles.listenBtnText}>{audioLabel}</Text>
           </TouchableOpacity>
 
@@ -320,7 +273,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  listenBtnLoading: { backgroundColor: '#64748b' },
+  listenBtnActive: { backgroundColor: '#dc2626' },
   listenBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   verseBlock: { flexDirection: 'row', marginBottom: 28, paddingVertical: 4 },
   verseBorder: { width: 4, borderRadius: 2, backgroundColor: AMBER, marginRight: 14 },

@@ -136,26 +136,36 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       });
       if (!genRes.ok) throw new Error('Audio generation failed');
 
-      // Step 2: expo-av streams the cached audio via the GET endpoint
+      // Step 2: download fully then play (downloadFirst avoids Android ExoPlayer buffering issues)
       await soundRef.current?.unloadAsync();
       soundRef.current = null;
 
       const audioUri = `${TTS_SERVER}/api/daily-bread-audio?date=${date}`;
-      const { sound } = await Audio.Sound.createAsync(
+      console.log('[TTS] Loading audio from:', audioUri);
+
+      const { sound, status } = await Audio.Sound.createAsync(
         { uri: audioUri },
-        { shouldPlay: true },
-        (status) => {
-          if (status.didJustFinish) {
+        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
+        (s) => {
+          console.log('[TTS] status:', JSON.stringify(s));
+          if (s.didJustFinish) {
             setAudioStatus('idle');
             soundRef.current?.unloadAsync();
             soundRef.current = null;
           }
-        }
+          if (s.error) {
+            console.log('[TTS] playback error:', s.error);
+            setAudioStatus('idle');
+          }
+        },
+        true // downloadFirst — fully buffer before playing
       );
+
+      console.log('[TTS] initial status:', JSON.stringify(status));
       soundRef.current = sound;
       setAudioStatus('playing');
     } catch (e) {
-      console.log('Audio error:', e);
+      console.log('[TTS] createAsync error:', e?.message || e);
       setAudioStatus('idle');
     }
   };

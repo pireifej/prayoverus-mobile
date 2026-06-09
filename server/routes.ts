@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Daily Bread TTS — Step 2: GET to stream the cached audio
-  // Query: ?date=YYYY-MM-DD
+  // Query: ?date=YYYY-MM-DD  (supports Range requests for Android ExoPlayer)
   app.get('/api/daily-bread-audio', async (req, res) => {
     try {
       const date = req.query.date as string;
@@ -71,9 +71,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Audio not ready — call POST first' });
       }
 
+      const buffer = ttsCache.get(date)!;
+      const total = buffer.length;
+
       res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Cache-Control', 'public, max-age=86400');
-      res.send(ttsCache.get(date));
+
+      const rangeHeader = req.headers['range'];
+      if (rangeHeader) {
+        const [startStr, endStr] = rangeHeader.replace('bytes=', '').split('-');
+        const start = parseInt(startStr, 10);
+        const end = endStr ? parseInt(endStr, 10) : total - 1;
+        const chunkLength = end - start + 1;
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${total}`);
+        res.setHeader('Content-Length', chunkLength);
+        res.status(206).send(buffer.slice(start, end + 1));
+      } else {
+        res.setHeader('Content-Length', total);
+        res.status(200).send(buffer);
+      }
     } catch (error) {
       console.error('TTS stream error:', error);
       res.status(500).json({ message: 'Failed to stream audio' });

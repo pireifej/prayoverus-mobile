@@ -4,6 +4,7 @@ import {
   Clipboard, Share, Platform, Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
@@ -115,31 +116,46 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
       const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
+      const localUri = `${FileSystem.cacheDirectory}daily-bread-${date}.mp3`;
 
-      // Step 1: POST to generate + cache (calls this Replit's TTS endpoint)
-      // TODO: once Paul adds /getDailyBreadAudio to shouldcallpaul.replit.app, swap these URLs back
-      const TTS_BASE = 'https://40ccfa28-9b7f-4c4f-b8de-d2524b06adaa-00-2pkief8iahh21.riker.replit.dev/api/daily-bread-audio';
-      const genRes = await fetch(TTS_BASE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date,
-          title: devotional.title || '',
-          content: devotional.content || '',
-          bibleVerse: devotional.bibleVerse || '',
-          verseReference: devotional.verseReference || '',
-          prayer: devotional.prayer || '',
-        }),
-      });
-      if (!genRes.ok) throw new Error(`TTS generate failed: ${genRes.status}`);
+      // Check device cache first — skip network call if already downloaded today
+      const cached = await FileSystem.getInfoAsync(localUri);
+      if (!cached.exists) {
+        // POST to Paul's backend — no auth required, returns MP3 binary directly
+        const res = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date,
+            title: devotional.title || '',
+            content: devotional.content || '',
+            bibleVerse: devotional.bibleVerse || '',
+            verseReference: devotional.verseReference || '',
+            prayer: devotional.prayer || '',
+          }),
+        });
+        if (!res.ok) throw new Error(`TTS failed: ${res.status}`);
 
-      // Step 2: stream via GET — expo-av plays directly from the URL
+        // Response is raw MP3 binary — save to device cache so expo-av can play it
+        const arrayBuffer = await res.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        const base64 = btoa(binary);
+        await FileSystem.writeAsStringAsync(localUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+
+      // Play from local cached file
       await soundRef.current?.unloadAsync();
       soundRef.current = null;
 
-      const audioUri = `${TTS_BASE}?date=${date}`;
       const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUri },
+        { uri: localUri },
         { shouldPlay: true },
         (status) => {
           if (status.didJustFinish) {
@@ -151,8 +167,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             console.log('[TTS] playback error:', status.error);
             setAudioStatus('idle');
           }
-        },
-        true // downloadFirst — avoids Android ExoPlayer buffering issues
+        }
       );
       soundRef.current = sound;
       setAudioStatus('playing');

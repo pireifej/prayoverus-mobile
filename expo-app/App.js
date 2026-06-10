@@ -16,6 +16,9 @@ import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
+// App build tag — bump this with every OTA push so users can confirm their version
+const APP_BUILD = 'preview-1.0.25-build6';
+
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
   { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
@@ -4296,6 +4299,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <Text style={styles.deleteButtonText}>Delete Account</Text>
             </TouchableOpacity>
+
+            <Text style={{ textAlign: 'center', color: '#bbb', fontSize: 11, marginTop: 16, marginBottom: 4 }}>
+              {APP_BUILD}
+            </Text>
           </View>
         </ScrollView>
       </View>

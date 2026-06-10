@@ -1,0 +1,148 @@
+Frontend prompt — Daily Bread Audio Player
+Feature: Read Aloud button on the Daily Bread / Devotional screen
+
+Add an audio player to the Daily Bread screen that lets users hear the devotional read aloud by a natural AI voice.
+
+Dependencies needed:
+
+expo-av
+expo-file-system
+
+How it works:
+The backend endpoint POST /getDailyBreadAudio returns a raw MP3 audio file (not JSON — the response body is the audio bytes themselves). The app must fetch it, save it to a local temp file, and play it from there using expo-av.
+
+API call:
+
+const BASE_URL = 'https://shouldcallpaul.replit.app';
+async function fetchAndCacheDailyBreadAudio(devotional) {
+  const { date, title, bibleVerse, verseReference, content, prayer } = devotional;
+  // note: the DB field is article_body — pass it as "content" in the request
+  const localPath = `${FileSystem.cacheDirectory}dailybread_${date}.mp3`;
+  // Return cached file if already downloaded today
+  const fileInfo = await FileSystem.getInfoAsync(localPath);
+  if (fileInfo.exists) return localPath;
+  const result = await FileSystem.downloadAsync(
+    `${BASE_URL}/getDailyBreadAudio`,  // <-- see note below
+    localPath
+  );
+  // FileSystem.downloadAsync only supports GET, so use fetch instead:
+  // see implementation below
+}
+
+Because FileSystem.downloadAsync only supports GET, use fetch + FileSystem.writeAsStringAsync instead:
+
+import * as FileSystem from 'expo-file-system';
+import { Audio } from 'expo-av';
+async function getDailyBreadAudioPath(devotional) {
+  const localPath = `${FileSystem.cacheDirectory}dailybread_${devotional.date}.mp3`;
+  // Use cached file if it already exists
+  const fileInfo = await FileSystem.getInfoAsync(localPath);
+  if (fileInfo.exists) return localPath;
+  // Fetch audio from backend
+  const response = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      date: devotional.date,
+      title: devotional.title,
+      bibleVerse: devotional.bible_verse,
+      verseReference: devotional.verse_reference,
+      content: devotional.article_body,
+      prayer: devotional.prayer
+    })
+  });
+  if (!response.ok) throw new Error('Failed to fetch audio');
+  // Convert to base64 and write to local cache file
+  const blob = await response.blob();
+  const reader = new FileReader();
+  const base64 = await new Promise((resolve, reject) => {
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+  await FileSystem.writeAsStringAsync(localPath, base64, {
+    encoding: FileSystem.EncodingType.Base64
+  });
+  return localPath;
+}
+
+Audio player component:
+
+export function DailyBreadAudioPlayer({ devotional }) {
+  const [sound, setSound] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  async function handlePlayPause() {
+    if (isPlaying) {
+      await sound.pauseAsync();
+      setIsPlaying(false);
+      return;
+    }
+    if (sound) {
+      await sound.playAsync();
+      setIsPlaying(true);
+      return;
+    }
+    // First play — fetch and load
+    setIsLoading(true);
+    try {
+      const audioPath = await getDailyBreadAudioPath(devotional);
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: audioPath },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded) {
+            setPosition(status.positionMillis);
+            setDuration(status.durationMillis);
+            setIsPlaying(status.isPlaying);
+            if (status.didJustFinish) setIsPlaying(false);
+          }
+        }
+      );
+      setSound(newSound);
+      setIsPlaying(true);
+    } catch (e) {
+      Alert.alert('Error', 'Could not load audio. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { sound?.unloadAsync(); };
+  }, [sound]);
+  const progress = duration > 0 ? position / duration : 0;
+  const formatTime = (ms) => {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  return (
+    <View style={{ alignItems: 'center', padding: 16, gap: 12 }}>
+      <TouchableOpacity onPress={handlePlayPause} disabled={isLoading}>
+        {isLoading
+          ? <ActivityIndicator />
+          : <Text style={{ fontSize: 32 }}>{isPlaying ? '⏸️' : '🔊'}</Text>
+        }
+      </TouchableOpacity>
+      {duration > 0 && (
+        <View style={{ width: '100%', gap: 4 }}>
+          <View style={{ height: 4, backgroundColor: '#eee', borderRadius: 2 }}>
+            <View style={{ height: 4, width: `${progress * 100}%`, backgroundColor: '#3498db', borderRadius: 2 }} />
+          </View>
+          <Text style={{ textAlign: 'right', fontSize: 12, color: '#999' }}>
+            {formatTime(position)} / {formatTime(duration)}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+Notes:
+
+The first tap downloads and generates the audio (~5–10 seconds). Show a loading spinner.
+Subsequent taps on the same day use the local cached file instantly.
+The server also caches the audio in memory, so if the local file is deleted, re-downloading is fast.
+The article_body DB field maps to the content key in the API request body.

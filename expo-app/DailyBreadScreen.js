@@ -25,6 +25,11 @@ const AMBER = '#b45309';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 
+function formatMs(ms) {
+  const s = Math.floor((ms || 0) / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
@@ -72,6 +77,8 @@ const waveStyles = StyleSheet.create({
 export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
+  const [audioPosition, setAudioPosition] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const soundRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -125,7 +132,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
       const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
-      const localUri = `${FileSystem.cacheDirectory}daily-bread-${date}.mp3`;
+      const localUri = `${FileSystem.cacheDirectory}dailybread_${date}.mp3`;
 
       // Check device cache first — skip network call if already downloaded today
       const cached = await FileSystem.getInfoAsync(localUri);
@@ -166,14 +173,21 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       await soundRef.current?.unloadAsync();
       soundRef.current = null;
 
+      setAudioPosition(0);
+      setAudioDuration(0);
       const { sound } = await Audio.Sound.createAsync(
         { uri: localUri },
         { shouldPlay: true },
         (status) => {
-          if (status.didJustFinish) {
-            setAudioStatus('idle');
-            soundRef.current?.unloadAsync();
-            soundRef.current = null;
+          if (status.isLoaded) {
+            setAudioPosition(status.positionMillis || 0);
+            setAudioDuration(status.durationMillis || 0);
+            if (status.didJustFinish) {
+              setAudioStatus('idle');
+              setAudioPosition(0);
+              soundRef.current?.unloadAsync();
+              soundRef.current = null;
+            }
           }
           if (status.error) {
             console.log('[TTS] playback error:', status.error);
@@ -225,7 +239,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           <Text style={styles.dateText}>{formatDate(devotional.date)}</Text>
           <Text style={styles.title}>{devotional.title}</Text>
 
-          {/* Listen button */}
+          {/* Listen button + progress bar */}
           <TouchableOpacity
             style={[styles.listenBtn, audioStatus === 'playing' && styles.listenBtnActive, audioStatus === 'loading' && { opacity: 0.7 }]}
             onPress={handlePlayPause}
@@ -235,6 +249,18 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             {audioStatus === 'playing' && <SoundWave playing />}
             <Text style={styles.listenBtnText}>{audioLabel}</Text>
           </TouchableOpacity>
+
+          {/* Progress bar — visible while playing or paused */}
+          {audioDuration > 0 && (
+            <View style={styles.progressWrap}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${(audioPosition / audioDuration) * 100}%` }]} />
+              </View>
+              <Text style={styles.progressTime}>
+                {formatMs(audioPosition)} / {formatMs(audioDuration)}
+              </Text>
+            </View>
+          )}
 
           {(devotional.bibleVerse || devotional.verseReference) ? (
             <View style={styles.verseBlock}>
@@ -344,6 +370,10 @@ const styles = StyleSheet.create({
   },
   listenBtnActive: { backgroundColor: '#dc2626' },
   listenBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+  progressWrap: { marginTop: -16, marginBottom: 24, gap: 6 },
+  progressTrack: { height: 4, backgroundColor: '#ddd8ce', borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 4, backgroundColor: '#1e40af', borderRadius: 2 },
+  progressTime: { fontSize: 12, color: '#94928c', textAlign: 'right', fontFamily: SERIF },
   verseBlock: { flexDirection: 'row', marginBottom: 28, paddingVertical: 4 },
   verseBorder: { width: 4, borderRadius: 2, backgroundColor: AMBER, marginRight: 14 },
   verseInner: { flex: 1 },

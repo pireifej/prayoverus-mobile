@@ -2916,8 +2916,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         }),
       });
       const data = await res.json();
-      if (data.error === 0) {
-        const notified = data.notified || 0;
+      console.log('📥 markPrayerAnswered response:', JSON.stringify(data));
+      const isSuccess = data.error === 0 || data.success === true || res.status === 200 && data.result && !data.result.toLowerCase().includes('fail');
+      if (isSuccess) {
+        const notified = data.notified || data.pushCount || 0;
         const prayerId = answeredModal.prayer.id;
         setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
         setPrayers(prev => prev.filter(p => p.id !== prayerId));
@@ -2926,11 +2928,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         const verbWord = notified === 1 ? 'has' : 'have';
         showToast(`🙌 Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`);
       } else {
-        Alert.alert('Error', data.result || 'Failed to share testimony');
+        const errMsg = data.result || data.message || data.error || 'Failed to share testimony';
+        Alert.alert('Error', String(errMsg));
         setAnsweredModal(prev => ({ ...prev, isLoading: false }));
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error. Please try again.');
+      console.log('📥 markPrayerAnswered error:', e?.message);
+      Alert.alert('Error', 'Could not reach the server. Please check your connection.');
       setAnsweredModal(prev => ({ ...prev, isLoading: false }));
     }
   };
@@ -5250,17 +5254,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         >
           <View style={styles.editModalOverlay}>
             <View style={[styles.editModalContent, { maxHeight: '88%' }]}>
-              <View style={[styles.editModalHeader, { backgroundColor: '#f0fdf4', alignItems: 'center', paddingVertical: 18 }]}>
-                <Text style={{ fontSize: 32, marginBottom: 4 }}>🙌</Text>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#166534' }}>Praise God!</Text>
-                {!answeredModal.isLoading && (
-                  <TouchableOpacity
-                    onPress={() => setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false })}
-                    style={[styles.editModalCloseButton, { position: 'absolute', top: 12, right: 12 }]}
-                  >
-                    <Text style={styles.editModalCloseText}>✕</Text>
-                  </TouchableOpacity>
-                )}
+              <View style={{ backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center', paddingVertical: 22, borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
+                <Text style={{ fontSize: 36, marginBottom: 6 }}>🙌</Text>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: '#166534', textAlign: 'center' }}>Praise God!</Text>
               </View>
 
               <ScrollView style={styles.editModalBody} keyboardShouldPersistTaps="handled">

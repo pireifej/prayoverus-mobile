@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build8';
+const APP_BUILD = 'preview-1.0.25-build9';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -473,8 +473,8 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
               </TouchableOpacity>
             )}
             
-            {/* Prayer Answered - Owner only */}
-            {isOwner && (
+            {/* Prayer Answered - Owner only, hidden if already answered */}
+            {isOwner && !prayer.is_answered && (
               <TouchableOpacity
                 style={optionsMenuStyles.menuItem}
                 onPress={() => { setMenuVisible(false); if (onMarkAnswered) onMarkAnswered(prayer); }}
@@ -1739,7 +1739,8 @@ function App() {
             user_id: request.user_id,
             fk_prayer_id: request.fk_prayer_id,
             allow_comments: request.allow_comments,
-            use_alias: request.use_alias
+            use_alias: request.use_alias,
+            is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
           }));
           
           console.log('📱 Parsed prayers:', userPrayers.length, 'items');
@@ -2925,8 +2926,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         const notified = data.notified || data.pushCount || 0;
         const prayerId = answeredModal.prayer.id;
         setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
-        setPrayers(prev => prev.filter(p => p.id !== prayerId));
+        // Mark as answered in Mine tab (keep card, show green) instead of removing
+        setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
         setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
+        playHeavenlyChime();
         const peopleWord = notified === 1 ? 'person' : 'people';
         const verbWord = notified === 1 ? 'has' : 'have';
         showToast(`🙌 Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`);
@@ -5169,7 +5172,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               )}
 
               <TouchableOpacity 
-                style={styles.communityPrayerCard}
+                style={[styles.communityPrayerCard, prayer.is_answered && { backgroundColor: '#f0fdf4', borderLeftWidth: 4, borderLeftColor: '#16a34a' }]}
                 onPress={() => openDetailModal(prayer)}
                 activeOpacity={0.9}
                 data-testid={`card-prayer-${prayer.id}`}
@@ -5183,7 +5186,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   onMarkAnswered={handleMarkAnswered}
                 />
                 
-                <Text style={styles.prayerTitle}>{prayer.title}</Text>
+                <Text style={styles.prayerTitle}>
+                  {prayer.is_answered ? '✅ ' : ''}{prayer.title}
+                </Text>
                 <Text style={styles.prayerContent} numberOfLines={4}>{prayer.content}</Text>
                 
                 {/* Prayer Image - Only show if image exists */}

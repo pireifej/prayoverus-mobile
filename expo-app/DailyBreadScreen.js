@@ -8,6 +8,15 @@ import * as FileSystem from 'expo-file-system';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
+// Base64 encoding — works in both web and React Native environments
+const base64Encode = (str) => {
+  if (typeof btoa !== 'undefined') {
+    return btoa(str);
+  } else {
+    return Buffer.from(str, 'utf-8').toString('base64');
+  }
+};
+
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.40);
 const SAFE_TOP = Platform.OS === 'ios' ? 64 : 56;
@@ -121,10 +130,13 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       // Check device cache first — skip network call if already downloaded today
       const cached = await FileSystem.getInfoAsync(localUri);
       if (!cached.exists) {
-        // POST to Paul's backend — no auth required, returns MP3 binary directly
+        // POST to Paul's backend — same Basic Auth as all other APIs, returns MP3 binary directly
         const res = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          },
           body: JSON.stringify({
             date,
             title: devotional.title || '',

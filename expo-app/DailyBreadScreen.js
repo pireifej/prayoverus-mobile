@@ -116,8 +116,10 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 
       const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
 
-      // Step 1: POST to generate + cache on Paul's server
-      const genRes = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
+      // Step 1: POST to generate + cache (calls this Replit's TTS endpoint)
+      // TODO: once Paul adds /getDailyBreadAudio to shouldcallpaul.replit.app, swap these URLs back
+      const TTS_BASE = 'https://40ccfa28-9b7f-4c4f-b8de-d2524b06adaa-00-2pkief8iahh21.riker.replit.dev/api/daily-bread-audio';
+      const genRes = await fetch(TTS_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,7 +137,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       await soundRef.current?.unloadAsync();
       soundRef.current = null;
 
-      const audioUri = `https://shouldcallpaul.replit.app/getDailyBreadAudio?date=${date}`;
+      const audioUri = `${TTS_BASE}?date=${date}`;
       const { sound } = await Audio.Sound.createAsync(
         { uri: audioUri },
         { shouldPlay: true },

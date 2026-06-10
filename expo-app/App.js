@@ -308,7 +308,7 @@ const base64EncodeForMenu = (str) => {
 };
 
 // Prayer Options Menu Component - Three dots menu for edit/delete/share
-function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, isProfileSection = false }) {
+function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, isProfileSection = false }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
@@ -470,6 +470,18 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onShare, i
               </TouchableOpacity>
             )}
             
+            {/* Prayer Answered - Owner only */}
+            {isOwner && (
+              <TouchableOpacity
+                style={optionsMenuStyles.menuItem}
+                onPress={() => { setMenuVisible(false); if (onMarkAnswered) onMarkAnswered(prayer); }}
+                data-testid={`button-answered-${prayer.id}`}
+              >
+                <Text style={optionsMenuStyles.menuIcon}>🙌</Text>
+                <Text style={[optionsMenuStyles.menuItemText, { color: '#16a34a' }]}>Prayer Answered</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Delete - Owner only */}
             {isOwner && (
               <TouchableOpacity 
@@ -763,6 +775,12 @@ function App() {
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
+  const [answeredModal, setAnsweredModal] = useState({ visible: false, prayer: null, text: '', isLoading: false });
+  const [answeredPrayers, setAnsweredPrayers] = useState([]);
+  const [answeredExpanded, setAnsweredExpanded] = useState(false);
+  const [loadingAnswered, setLoadingAnswered] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '' });
+  const toastAnim = useRef(new Animated.Value(0)).current;
   
   // Prayer layout toggle: 'sanctuary' (Option 1), 'gallery' (Option 2), 'immersive' (Option 3)
   const [prayerLayout, setPrayerLayout] = useState('immersive');
@@ -1227,8 +1245,9 @@ function App() {
         try {
           // Load profile data first to get the latest church info
           await refreshUserProfile();
-          // Then load user's prayers
+          // Then load user's prayers and answered prayers
           await loadUserPrayers();
+          loadAnsweredPrayers();
         } finally {
           setIsLoadingProfile(false);
         }
@@ -2829,6 +2848,93 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
+  // Show a brief toast notification
+  const showToast = (message) => {
+    setToast({ visible: true, message });
+    toastAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(3500),
+      Animated.timing(toastAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start(() => setToast({ visible: false, message: '' }));
+  };
+
+  // Load user's answered prayers
+  const loadAnsweredPrayers = async () => {
+    if (!currentUser?.id) return;
+    setLoadingAnswered(true);
+    try {
+      const res = await fetch('https://shouldcallpaul.replit.app/getAnsweredPrayers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ userId: currentUser.id.toString() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : (data.result || []);
+        setAnsweredPrayers(arr.map(r => ({
+          id: r.request_id,
+          title: r.request_title || 'Prayer Request',
+          content: r.request_text || '',
+          date: r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '',
+          answered_message: r.answered_message || '',
+          answeredAt: r.answered_at || '',
+        })));
+      }
+    } catch (e) {
+      console.log('Error loading answered prayers:', e);
+    } finally {
+      setLoadingAnswered(false);
+    }
+  };
+
+  // Open the testimony modal for a prayer
+  const handleMarkAnswered = (prayer) => {
+    setAnsweredModal({ visible: true, prayer, text: '', isLoading: false });
+  };
+
+  // Submit the answered testimony to the API
+  const submitTestimony = async () => {
+    if (!answeredModal.prayer || !answeredModal.text.trim() || answeredModal.isLoading) return;
+    setAnsweredModal(prev => ({ ...prev, isLoading: true }));
+    try {
+      const res = await fetch('https://shouldcallpaul.replit.app/markPrayerAnswered', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({
+          request_id: answeredModal.prayer.id,
+          user_id: currentUser?.id,
+          answered_message: answeredModal.text.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.error === 0) {
+        const notified = data.notified || 0;
+        const prayerId = answeredModal.prayer.id;
+        setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
+        setPrayers(prev => prev.filter(p => p.id !== prayerId));
+        setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
+        const peopleWord = notified === 1 ? 'person' : 'people';
+        const verbWord = notified === 1 ? 'has' : 'have';
+        showToast(`🙌 Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`);
+      } else {
+        Alert.alert('Error', data.result || 'Failed to share testimony');
+        setAnsweredModal(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error. Please try again.');
+      setAnsweredModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
   // Fetch all churches for the dropdown
   const fetchChurches = async () => {
     try {
@@ -3936,6 +4042,46 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </Modal>
 
+          {/* Answered Prayers Section */}
+          <View style={{ marginTop: 8, marginBottom: 8 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#f0fdf4', borderRadius: 12, marginBottom: 2 }}
+              onPress={() => {
+                const next = !answeredExpanded;
+                setAnsweredExpanded(next);
+                if (next && answeredPrayers.length === 0 && !loadingAnswered) loadAnsweredPrayers();
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>✅ Answered Prayers</Text>
+              <Text style={{ fontSize: 16, color: '#166534' }}>{answeredExpanded ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+
+            {answeredExpanded && (
+              <View style={{ marginTop: 4 }}>
+                {loadingAnswered ? (
+                  <ActivityIndicator color="#16a34a" style={{ marginVertical: 16 }} />
+                ) : answeredPrayers.length === 0 ? (
+                  <Text style={{ color: '#64748b', textAlign: 'center', padding: 16, fontStyle: 'italic', fontSize: 14 }}>
+                    No answered prayers yet.{'\n'}When God answers your prayer, tap "Prayer Answered 🙌" from the ⋮ menu on any of your requests.
+                  </Text>
+                ) : (
+                  answeredPrayers.map(prayer => (
+                    <View key={prayer.id} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#16a34a', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b', marginBottom: 4 }}>{prayer.title}</Text>
+                      <Text style={{ fontSize: 13, color: '#475569', marginBottom: prayer.answered_message ? 10 : 0, lineHeight: 19 }} numberOfLines={3}>{prayer.content}</Text>
+                      {prayer.answered_message ? (
+                        <View style={{ backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, borderLeftWidth: 3, borderLeftColor: '#16a34a' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: '#166534', textTransform: 'uppercase', marginBottom: 5 }}>Your Testimony</Text>
+                          <Text style={{ fontSize: 14, color: '#166534', fontStyle: 'italic', lineHeight: 21 }}>"{prayer.answered_message}"</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+
           <TouchableOpacity 
             style={styles.helpSupportButton} 
             onPress={() => setCurrentScreen('help')}
@@ -5033,6 +5179,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   currentUserId={currentUser?.id}
                   onEdit={handleEditPrayer}
                   onDelete={handleDeletePrayer}
+                  onMarkAnswered={handleMarkAnswered}
                 />
                 
                 <Text style={styles.prayerTitle}>{prayer.title}</Text>
@@ -5088,6 +5235,103 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           ));
         })()}
       </ScrollView>
+
+      {/* Testimony Modal - Prayer Answered */}
+      <Modal
+        visible={answeredModal.visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => !answeredModal.isLoading && setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false })}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <View style={styles.editModalOverlay}>
+            <View style={[styles.editModalContent, { maxHeight: '88%' }]}>
+              <View style={[styles.editModalHeader, { backgroundColor: '#f0fdf4', alignItems: 'center', paddingVertical: 18 }]}>
+                <Text style={{ fontSize: 32, marginBottom: 4 }}>🙌</Text>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#166534' }}>Praise God!</Text>
+                {!answeredModal.isLoading && (
+                  <TouchableOpacity
+                    onPress={() => setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false })}
+                    style={[styles.editModalCloseButton, { position: 'absolute', top: 12, right: 12 }]}
+                  >
+                    <Text style={styles.editModalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <ScrollView style={styles.editModalBody} keyboardShouldPersistTaps="handled">
+                <Text style={{ color: '#374151', fontSize: 15, lineHeight: 23, marginBottom: 18, textAlign: 'center' }}>
+                  Share how God answered your prayer — your testimony will be sent to everyone who prayed for you.
+                </Text>
+                <TextInput
+                  style={[styles.input, styles.textArea, { minHeight: 130 }]}
+                  placeholder={'e.g. "The surgery went perfectly. I\'m overwhelmed with gratitude for everyone who prayed with us."'}
+                  multiline
+                  numberOfLines={5}
+                  value={answeredModal.text}
+                  onChangeText={(text) => setAnsweredModal(prev => ({ ...prev, text }))}
+                  textAlignVertical="top"
+                  autoFocus={false}
+                />
+              </ScrollView>
+
+              <View style={[styles.editModalFooter, { flexDirection: 'column', gap: 8 }]}>
+                <TouchableOpacity
+                  style={[styles.editModalSaveButton, (!answeredModal.text.trim() || answeredModal.isLoading) && styles.buttonDisabled, { backgroundColor: '#16a34a' }]}
+                  onPress={submitTestimony}
+                  disabled={!answeredModal.text.trim() || answeredModal.isLoading}
+                  data-testid="button-submit-testimony"
+                >
+                  {answeredModal.isLoading
+                    ? <ActivityIndicator color="white" size="small" />
+                    : <Text style={styles.editModalSaveText}>Share My Testimony 🙌</Text>
+                  }
+                </TouchableOpacity>
+                {!answeredModal.isLoading && (
+                  <TouchableOpacity
+                    onPress={() => setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false })}
+                    style={{ alignItems: 'center', paddingVertical: 10 }}
+                  >
+                    <Text style={{ color: '#6b7280', fontSize: 15 }}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Toast overlay */}
+      {toast.visible && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            bottom: 130,
+            left: 20,
+            right: 20,
+            backgroundColor: '#166534',
+            borderRadius: 14,
+            paddingVertical: 14,
+            paddingHorizontal: 18,
+            shadowColor: '#000',
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 10,
+            zIndex: 999,
+            opacity: toastAnim,
+            transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600', textAlign: 'center', lineHeight: 22 }}>
+            {toast.message}
+          </Text>
+        </Animated.View>
+      )}
 
       {/* FULL SCREEN Prayer Modal - Heavenly Theme */}
       <Modal

@@ -3,7 +3,7 @@ import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
   Clipboard, Share, Platform, Dimensions,
 } from 'react-native';
-import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
@@ -61,12 +61,13 @@ const waveStyles = StyleSheet.create({
 
 export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
+  const soundRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Stop speech when leaving the screen
+  // Unload audio when leaving the screen
   useEffect(() => {
-    return () => { Speech.stop(); };
+    return () => { soundRef.current?.unloadAsync(); };
   }, []);
 
   if (!devotional) return null;
@@ -96,32 +97,70 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     setTimeout(() => setPrayerCopied(false), 2500);
   };
 
-  const handleListen = async () => {
-    if (speaking) {
-      Speech.stop();
-      setSpeaking(false);
-      return;
+  const handlePlayPause = async () => {
+    try {
+      if (audioStatus === 'playing') {
+        await soundRef.current?.pauseAsync();
+        setAudioStatus('paused');
+        return;
+      }
+      if (audioStatus === 'paused') {
+        await soundRef.current?.playAsync();
+        setAudioStatus('playing');
+        return;
+      }
+
+      // idle — fetch from Paul's backend (OpenAI nova voice, cached by date)
+      setAudioStatus('loading');
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+
+      const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
+
+      // Step 1: POST to generate + cache on Paul's server
+      const genRes = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date,
+          title: devotional.title || '',
+          content: devotional.content || '',
+          bibleVerse: devotional.bibleVerse || '',
+          verseReference: devotional.verseReference || '',
+          prayer: devotional.prayer || '',
+        }),
+      });
+      if (!genRes.ok) throw new Error(`TTS generate failed: ${genRes.status}`);
+
+      // Step 2: stream via GET — expo-av plays directly from the URL
+      await soundRef.current?.unloadAsync();
+      soundRef.current = null;
+
+      const audioUri = `https://shouldcallpaul.replit.app/getDailyBreadAudio?date=${date}`;
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: true },
+        (status) => {
+          if (status.didJustFinish) {
+            setAudioStatus('idle');
+            soundRef.current?.unloadAsync();
+            soundRef.current = null;
+          }
+          if (status.error) {
+            console.log('[TTS] playback error:', status.error);
+            setAudioStatus('idle');
+          }
+        },
+        true // downloadFirst — avoids Android ExoPlayer buffering issues
+      );
+      soundRef.current = sound;
+      setAudioStatus('playing');
+    } catch (e) {
+      console.log('[TTS] error:', e?.message || e);
+      setAudioStatus('idle');
     }
-
-    const parts = [];
-    if (devotional.title) parts.push(devotional.title + '.');
-    if (devotional.bibleVerse) parts.push(devotional.bibleVerse + (devotional.verseReference ? ` — ${devotional.verseReference}.` : ''));
-    if (devotional.content) parts.push(devotional.content);
-    if (devotional.prayer) parts.push(`Today's closing prayer. ${devotional.prayer}`);
-    const text = parts.join('\n\n');
-
-    setSpeaking(true);
-    Speech.speak(text, {
-      language: 'en-US',
-      rate: 0.9,
-      pitch: 1.0,
-      onDone: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-      onStopped: () => setSpeaking(false),
-    });
   };
 
-  const audioLabel = speaking ? '⏹ Stop' : '🔊 Listen';
+  const audioLabel = audioStatus === 'loading' ? 'Loading...' : audioStatus === 'playing' ? '⏸ Pause' : audioStatus === 'paused' ? '▶ Resume' : '🔊 Listen';
 
   return (
     <View style={styles.container}>
@@ -159,11 +198,12 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
 
           {/* Listen button */}
           <TouchableOpacity
-            style={[styles.listenBtn, speaking && styles.listenBtnActive]}
-            onPress={handleListen}
+            style={[styles.listenBtn, audioStatus === 'playing' && styles.listenBtnActive, audioStatus === 'loading' && { opacity: 0.7 }]}
+            onPress={handlePlayPause}
             activeOpacity={0.8}
+            disabled={audioStatus === 'loading'}
           >
-            {speaking && <SoundWave playing />}
+            {audioStatus === 'playing' && <SoundWave playing />}
             <Text style={styles.listenBtnText}>{audioLabel}</Text>
           </TouchableOpacity>
 

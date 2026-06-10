@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build6';
+const APP_BUILD = 'preview-1.0.25-build7';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [

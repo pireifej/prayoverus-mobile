@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build7';
+const APP_BUILD = 'preview-1.0.25-build8';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4962,6 +4962,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 setShowMyRequestsOnly(true);
                 setShowChurchOnly(false);
                 setHideAlreadyPrayed(false);
+                loadUserPrayers(); // always refresh when tapping Mine
               }}
             >
               <Text style={[styles.filterPillSmallText, showMyRequestsOnly && styles.filterPillSmallTextActive]}>
@@ -5127,42 +5128,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
         */}
         {(() => {
-          let filteredPrayers = communityPrayers;
+          // "Mine" uses the dedicated /getMyRequests data, not the community wall
+          let filteredPrayers = showMyRequestsOnly ? prayers : communityPrayers;
           
-          // Apply "Hide Prayed" filter (client-side only)
-          if (hideAlreadyPrayed) {
+          // Apply "Hide Prayed" filter (only relevant on community feed)
+          if (hideAlreadyPrayed && !showMyRequestsOnly) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
-          }
-          
-          // Apply "My Requests" filter (client-side)
-          if (showMyRequestsOnly) {
-            console.log('🔍 Mine filter — currentUser.id:', currentUser?.id, '| sample prayer user_ids:', filteredPrayers.slice(0,3).map(p => ({ id: p.id, user_id: p.user_id })));
-            filteredPrayers = filteredPrayers.filter(prayer => {
-              const prayerUserId = (prayer.user_id ?? prayer.fk_user_id ?? prayer.userId)?.toString();
-              const myId = currentUser?.id?.toString();
-              return prayerUserId && myId && prayerUserId === myId;
-            });
           }
           
           // Church filter is now handled by backend via filterByChurch parameter
           
           // Show loading state during refresh instead of empty message
-          if (refreshingCommunity && communityPrayers.length === 0) {
+          if (refreshingCommunity && !showMyRequestsOnly && communityPrayers.length === 0) {
             return <Text style={styles.emptyText}>Loading prayers...</Text>;
           }
-          
-          if (communityPrayers.length === 0) {
-            if (showChurchOnly) {
-              return <Text style={styles.emptyText}>No prayers from your church yet. Tap the church button to see all prayers.</Text>;
-            }
-            return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
-          }
-          
+
           if (filteredPrayers.length === 0) {
             if (showMyRequestsOnly) {
               return <Text style={styles.emptyText}>You haven't shared any prayer requests yet. Tap "Share a Prayer Request" above!</Text>;
             }
-            return <Text style={styles.emptyText}>All caught up! 🙏 Tap the toggle above to show all prayers.</Text>;
+            if (showChurchOnly) {
+              return <Text style={styles.emptyText}>No prayers from your church yet. Tap the church button to see all prayers.</Text>;
+            }
+            return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
           }
           
           return filteredPrayers.map((prayer) => (

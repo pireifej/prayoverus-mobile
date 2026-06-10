@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
-  Clipboard, Share, Platform, Dimensions,
+  Clipboard, Share, Platform, Dimensions, Alert,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
@@ -153,17 +153,20 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             prayer: devotional.prayer || '',
           }),
         });
-        if (!res.ok) throw new Error(`TTS failed: ${res.status}`);
+        if (!res.ok) throw new Error(`Audio API returned ${res.status}`);
 
-        // Response is raw MP3 binary — save to device cache so expo-av can play it
-        const arrayBuffer = await res.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-        }
-        const base64 = btoa(binary);
+        // Response is raw MP3 binary — convert via FileReader (async, won't freeze UI)
+        const blob = await res.blob();
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            // result is "data:audio/mpeg;base64,<data>" — grab everything after the comma
+            const result = reader.result;
+            resolve(result.indexOf(',') >= 0 ? result.split(',')[1] : result);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
         await FileSystem.writeAsStringAsync(localUri, base64, {
           encoding: FileSystem.EncodingType.Base64,
         });
@@ -200,6 +203,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     } catch (e) {
       console.log('[TTS] error:', e?.message || e);
       setAudioStatus('idle');
+      Alert.alert('Audio Error', e?.message || 'Could not load audio. Please try again.');
     }
   };
 

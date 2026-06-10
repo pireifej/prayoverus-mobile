@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build9';
+const APP_BUILD = 'preview-1.0.25-build10';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4965,7 +4965,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 setShowMyRequestsOnly(true);
                 setShowChurchOnly(false);
                 setHideAlreadyPrayed(false);
-                loadUserPrayers(); // always refresh when tapping Mine
+                loadUserPrayers();
+                loadAnsweredPrayers(); // need answered IDs to show green cards
               }}
             >
               <Text style={[styles.filterPillSmallText, showMyRequestsOnly && styles.filterPillSmallTextActive]}>
@@ -5132,7 +5133,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         */}
         {(() => {
           // "Mine" uses the dedicated /getMyRequests data, not the community wall
-          let filteredPrayers = showMyRequestsOnly ? prayers : communityPrayers;
+          // Cross-reference answeredPrayers IDs to mark answered cards green (persisted across sessions)
+          const answeredIds = new Set(answeredPrayers.map(p => p.id));
+          let filteredPrayers = showMyRequestsOnly
+            ? prayers.map(p => answeredIds.has(p.id) ? { ...p, is_answered: true } : p)
+            : communityPrayers;
           
           // Apply "Hide Prayed" filter (only relevant on community feed)
           if (hideAlreadyPrayed && !showMyRequestsOnly) {

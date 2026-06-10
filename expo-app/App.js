@@ -5129,10 +5129,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           // Apply "My Requests" filter (client-side)
           if (showMyRequestsOnly) {
-            filteredPrayers = filteredPrayers.filter(prayer => 
-              prayer.user_id && currentUser?.id && 
-              prayer.user_id.toString() === currentUser.id.toString()
-            );
+            console.log('🔍 Mine filter — currentUser.id:', currentUser?.id, '| sample prayer user_ids:', filteredPrayers.slice(0,3).map(p => ({ id: p.id, user_id: p.user_id })));
+            filteredPrayers = filteredPrayers.filter(prayer => {
+              const prayerUserId = (prayer.user_id ?? prayer.fk_user_id ?? prayer.userId)?.toString();
+              const myId = currentUser?.id?.toString();
+              return prayerUserId && myId && prayerUserId === myId;
+            });
           }
           
           // Church filter is now handled by backend via filterByChurch parameter

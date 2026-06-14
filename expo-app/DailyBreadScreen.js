@@ -74,7 +74,7 @@ const waveStyles = StyleSheet.create({
   bar: { width: 4, height: 18, borderRadius: 2, backgroundColor: '#fff' },
 });
 
-export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast }) {
+export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
   const [audioPosition, setAudioPosition] = useState(0);
@@ -294,6 +294,15 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             </View>
           ) : null}
 
+          {bannerAdProps?.isAvailable && bannerAdProps?.BannerAd && bannerAdProps?.adUnitId ? (
+            <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 4 }}>
+              <bannerAdProps.BannerAd
+                unitId={bannerAdProps.adUnitId}
+                size={bannerAdProps.BannerAdSize?.BANNER}
+                requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+              />
+            </View>
+          ) : null}
           <Text style={styles.footer}>Curated by Paul Ireifej</Text>
         </View>
       </Animated.ScrollView>

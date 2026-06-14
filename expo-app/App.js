@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build10';
+const APP_BUILD = 'preview-1.0.25-build11';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -2032,7 +2032,7 @@ Through Christ our Lord. Amen.`;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
     console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 4 === 0) {
+    if (newViewCount % 3 === 0) {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
@@ -2379,7 +2379,7 @@ Through Christ our Lord. Amen.`;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
     console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 4 === 0) {
+    if (newViewCount % 3 === 0) {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
@@ -3802,6 +3802,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         </LinearGradient>
         
+        {/* Banner ad under profile header */}
+        {isAdMobAvailable && BannerAd && BANNER_AD_UNIT_ID && (
+          <View style={{ alignItems: 'center', backgroundColor: '#f8fafc', paddingVertical: 4 }}>
+            <BannerAd
+              unitId={BANNER_AD_UNIT_ID}
+              size={BannerAdSize.BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+            />
+          </View>
+        )}
         {isLoadingProfile ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
             <ActivityIndicator size="large" color="#2563eb" />
@@ -4642,6 +4652,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onBack={() => setCurrentScreen('home')}
         pastDevotionals={pastDevotionals}
         onSelectPast={(item) => setSelectedDevotional(item)}
+        bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
       />
     );
   }
@@ -5785,9 +5796,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stickyFilterHideLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#64748b',
-    fontWeight: '500',
+    fontWeight: '600',
     marginRight: 6,
   },
   toggleSwitchSmall: {
@@ -5820,10 +5831,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterPillSmall: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    minHeight: 32,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 40,
+    borderRadius: 20,
     backgroundColor: '#f1f5f9',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
@@ -5835,7 +5846,7 @@ const styles = StyleSheet.create({
     borderColor: '#2563eb',
   },
   filterPillSmallText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#475569',
   },

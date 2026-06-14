@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build13';
+const APP_BUILD = 'preview-1.0.25-build14';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -3436,7 +3436,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={styles.communityHeaderTitle}>Community</Text>
           <View style={{width: 60}} />
         </LinearGradient>
-        
+
+        {isAdMobAvailable && BannerAd && BANNER_AD_UNIT_ID && (
+          <View style={{ alignItems: 'center', backgroundColor: '#f8fafc', paddingVertical: 4 }}>
+            <BannerAd
+              unitId={BANNER_AD_UNIT_ID}
+              size={BannerAdSize.BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+            />
+          </View>
+        )}
+
         <ScrollView 
           style={styles.screenContent}
           contentContainerStyle={{paddingBottom: 40}}

@@ -731,18 +731,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         const data = await response.json();
         
         if (data.error === 0) {
-          Alert.alert('Success', 'Account created successfully! Please sign in with your new credentials.', [
-            { text: 'OK', onPress: () => setIsRegistering(false) }
-          ]);
-          
-          // Clear form
-          setEmail('');
-          setPassword('');
-          setFirstName('');
-          setLastName('');
-          setPhone(null);
-          setGender(null);
-          setSelectedChurch(null);
+          // Auto-login immediately — no need to re-enter credentials
+          handleLogin();
           
         } else {
           // Show actual error message from API

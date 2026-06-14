@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build11';
+const APP_BUILD = 'preview-1.0.25-build12';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5171,8 +5171,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             }
             return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
           }
-          
-          return filteredPrayers.map((prayer) => (
+
+          // Pending prayers nudge — unanswered prayers older than 7 days
+          const pendingOldPrayers = showMyRequestsOnly
+            ? filteredPrayers.filter(p => {
+                if (p.is_answered) return false;
+                if (!p.timestamp) return false;
+                const days = (Date.now() - new Date(p.timestamp).getTime()) / 86400000;
+                return days >= 7;
+              })
+            : [];
+
+          return (<>
+            {pendingOldPrayers.length > 0 && (
+              <View style={styles.pendingNudgeBanner}>
+                <Text style={styles.pendingNudgeIcon}>📋</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingNudgeTitle}>
+                    {pendingOldPrayers.length} prayer{pendingOldPrayers.length > 1 ? 's' : ''} awaiting your testimony
+                  </Text>
+                  <Text style={styles.pendingNudgeSubtext}>
+                    Tap ⋮ on any request below and choose "Prayer Answered 🙌" to share what God did.
+                  </Text>
+                </View>
+              </View>
+            )}
+            {filteredPrayers.map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
               {/* Prayer Count Badge - Opens detail view */}
               {prayer.prayer_count > 0 && (
@@ -5254,7 +5278,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </TouchableOpacity>
             </View>
-          ));
+          ))}
+          </>);
         })()}
       </ScrollView>
 
@@ -5825,6 +5850,34 @@ const styles = StyleSheet.create({
   },
   toggleKnobSmallActive: {
     transform: [{ translateX: 16 }],
+  },
+  pendingNudgeBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fffbeb',
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    borderRadius: 10,
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 12,
+    gap: 10,
+  },
+  pendingNudgeIcon: {
+    fontSize: 22,
+    marginTop: 1,
+  },
+  pendingNudgeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400e',
+    marginBottom: 3,
+  },
+  pendingNudgeSubtext: {
+    fontSize: 13,
+    color: '#b45309',
+    lineHeight: 18,
   },
   filterPillRowCompact: {
     flexDirection: 'row',

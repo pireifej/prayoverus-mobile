@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build17';
+const APP_BUILD = 'preview-1.0.25-build18';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -2617,7 +2617,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         Animated.delay(index * 20), // Stagger start times
         Animated.timing(anim, {
           toValue: 1,
-          duration: 1500, // Longer duration for dramatic effect
+          duration: 800, // Snappy celebration
           useNativeDriver: true,
         })
       ]);
@@ -2689,9 +2689,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
 
-    // Show instant +1pt floating popup
-    showFloatingPoints('+1 pt 🙏');
-
     // Refresh user profile from server to get updated faith_points (points awarded server-side)
     if (currentUser) {
       const oldPoints = currentUser.faith_points || 0;
@@ -2732,6 +2729,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
       closePrayerModal();
+      // Show +1pt popup on the feed (after modal closes so it's visible)
+      showFloatingPoints('+1 pt 🙏');
       
       // Get the detail screen context for auto-advance
       const context = detailScreenContextRef.current;
@@ -2757,7 +2756,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         }, 300);
       }
       // Otherwise (deep link or last prayer) - just stay on community wall
-    }, 2000); // 2 seconds to enjoy the celebration!
+    }, 1000); // Close after 1 second — snappy!
   };
 
   // Open Edit Prayer Screen (reuses new prayer form)
@@ -4958,7 +4957,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* Gradient Header - Animated collapse on scroll */}
       <LinearGradient
         colors={['#0f172a', '#1e3a5f', '#2563eb']}
-        style={headerCollapsed ? styles.gradientHeaderCompact : styles.gradientHeader}
+        style={styles.gradientHeader}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -4992,8 +4991,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
-        {!headerCollapsed && (
-          <Animated.View style={{ opacity: headerExpandAnim }}>
+        <Animated.View style={{ opacity: headerExpandAnim }}>
             <Text style={styles.greetingText}>{getGreeting()},</Text>
             <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
             <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
@@ -5024,7 +5022,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               );
             })()}
           </Animated.View>
-        )}
       </LinearGradient>
 
       {/* Sticky Filter Bar - Always visible */}
@@ -5096,14 +5093,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           if (y > 60 && !headerCollapsed) {
             setHeaderCollapsed(true);
             Animated.parallel([
-              Animated.timing(headerExpandAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
-              Animated.timing(headerCompactAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+              Animated.timing(headerExpandAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
+              Animated.timing(headerCompactAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
             ]).start();
           } else if (y <= 20 && headerCollapsed) {
             setHeaderCollapsed(false);
             Animated.parallel([
-              Animated.timing(headerExpandAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-              Animated.timing(headerCompactAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+              Animated.timing(headerExpandAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+              Animated.timing(headerCompactAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
             ]).start();
           }
         }}

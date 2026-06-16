@@ -15,9 +15,10 @@ import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './u
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build14';
+const APP_BUILD = 'preview-1.0.25-build15';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -705,8 +706,9 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
 
+  const insets = useSafeAreaInsets();
   const renderBottomNav = () => (
-    <View style={styles.bottomNav}>
+    <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom + 8, 18) }]}>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
         <Text style={styles.bottomNavIcon}>🏠</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>
@@ -811,6 +813,14 @@ function App() {
   // Faith rank level-up celebration state
   const [showLevelUp, setShowLevelUp] = useState(null);
   const previousRankRef = useRef(null);
+
+  // Gamification — floating +pt popup & XP bar
+  const [showPointsGuide, setShowPointsGuide] = useState(false);
+  const [floatingPtsLabel, setFloatingPtsLabel] = useState('+1 pt');
+  const [floatingPtsVisible, setFloatingPtsVisible] = useState(false);
+  const floatingPtsAnim = useRef(new Animated.Value(0)).current;
+  const levelUpScaleAnim = useRef(new Animated.Value(0.5)).current;
+  const levelUpStarsAnim = useRef(new Animated.Value(1)).current;
 
   // AdMob interstitial state - counts prayer views, shows ad every 4th view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
@@ -2555,6 +2565,39 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
   };
 
+  // Show floating +pts popup when user prays or posts
+  const showFloatingPoints = (label = '+1 pt') => {
+    setFloatingPtsLabel(label);
+    setFloatingPtsVisible(true);
+    floatingPtsAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(floatingPtsAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.delay(500),
+      Animated.timing(floatingPtsAnim, { toValue: 2, duration: 900, useNativeDriver: true }),
+    ]).start(() => setFloatingPtsVisible(false));
+  };
+
+  // Level-up animation + vibration when rank increases
+  useEffect(() => {
+    if (showLevelUp) {
+      Vibration.vibrate([0, 120, 60, 120, 60, 300]);
+      levelUpScaleAnim.setValue(0.3);
+      Animated.spring(levelUpScaleAnim, {
+        toValue: 1,
+        friction: 3,
+        tension: 50,
+        useNativeDriver: true,
+      }).start();
+      levelUpStarsAnim.setValue(1);
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(levelUpStarsAnim, { toValue: 1.5, duration: 500, useNativeDriver: true }),
+          Animated.timing(levelUpStarsAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [showLevelUp]);
+
   // Trigger BIG CELEBRATION animation with MAGICAL vibration pattern!
   const triggerPrayerAnimation = async () => {
     // Play heavenly chime sound! 🔔
@@ -2647,6 +2690,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           : p
       )
     );
+
+    // Show instant +1pt floating popup
+    showFloatingPoints('+1 pt 🙏');
 
     // Refresh user profile from server to get updated faith_points (points awarded server-side)
     if (currentUser) {
@@ -4952,6 +4998,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={styles.greetingText}>{getGreeting()},</Text>
             <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
             <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
+
+            {/* XP Progress Bar — always visible in expanded header */}
+            {(() => {
+              const r = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
+              const pts = currentUser.faith_points || 0;
+              const pct = Math.round((r.progress || 0) * 100);
+              return (
+                <TouchableOpacity onPress={() => setCurrentScreen('profile')} activeOpacity={0.8} style={styles.xpBarContainer}>
+                  <View style={styles.xpBarTopRow}>
+                    <Text style={styles.xpBarRankLabel}>{r.icon} {r.title}</Text>
+                    <Text style={styles.xpBarPts}>{pts} pts</Text>
+                    {r.nextRank ? (
+                      <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {r.nextRank.title}</Text>
+                    ) : (
+                      <Text style={styles.xpBarNextLabel}>👑 Max Level!</Text>
+                    )}
+                  </View>
+                  <View style={styles.xpBarTrack}>
+                    <View style={[styles.xpBarFill, { width: `${pct}%` }]} />
+                  </View>
+                  {r.nextRank && (
+                    <Text style={styles.xpBarGoal}>{r.nextRank.minPoints - pts} pts to {r.nextRank.title}</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
           </Animated.View>
         )}
       </LinearGradient>
@@ -5069,6 +5141,40 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </TouchableOpacity>
           </View>
         ) : null}
+
+        {/* How to Earn Points Guide */}
+        <TouchableOpacity
+          style={styles.pointsGuideTrigger}
+          onPress={() => setShowPointsGuide(prev => !prev)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.pointsGuideTriggerText}>💡 How to earn Faith Points</Text>
+          <Text style={styles.pointsGuideChevron}>{showPointsGuide ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
+        {showPointsGuide && (
+          <View style={styles.pointsGuideCard}>
+            <View style={styles.pointsGuideRow}>
+              <Text style={styles.pointsGuideAction}>🙏 Pray for someone</Text>
+              <Text style={styles.pointsGuideValue}>+1 pt</Text>
+            </View>
+            <View style={styles.pointsGuideDivider} />
+            <View style={styles.pointsGuideRow}>
+              <Text style={styles.pointsGuideAction}>✍️ Post a prayer request</Text>
+              <Text style={styles.pointsGuideValue}>+3 pts</Text>
+            </View>
+            <View style={styles.pointsGuideDivider} />
+            <View style={styles.pointsGuideRow}>
+              <Text style={styles.pointsGuideAction}>📸 Post with a photo</Text>
+              <Text style={styles.pointsGuideValue}>+5 pts</Text>
+            </View>
+            <View style={styles.pointsGuideDivider} />
+            <View style={styles.pointsGuideRow}>
+              <Text style={styles.pointsGuideAction}>🙌 Mark prayer answered</Text>
+              <Text style={styles.pointsGuideValue}>+10 pts</Text>
+            </View>
+            <Text style={styles.pointsGuideFooter}>Earn more points to rise through the ranks! 🛡️</Text>
+          </View>
+        )}
 
         {/* Share Prayer Request Button - Opens dedicated screen */}
         <TouchableOpacity 
@@ -5680,20 +5786,34 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           onRequestClose={() => setShowLevelUp(null)}
         >
           <View style={styles.levelUpOverlay}>
-            <View style={styles.levelUpCard}>
-              <Text style={styles.levelUpStars}>✨ 🌟 ✨</Text>
+            {/* Particle stars scattered behind card */}
+            {['⭐','✨','🌟','💫','⭐','✨'].map((star, i) => (
+              <Animated.Text key={i} style={[styles.levelUpParticle, {
+                top: `${15 + i * 13}%`,
+                left: i % 2 === 0 ? `${5 + i * 3}%` : undefined,
+                right: i % 2 !== 0 ? `${5 + i * 3}%` : undefined,
+                transform: [{ scale: levelUpStarsAnim }, { rotate: `${i * 60}deg` }],
+                opacity: levelUpStarsAnim.interpolate({ inputRange: [1, 1.5], outputRange: [0.5, 1] }),
+              }]}>{star}</Animated.Text>
+            ))}
+
+            <Animated.View style={[styles.levelUpCard, { transform: [{ scale: levelUpScaleAnim }] }]}>
+              <Animated.Text style={[styles.levelUpStars, { transform: [{ scale: levelUpStarsAnim }] }]}>
+                ✨ 🌟 ✨
+              </Animated.Text>
               <View style={styles.levelUpShield}>
-                <Text style={styles.levelUpShieldIcon}>🛡️</Text>
+                <Text style={styles.levelUpShieldIcon}>{showLevelUp.icon || '🛡️'}</Text>
                 <Text style={styles.levelUpShieldLevel}>{showLevelUp.level}</Text>
               </View>
+              <Text style={styles.levelUpNewBadge}>⬆️ LEVEL UP!</Text>
               <Text style={styles.levelUpCongrats}>Congratulations!</Text>
               <Text style={styles.levelUpMessage}>You've been elevated to</Text>
               <Text style={styles.levelUpTitle}>{showLevelUp.icon} {showLevelUp.title}</Text>
               <Text style={styles.levelUpSubtext}>Your faithfulness has been rewarded. Keep praying and supporting others!</Text>
-              <TouchableOpacity style={styles.levelUpButton} onPress={() => setShowLevelUp(null)}>
-                <Text style={styles.levelUpButtonText}>Amen!</Text>
+              <TouchableOpacity style={styles.levelUpButton} onPress={() => { setShowLevelUp(null); levelUpStarsAnim.stopAnimation(); }}>
+                <Text style={styles.levelUpButtonText}>🙏 Amen!</Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           </View>
         </Modal>
       )}
@@ -5727,6 +5847,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         </View>
       </Modal>
+
+      {/* Floating +pts popup — game-style animation when praying/posting */}
+      {floatingPtsVisible && (
+        <Animated.View pointerEvents="none" style={[styles.floatingPtsContainer, {
+          opacity: floatingPtsAnim.interpolate({ inputRange: [0, 1, 1.8, 2], outputRange: [0, 1, 1, 0] }),
+          transform: [{ translateY: floatingPtsAnim.interpolate({ inputRange: [0, 1, 2], outputRange: [0, 0, -110] }) }],
+        }]}>
+          <View style={styles.floatingPtsBadge}>
+            <Text style={styles.floatingPtsText}>{floatingPtsLabel}</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {renderBottomNav()}
     </View>
@@ -8041,6 +8173,164 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
   },
+  levelUpNewBadge: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#f59e0b',
+    letterSpacing: 3,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  levelUpParticle: {
+    position: 'absolute',
+    fontSize: 28,
+    zIndex: 0,
+  },
+
+  // ── XP Progress Bar ──────────────────────────────────────────
+  xpBarContainer: {
+    marginTop: 12,
+    marginHorizontal: 4,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    padding: 10,
+  },
+  xpBarTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  xpBarRankLabel: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+  },
+  xpBarPts: {
+    color: '#fbbf24',
+    fontSize: 12,
+    fontWeight: '800',
+    marginHorizontal: 6,
+  },
+  xpBarNextLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+  },
+  xpBarTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  xpBarFill: {
+    height: 8,
+    backgroundColor: '#fbbf24',
+    borderRadius: 4,
+  },
+  xpBarGoal: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+
+  // ── Points Guide Card ─────────────────────────────────────────
+  pointsGuideTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fffbeb',
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 2,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  pointsGuideTriggerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#92400e',
+  },
+  pointsGuideChevron: {
+    fontSize: 10,
+    color: '#b45309',
+  },
+  pointsGuideCard: {
+    backgroundColor: '#fffbeb',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 10,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: '#fde68a',
+  },
+  pointsGuideRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 7,
+  },
+  pointsGuideAction: {
+    fontSize: 13,
+    color: '#78350f',
+    fontWeight: '500',
+  },
+  pointsGuideValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#b45309',
+  },
+  pointsGuideDivider: {
+    height: 1,
+    backgroundColor: '#fde68a',
+  },
+  pointsGuideFooter: {
+    fontSize: 11,
+    color: '#92400e',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+
+  // ── Floating +pts popup ───────────────────────────────────────
+  floatingPtsContainer: {
+    position: 'absolute',
+    bottom: 110,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 9999,
+    pointerEvents: 'none',
+  },
+  floatingPtsBadge: {
+    backgroundColor: '#1e40af',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    shadowColor: '#1e40af',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 12,
+  },
+  floatingPtsText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+
   updateModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',

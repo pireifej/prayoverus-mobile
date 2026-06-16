@@ -393,6 +393,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [churches, setChurches] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
+  const [customChurch, setCustomChurch] = useState('');
+  const [showCustomChurch, setShowCustomChurch] = useState(false);
   const [emailError, setEmailError] = useState('');
 
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -685,9 +687,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       return;
     }
 
-    if (!selectedChurch) {
-      Alert.alert('Error', 'Please select your church');
-      return;
+    if (false) {
+      // Church is now optional — removed requirement
     }
 
     setLoading(true);
@@ -708,7 +709,8 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
         phone: phone,
         picture: pictureFileName,
-        church_id: selectedChurch.church_id,
+        church_id: selectedChurch ? selectedChurch.church_id : null,
+        custom_church_name: showCustomChurch && customChurch.trim() ? customChurch.trim() : null,
         command: "createUser",
         jsonpCallback: "afterCreateUser",
         tz: timezone,
@@ -920,36 +922,6 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
             </View>
           </View>
 
-          {/* Church Selection Dropdown */}
-          <View style={styles.churchContainer}>
-            <Text style={styles.churchLabel}>Select Your Church:</Text>
-            <ScrollView 
-              style={styles.churchDropdown}
-              nestedScrollEnabled={true}
-            >
-              {churches.map((church) => (
-                <TouchableOpacity
-                  key={church.church_id}
-                  style={[
-                    styles.churchOption,
-                    selectedChurch?.church_id === church.church_id && styles.churchOptionSelected
-                  ]}
-                  onPress={() => setSelectedChurch(church)}
-                  data-testid={`church-option-${church.church_id}`}
-                >
-                  <Text style={[
-                    styles.churchOptionText,
-                    selectedChurch?.church_id === church.church_id && styles.churchOptionTextSelected
-                  ]}>
-                    {church.church_name}{church.church_addr ? ` (${church.church_addr})` : ''}
-                  </Text>
-                  {selectedChurch?.church_id === church.church_id && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
           
           <View style={{ display: 'none' }}>
             <View style={styles.genderContainer}>
@@ -1035,6 +1007,64 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
         </View>
       )}
       
+      {isRegistering && (
+        <View style={styles.churchContainer}>
+          <Text style={styles.churchLabel}>
+            Your Church <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '400' }}>(optional)</Text>
+          </Text>
+
+          {/* None / No Church — default */}
+          <TouchableOpacity
+            style={[styles.churchOption, !selectedChurch && !showCustomChurch && styles.churchOptionSelected]}
+            onPress={() => { setSelectedChurch(null); setShowCustomChurch(false); setCustomChurch(''); }}
+          >
+            <Text style={[styles.churchOptionText, !selectedChurch && !showCustomChurch && styles.churchOptionTextSelected]}>
+              🏠 None / No Church
+            </Text>
+            {!selectedChurch && !showCustomChurch && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+
+          {/* Church list from server */}
+          <ScrollView style={[styles.churchDropdown, { maxHeight: 160 }]} nestedScrollEnabled={true}>
+            {churches.map((church) => (
+              <TouchableOpacity
+                key={church.church_id}
+                style={[styles.churchOption, selectedChurch?.church_id === church.church_id && styles.churchOptionSelected]}
+                onPress={() => { setSelectedChurch(church); setShowCustomChurch(false); setCustomChurch(''); }}
+                data-testid={`church-option-${church.church_id}`}
+              >
+                <Text style={[styles.churchOptionText, selectedChurch?.church_id === church.church_id && styles.churchOptionTextSelected]}>
+                  {church.church_name}{church.church_addr ? ` (${church.church_addr})` : ''}
+                </Text>
+                {selectedChurch?.church_id === church.church_id && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Free-text option */}
+          <TouchableOpacity
+            style={[styles.churchOption, showCustomChurch && styles.churchOptionSelected]}
+            onPress={() => { setShowCustomChurch(!showCustomChurch); setSelectedChurch(null); }}
+          >
+            <Text style={[styles.churchOptionText, showCustomChurch && styles.churchOptionTextSelected]}>
+              ✏️ My church isn't listed...
+            </Text>
+            {showCustomChurch && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+
+          {showCustomChurch && (
+            <TextInput
+              style={[styles.input, { marginTop: 6 }]}
+              placeholder="Enter your church name"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={customChurch}
+              onChangeText={setCustomChurch}
+              autoCapitalize="words"
+            />
+          )}
+        </View>
+      )}
+
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleAuth}

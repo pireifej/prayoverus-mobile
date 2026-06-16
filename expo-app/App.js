@@ -15,10 +15,9 @@ import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './u
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build16';
+const APP_BUILD = 'preview-1.0.25-build17';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -706,9 +705,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home');
 
-  const insets = useSafeAreaInsets();
   const renderBottomNav = () => (
-    <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom + 8, 18) }]}>
+    <View style={[styles.bottomNav, { paddingBottom: Platform.OS === 'android' ? 20 : 34 }]}>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
         <Text style={styles.bottomNavIcon}>🏠</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>

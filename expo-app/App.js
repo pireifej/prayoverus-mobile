@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build15';
+const APP_BUILD = 'preview-1.0.25-build16';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -3307,6 +3307,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <LoginScreen 
         onLogin={handleLogin}
         onForgotPassword={() => setAuthScreen('forgot')}
+        appBuild={APP_BUILD}
       />
     );
   }

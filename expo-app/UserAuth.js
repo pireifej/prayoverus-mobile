@@ -379,7 +379,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
   );
 }
 
-export function LoginScreen({ onLogin, onForgotPassword }) {
+export function LoginScreen({ onLogin, onForgotPassword, appBuild }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -1087,7 +1087,7 @@ export function LoginScreen({ onLogin, onForgotPassword }) {
       </TouchableOpacity>
       
       <Text style={styles.versionText}>
-        v{Constants.expoConfig?.version || '1.0.0'}
+        {appBuild || `v${Constants.expoConfig?.version || '1.0.0'}`}
       </Text>
       </ScrollView>
     </KeyboardAvoidingView>

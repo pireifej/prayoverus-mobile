@@ -262,12 +262,17 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         
         if (data.error === 0) {
           Alert.alert(
-            'Success!', 
-            data.result || 'Password reset successful! You can now log in with your new password.',
+            '✅ Password Changed!',
+            'Your password has been updated successfully.\n\nTap OK and log in with your new password.',
             [{ text: 'OK', onPress: onSuccess }]
           );
         } else {
-          Alert.alert('Error', data.result || 'Failed to reset password');
+          Alert.alert(
+            'Link Expired or Invalid',
+            (data.result || 'This reset link has already been used or has expired.') +
+            '\n\nPlease go back to "Forgot Password" and request a new link.',
+            [{ text: 'OK' }]
+          );
         }
       } else {
         Alert.alert('Error', 'Service unavailable. Please try again later.');
@@ -379,7 +384,7 @@ export function ResetPasswordScreen({ token, onSuccess }) {
   );
 }
 
-export function LoginScreen({ onLogin, onForgotPassword, appBuild }) {
+export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -891,6 +896,15 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild }) {
         <Text style={styles.subtitle}>
           {isRegistering ? 'Create Your Account' : 'Where Hope is Found'}
         </Text>
+
+        {resetSuccess && (
+          <View style={styles.resetSuccessBanner}>
+            <Text style={styles.resetSuccessIcon}>✅</Text>
+            <Text style={styles.resetSuccessText}>
+              Password updated! Log in below with your new password.
+            </Text>
+          </View>
+        )}
       
       {isRegistering && (
         <>
@@ -1360,6 +1374,28 @@ const styles = StyleSheet.create({
     color: '#93c5fd',
     fontSize: 14,
     fontWeight: '600',
+  },
+  resetSuccessBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+    borderColor: 'rgba(34, 197, 94, 0.5)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    width: '100%',
+    gap: 10,
+  },
+  resetSuccessIcon: {
+    fontSize: 18,
+  },
+  resetSuccessText: {
+    color: '#86efac',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
   helpText: {
     fontSize: 14,

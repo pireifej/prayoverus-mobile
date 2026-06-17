@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build19';
+const APP_BUILD = 'preview-1.0.25-build20';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -3273,6 +3273,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  // Show reset screen for ANYONE who has a valid token link — even if already logged in
+  // (Fix: previously this was buried inside !currentUser, so logged-in users silently landed on home)
+  if (authScreen === 'reset' && resetToken) {
+    return (
+      <ResetPasswordScreen
+        token={resetToken}
+        onSuccess={() => {
+          setAuthScreen('resetSuccess');
+          setResetToken(null);
+        }}
+      />
+    );
+  }
+
   // Show auth screens if no current user
   if (!currentUser) {
     console.log('📱 No user - showing login screen. Current authScreen:', authScreen);
@@ -3285,23 +3299,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       );
     }
     
-    if (authScreen === 'reset' && resetToken) {
-      return (
-        <ResetPasswordScreen 
-          token={resetToken}
-          onSuccess={() => {
-            setAuthScreen('login');
-            setResetToken(null);
-          }}
-        />
-      );
-    }
-    
     return (
       <LoginScreen 
         onLogin={handleLogin}
         onForgotPassword={() => setAuthScreen('forgot')}
         appBuild={APP_BUILD}
+        resetSuccess={authScreen === 'resetSuccess'}
       />
     );
   }

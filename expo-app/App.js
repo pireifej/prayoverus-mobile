@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build20';
+const APP_BUILD = 'preview-1.0.25-build21';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -761,8 +761,9 @@ function App() {
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
-  const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset'
+  const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset', 'resetSuccess'
   const [resetToken, setResetToken] = useState(null);
+  const [resetEmail, setResetEmail] = useState(null);
   const [dailyDevotional, setDailyDevotional] = useState(null);
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
@@ -3279,9 +3280,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return (
       <ResetPasswordScreen
         token={resetToken}
+        resetEmail={resetEmail}
+        onAutoLogin={(userData) => {
+          setAuthScreen('login');
+          setResetToken(null);
+          setResetEmail(null);
+          handleLogin(userData);
+        }}
         onSuccess={() => {
           setAuthScreen('resetSuccess');
           setResetToken(null);
+          setResetEmail(null);
         }}
       />
     );
@@ -3293,8 +3302,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     
     if (authScreen === 'forgot') {
       return (
-        <ForgotPasswordScreen 
+        <ForgotPasswordScreen
           onBack={() => setAuthScreen('login')}
+          onEmailSent={(email) => setResetEmail(email)}
         />
       );
     }

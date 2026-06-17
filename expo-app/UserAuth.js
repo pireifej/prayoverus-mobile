@@ -59,7 +59,7 @@ class SimpleStorage {
 const storage = new SimpleStorage();
 
 // Forgot Password Screen
-export function ForgotPasswordScreen({ onBack }) {
+export function ForgotPasswordScreen({ onBack, onEmailSent }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -114,6 +114,7 @@ export function ForgotPasswordScreen({ onBack }) {
       // Check if error === 0 (success)
       if (data.error === 0) {
         Alert.alert('Success', data.result);
+        if (onEmailSent) onEmailSent(email.trim());
         setEmail('');
       } else {
         // error is not 0, show the error message
@@ -197,7 +198,7 @@ export function ForgotPasswordScreen({ onBack }) {
 }
 
 // Reset Password Screen
-export function ResetPasswordScreen({ token, onSuccess }) {
+export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -261,6 +262,46 @@ export function ResetPasswordScreen({ token, onSuccess }) {
         const data = await response.json();
         
         if (data.error === 0) {
+          // Try to auto-login if we have the email (user went through in-app Forgot Password flow)
+          if (resetEmail && onAutoLogin) {
+            try {
+              const loginRes = await fetch('https://shouldcallpaul.replit.app/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+                },
+                body: JSON.stringify({ email: resetEmail, password: newPassword }),
+              });
+              if (loginRes.ok) {
+                const loginData = await loginRes.json();
+                if (loginData.error === 0 && loginData.result?.length > 0) {
+                  const u = loginData.result[0];
+                  onAutoLogin({
+                    id: u.user_id,
+                    email: u.email,
+                    firstName: u.real_name,
+                    userName: u.user_name,
+                    title: u.user_title,
+                    about: u.user_about,
+                    location: u.location,
+                    picture: u.picture,
+                    active: u.active,
+                    timestamp: u.timestamp,
+                    churchName: u.church_name,
+                    faith_points: u.faith_points || 0,
+                    faith_rank: u.faith_rank || null,
+                    prayer_count: parseInt(u.prayer_count, 10) || 0,
+                    request_count: parseInt(u.request_count, 10) || 0,
+                  });
+                  return; // skip the alert — user is straight in the app
+                }
+              }
+            } catch (_) {
+              // auto-login failed silently — fall through to the alert
+            }
+          }
+          // Fallback: no email available or auto-login failed — show banner on login screen
           Alert.alert(
             '✅ Password Changed!',
             'Your password has been updated successfully.\n\nTap OK and log in with your new password.',

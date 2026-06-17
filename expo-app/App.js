@@ -17,7 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build18';
+const APP_BUILD = 'preview-1.0.25-build19';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -767,9 +767,6 @@ function App() {
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
-  const [headerCollapsed, setHeaderCollapsed] = useState(false);
-  const headerExpandAnim = useRef(new Animated.Value(1)).current;
-  const headerCompactAnim = useRef(new Animated.Value(0)).current;
   const [showChurchOnly, setShowChurchOnly] = useState(false);
   const [communityChurches, setCommunityChurches] = useState([]);
   const [communityMembers, setCommunityMembers] = useState([]);
@@ -4961,67 +4958,56 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
-            <Image 
-              source={{ 
-                uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤'
-              }}
-              style={styles.headerProfilePicture}
-            />
-            {(() => {
-              const r = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
-              return (
-                <View style={styles.headerFaithBadge}>
-                  <Text style={styles.headerFaithShield}>🛡️</Text>
-                  <Text style={styles.headerFaithLevel}>{r.level}</Text>
-                </View>
-              );
-            })()}
-          </TouchableOpacity>
-          <Animated.Text style={[styles.compactGreeting, { opacity: headerCompactAnim }]}>
-            {getGreeting()}, {currentUser.firstName || 'Friend'}
-          </Animated.Text>
-          <TouchableOpacity 
-            onPress={handleLogout} 
-            style={styles.logoutButton} 
-            activeOpacity={0.6}
-            data-testid="button-logout"
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-        <Animated.View style={{ opacity: headerExpandAnim }}>
-            <Text style={styles.greetingText}>{getGreeting()},</Text>
-            <Text style={styles.greetingName}>{currentUser.firstName || 'Friend'}</Text>
-            <Text style={styles.greetingSubtext}>Your prayers make a difference</Text>
-
-            {/* XP Progress Bar — always visible in expanded header */}
-            {(() => {
-              const r = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
-              const pts = currentUser.faith_points || 0;
-              const pct = Math.round((r.progress || 0) * 100);
-              return (
-                <TouchableOpacity onPress={() => setCurrentScreen('profile')} activeOpacity={0.8} style={styles.xpBarContainer}>
-                  <View style={styles.xpBarTopRow}>
-                    <Text style={styles.xpBarRankLabel}>{r.icon} {r.title}</Text>
-                    <Text style={styles.xpBarPts}>{pts} pts</Text>
-                    {r.nextRank ? (
-                      <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {r.nextRank.title}</Text>
-                    ) : (
-                      <Text style={styles.xpBarNextLabel}>👑 Max Level!</Text>
-                    )}
+        {(() => {
+          const r = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
+          const pts = currentUser.faith_points || 0;
+          const pct = Math.round((r.progress || 0) * 100);
+          const rankRingColors = ['#94a3b8','#60a5fa','#34d399','#a78bfa','#fb923c','#fbbf24','#f59e0b','#e2e8f0'];
+          const ringColor = rankRingColors[Math.min(r.level, rankRingColors.length - 1)];
+          return (
+            <>
+              {/* Row 1: Profile ring · greeting · logout */}
+              <View style={styles.headerTopRow}>
+                <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
+                  <View style={[styles.profileRingWrapper, { borderColor: ringColor }]}>
+                    <Image
+                      source={{ uri: currentUser.picture || 'https://via.placeholder.com/80/6366f1/ffffff?text=👤' }}
+                      style={styles.headerProfilePicture}
+                    />
                   </View>
-                  <View style={styles.xpBarTrack}>
-                    <View style={[styles.xpBarFill, { width: `${pct}%` }]} />
-                  </View>
-                  {r.nextRank && (
-                    <Text style={styles.xpBarGoal}>{r.nextRank.minPoints - pts} pts to {r.nextRank.title}</Text>
-                  )}
                 </TouchableOpacity>
-              );
-            })()}
-          </Animated.View>
+                <View style={styles.headerGreetingBlock}>
+                  <Text style={styles.headerGreetingSmall}>{getGreeting()},</Text>
+                  <Text style={styles.headerGreetingName}>{currentUser.firstName || 'Friend'}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  style={styles.logoutButton}
+                  activeOpacity={0.6}
+                  data-testid="button-logout"
+                >
+                  <Text style={styles.logoutText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Row 2: XP bar — always visible, always the same height */}
+              <TouchableOpacity onPress={() => setCurrentScreen('profile')} activeOpacity={0.85} style={styles.xpBarContainer}>
+                <View style={styles.xpBarTopRow}>
+                  <Text style={styles.xpBarRankLabel}>{r.icon} {r.title}</Text>
+                  <Text style={styles.xpBarPts}>{pts} pts</Text>
+                  {r.nextRank ? (
+                    <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {r.nextRank.title}</Text>
+                  ) : (
+                    <Text style={styles.xpBarNextLabel}>👑 Max Level!</Text>
+                  )}
+                </View>
+                <View style={styles.xpBarTrack}>
+                  <View style={[styles.xpBarFill, { width: `${pct}%`, backgroundColor: ringColor }]} />
+                </View>
+              </TouchableOpacity>
+            </>
+          );
+        })()}
       </LinearGradient>
 
       {/* Sticky Filter Bar - Always visible */}
@@ -5088,24 +5074,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             tintColor="#6366f1"
           />
         }
-        onScroll={(e) => {
-          const y = e.nativeEvent.contentOffset.y;
-          if (y > 60 && !headerCollapsed) {
-            setHeaderCollapsed(true);
-            Animated.parallel([
-              Animated.timing(headerExpandAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
-              Animated.timing(headerCompactAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
-            ]).start();
-          } else if (y <= 20 && headerCollapsed) {
-            setHeaderCollapsed(false);
-            Animated.parallel([
-              Animated.timing(headerExpandAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
-              Animated.timing(headerCompactAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
-            ]).start();
-          }
-        }}
         scrollEventThrottle={16}
       >
+        {/* ── Tagline strip ── */}
+        <View style={styles.taglineStrip}>
+          <Text style={styles.taglineStripText}>🙏 Your prayers make a difference</Text>
+        </View>
+
         {/* ── Daily Bread Card ── */}
         {dailyDevotional && dailyDevotional.title ? (
           <View style={styles.dailyBreadSection}>
@@ -5920,27 +5895,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   gradientHeader: {
-    paddingTop: 55,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  gradientHeaderCompact: {
-    paddingTop: 50,
-    paddingBottom: 10,
+    paddingTop: 52,
+    paddingBottom: 14,
     paddingHorizontal: 16,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
-  },
-  compactGreeting: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginLeft: 10,
+    marginBottom: 10,
   },
   stickyFilterBar: {
     backgroundColor: '#ffffff',
@@ -6057,52 +6020,36 @@ const styles = StyleSheet.create({
   profileLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+  },
+  profileRingWrapper: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2.5,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerProfilePicture: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
-  profileLinkText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  headerFaithBadge: {
-    flexDirection: 'row',
+  headerGreetingBlock: {
+    flex: 1,
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
   },
-  headerFaithShield: {
+  headerGreetingSmall: {
     fontSize: 11,
-    marginRight: 2,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  headerFaithLevel: {
-    fontSize: 12,
+  headerGreetingName: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#ffffff',
-  },
-  greetingText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 0.5,
-  },
-  greetingName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  greetingSubtext: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    fontStyle: 'italic',
+    letterSpacing: 0.2,
   },
   logoutButton: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -8185,10 +8132,10 @@ const styles = StyleSheet.create({
 
   // ── XP Progress Bar ──────────────────────────────────────────
   xpBarContainer: {
-    marginTop: 12,
-    marginHorizontal: 4,
+    marginTop: 0,
+    marginHorizontal: 0,
     backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 10,
   },
   xpBarTopRow: {
@@ -8232,6 +8179,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
+  },
+  taglineStrip: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#f0f4ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    alignItems: 'center',
+  },
+  taglineStripText: {
+    fontSize: 13,
+    color: '#4f46e5',
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    fontStyle: 'italic',
   },
 
   // ── Points Guide Card ─────────────────────────────────────────

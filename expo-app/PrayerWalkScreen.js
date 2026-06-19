@@ -254,16 +254,19 @@ function CentralGlow({ playing }) {
 // Main screen
 // ─────────────────────────────────────────────────────────────────
 export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
-  const unprayed = (prayers || []).filter(p => !p.user_has_prayed);
+  // Snapshot the list ONCE at mount — never re-filter mid-walk so indices never shift
+  const [prayerList] = useState(() => (prayers || []).filter(p => !p.user_has_prayed));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [audioStatus, setAudioStatus] = useState('idle');
   const [isFinished, setIsFinished] = useState(false);
   const [prayedThisSession, setPrayedThisSession] = useState(0);
   const soundRef = useRef(null);
   const isActiveRef = useRef(true);
+  // Track which prayer is currently playing — prevents stale didJustFinish from advancing
+  const activePrayerIdRef = useRef(null);
 
-  const total = unprayed.length;
-  const current = unprayed[currentIndex];
+  const total = prayerList.length;
+  const current = prayerList[currentIndex];
 
   useEffect(() => () => {
     isActiveRef.current = false;
@@ -271,13 +274,17 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
   }, []);
 
   useEffect(() => {
-    if (unprayed[currentIndex] && !isFinished) {
-      playPrayer(unprayed[currentIndex]);
+    if (prayerList[currentIndex] && !isFinished) {
+      playPrayer(prayerList[currentIndex]);
     }
   }, [currentIndex, isFinished]);
 
   const playPrayer = async (prayer) => {
     if (!prayer || !isActiveRef.current) return;
+
+    // Mark this prayer as the active one — stale callbacks from previous sounds will bail out
+    activePrayerIdRef.current = prayer.id;
+
     setAudioStatus('loading');
     try { await soundRef.current?.unloadAsync(); } catch (_) {}
     soundRef.current = null;
@@ -313,7 +320,9 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         });
       }
 
-      if (!isActiveRef.current) return;
+      // Bail if a newer prayer has taken over since the async work started
+      if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
+
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
       const { sound } = await Audio.Sound.createAsync(
@@ -321,24 +330,28 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         { shouldPlay: true },
         (status) => {
           if (!isActiveRef.current) return;
-          if (status.isLoaded && status.didJustFinish) {
+          // Only advance if THIS prayer is still the active one
+          if (status.isLoaded && status.didJustFinish && activePrayerIdRef.current === prayer.id) {
             soundRef.current?.unloadAsync();
             soundRef.current = null;
-            if (isActiveRef.current) {
-              setAudioStatus('idle');
-              advance(prayer.id);
-            }
+            setAudioStatus('idle');
+            advance(prayer.id);
           }
-          if (status.error && isActiveRef.current) setAudioStatus('error');
+          if (status.error && isActiveRef.current && activePrayerIdRef.current === prayer.id) {
+            setAudioStatus('error');
+          }
         }
       );
 
-      if (!isActiveRef.current) { sound.unloadAsync(); return; }
+      if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) {
+        sound.unloadAsync();
+        return;
+      }
       soundRef.current = sound;
       setAudioStatus('playing');
     } catch (e) {
       console.log('[PrayerWalk] error:', e.message);
-      if (isActiveRef.current) setAudioStatus('error');
+      if (isActiveRef.current && activePrayerIdRef.current === prayer.id) setAudioStatus('error');
     }
   };
 
@@ -347,10 +360,10 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     setPrayedThisSession(n => n + 1);
     setCurrentIndex(prev => {
       const next = prev + 1;
-      if (next >= unprayed.length) { setIsFinished(true); return prev; }
+      if (next >= prayerList.length) { setIsFinished(true); return prev; }
       return next;
     });
-  }, [unprayed.length, onPrayForRequest]);
+  }, [prayerList.length, onPrayForRequest]);
 
   const handlePauseResume = async () => {
     if (audioStatus === 'playing') {
@@ -363,18 +376,20 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
   };
 
   const handleAmen = async () => {
+    activePrayerIdRef.current = null;
     try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
     soundRef.current = null;
     advance(current?.id);
   };
 
   const handleSkip = async () => {
+    activePrayerIdRef.current = null;
     try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
     soundRef.current = null;
     setAudioStatus('idle');
     setCurrentIndex(prev => {
       const next = prev + 1;
-      if (next >= unprayed.length) { setIsFinished(true); return prev; }
+      if (next >= prayerList.length) { setIsFinished(true); return prev; }
       return next;
     });
   };

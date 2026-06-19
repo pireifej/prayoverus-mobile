@@ -1,13 +1,14 @@
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Platform, Animated, ActivityIndicator, Dimensions,
-  StatusBar as RNStatusBar,
+  StatusBar as RNStatusBar, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { useKeepAwake } from 'expo-keep-awake';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -49,10 +50,11 @@ const fetchPrayerText = async (prayer) => {
   return fallbackPrayer(prayer);
 };
 
-// Spoken text = "Prayer for Name." + the generated prayer ONLY — no request content ever
+// Spoken text = "Prayer for Name." + the generated prayer + "Amen." at the end
 const buildSpokenText = (prayer, prayerText) => {
   const intro = prayer?.author ? `Prayer for ${prayer.author}. ` : '';
-  return intro + prayerText;
+  const body = prayerText.replace(/\.?\s*Amen\.?\s*$/i, '').trim();
+  return `${intro}${body}. Amen.`;
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -254,6 +256,9 @@ function CentralGlow({ playing }) {
 // Main screen
 // ─────────────────────────────────────────────────────────────────
 export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
+  // Keep the screen on for the whole Prayer Walk session
+  useKeepAwake();
+
   // Snapshot the list ONCE at mount — never re-filter mid-walk so indices never shift
   const [prayerList] = useState(() => (prayers || []).filter(p => !p.user_has_prayed));
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -449,6 +454,16 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
       <CelestialRings playing={isPlaying} />
       <GoldenSparks playing={isPlaying} />
 
+      {/* Prayer picture — translucent so the animations show through */}
+      {current?.picture ? (
+        <Image
+          source={{ uri: current.picture.startsWith('http') ? current.picture : `${BASE_URL}${current.picture}` }}
+          style={styles.prayerBgImage}
+          resizeMode="cover"
+          blurRadius={2}
+        />
+      ) : null}
+
       {/* Header — well clear of the status bar */}
       <View style={[styles.header, { paddingTop: SAFE_TOP }]}>
         <View style={styles.headerLeft}>
@@ -523,6 +538,13 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+
+  // Translucent prayer picture shown as background — animations layer on top
+  prayerBgImage: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    opacity: 0.22,
+    zIndex: 1,
+  },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',

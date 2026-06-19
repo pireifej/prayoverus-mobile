@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build35';
+const APP_BUILD = 'preview-1.0.25-build36';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -1221,14 +1221,18 @@ function App() {
       if (!rewardedAdLoadingInProgressRef.current) {
         loadRewardedAd();
       }
-      // Safety net: give up after 30s and re-enable the button
+      // Safety net: give up after 10s and re-enable the button
       setTimeout(() => {
         if (pendingAdQueueRef.current) {
           pendingAdQueueRef.current = null;
           setRewardedAdLoading(false);
-          Alert.alert('Ad Unavailable', 'No ad could be loaded right now. Please try again in a moment.');
+          Alert.alert(
+            'Ad Unavailable',
+            'No ad could be loaded right now — this is normal for newer apps. Please try again in a moment.',
+            [{ text: 'OK' }]
+          );
         }
-      }, 30000);
+      }, 10000);
     }
   };
 
@@ -5738,19 +5742,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {premiumBgTheme === 'forest' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(22,101,52,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'midnight' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 0 }]} pointerEvents="none" />}
 
-            {/* Close button - floats top right */}
-            <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
-              <Text style={styles.fullScreenCloseButtonText}>✕</Text>
-            </TouchableOpacity>
-
-            {/* 🎨 Unlock Theme button - floats top left */}
-            <TouchableOpacity
-              style={styles.unlockThemeBtn}
-              onPress={() => setShowPremiumThemePicker(p => !p)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.unlockThemeBtnText}>{premiumBgTheme ? '🎨 Theme ✓' : '🎨 Theme'}</Text>
-            </TouchableOpacity>
+            {/* ── Top bar: Theme (left) + Close (right) — no overlap with prayer content ── */}
+            <View style={styles.prayerModalTopBar}>
+              <TouchableOpacity
+                style={styles.unlockThemeBtn}
+                onPress={() => setShowPremiumThemePicker(p => !p)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.unlockThemeBtnText}>{premiumBgTheme ? '🎨 Theme ✓' : '🎨 Theme'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
+                <Text style={styles.fullScreenCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Premium theme picker dropdown */}
             {showPremiumThemePicker && (
@@ -6801,17 +6805,23 @@ const styles = StyleSheet.create({
     height: '100%',
     opacity: 0.12,
   },
+  // Top bar that holds both Theme and Close buttons — sits above prayer content, no overlap
+  prayerModalTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 8,
+    zIndex: 20,
+  },
   fullScreenCloseButton: {
-    position: 'absolute',
-    top: 90,
-    right: 20,
     width: 52,
     height: 52,
     borderRadius: 26,
     backgroundColor: 'rgba(0, 0, 0, 0.40)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
   fullScreenCloseButtonText: {
     fontSize: 22,
@@ -6869,7 +6879,7 @@ const styles = StyleSheet.create({
   },
   sanctuaryHeader: {
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 20,
     paddingBottom: 40,
   },
   sanctuaryHeaderTitle: {
@@ -7167,16 +7177,15 @@ const styles = StyleSheet.create({
 
   // ── Prayer modal: unlock theme button ────────────────────────────────────
   unlockThemeBtn: {
-    position: 'absolute', top: 90, left: 16, zIndex: 20,
     backgroundColor: 'rgba(0,0,0,0.50)', borderRadius: 24,
     paddingHorizontal: 18, paddingVertical: 12,
-    minWidth: 52, minHeight: 52, justifyContent: 'center', alignItems: 'center',
+    minHeight: 52, justifyContent: 'center', alignItems: 'center',
   },
   unlockThemeBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   // ── Prayer modal: theme picker dropdown ──────────────────────────────────
   themePicker: {
-    position: 'absolute', top: 152, left: 16, zIndex: 30,
+    position: 'absolute', top: 130, left: 16, zIndex: 30,
     backgroundColor: '#1e293b', borderRadius: 16, padding: 12, minWidth: 220,
     elevation: 10, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
   },

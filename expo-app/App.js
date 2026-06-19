@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build24';
+const APP_BUILD = 'preview-1.0.25-build25';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -104,9 +104,8 @@ const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds
   : null;
 
 // AdMob Interstitial Ad Unit ID
-// ⚠️ DIAGNOSTIC: force test ID to confirm pipeline works — switch back to production ID after confirming
-const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds 
-  ? TestIds.INTERSTITIAL  // TODO: restore to: (__DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-3440306279423513/9994022974')
+const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds
+  ? (__DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-3440306279423513/9994022974')
   : null;
 
 // AdMob Rewarded Ad Unit ID

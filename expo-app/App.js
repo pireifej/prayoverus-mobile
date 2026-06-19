@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build34';
+const APP_BUILD = 'preview-1.0.25-build35';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -841,6 +841,7 @@ function App() {
   const rewardedAdRef = useRef(null);
   const pendingRewardCallbackRef = useRef(null);
   const pendingAdQueueRef = useRef(null); // queued tap while ad is still loading
+  const rewardedAdLoadingInProgressRef = useRef(false); // true while an instance is mid-load
   const [rewardedAdLoading, setRewardedAdLoading] = useState(false);
 
   // Rewarded ad feature unlocks (persisted via AsyncStorage)
@@ -1129,13 +1130,21 @@ function App() {
   };
 
   // ─── Rewarded Ad infrastructure ───────────────────────────────────────────
+  // Only ONE ad instance may exist at a time. rewardedAdLoadingInProgressRef
+  // prevents duplicate instances when the user taps while a load is in flight.
   const loadRewardedAd = (retryCount = 0) => {
     if (!isAdMobAvailable || !RewardedAd || !RewardedAdEventType || !REWARDED_AD_UNIT_ID) return;
+    if (rewardedAdLoadingInProgressRef.current) {
+      console.log('🎁 loadRewardedAd: already loading — skipping duplicate');
+      return;
+    }
+    rewardedAdLoadingInProgressRef.current = true;
     try {
       const rewarded = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, { requestNonPersonalizedAdsOnly: true });
 
       rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
         console.log('🎁 Rewarded ad LOADED');
+        rewardedAdLoadingInProgressRef.current = false;
         rewardedAdLoadedRef.current = true;
         rewardedAdRef.current = rewarded;
         setRewardedAdLoading(false);
@@ -1145,45 +1154,56 @@ function App() {
           pendingAdQueueRef.current = null;
           pendingRewardCallbackRef.current = onReward;
           try { rewarded.show(); } catch (e) {
+            console.log('🎁 auto-show error:', e?.message);
             pendingRewardCallbackRef.current = null;
             if (onNotAvailable) onNotAvailable();
           }
         }
       });
+
       rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
         console.log('🎁 Rewarded ad EARNED_REWARD:', JSON.stringify(reward));
         const cb = pendingRewardCallbackRef.current;
         pendingRewardCallbackRef.current = null;
         if (cb) cb(reward);
       });
+
       rewarded.addAdEventListener(RewardedAdEventType.CLOSED, () => {
         console.log('🎁 Rewarded ad CLOSED');
         rewardedAdLoadedRef.current = false;
         rewardedAdRef.current = null;
+        rewardedAdLoadingInProgressRef.current = false;
         setRewardedAdLoading(false);
         pendingAdQueueRef.current = null;
-        loadRewardedAd(); // preload next
+        // Preload the next one — guard above prevents double-load
+        loadRewardedAd();
       });
+
       rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
         console.log('🎁 Rewarded ad ERROR:', JSON.stringify(error));
+        rewardedAdLoadingInProgressRef.current = false;
         rewardedAdLoadedRef.current = false;
         setRewardedAdLoading(false);
-        // Fail any queued tap
+        // Drain any queued tap so the button re-enables
         if (pendingAdQueueRef.current) {
           const { onNotAvailable } = pendingAdQueueRef.current;
           pendingAdQueueRef.current = null;
           if (onNotAvailable) onNotAvailable();
         }
-        if (retryCount < 3) setTimeout(() => loadRewardedAd(retryCount + 1), 8000);
+        // Retry with backoff — guard prevents overlap
+        if (retryCount < 3) setTimeout(() => loadRewardedAd(retryCount + 1), 4000);
       });
+
       rewarded.load();
     } catch (e) {
       console.log('🎁 Rewarded ad create error:', e?.message || e);
+      rewardedAdLoadingInProgressRef.current = false;
     }
   };
 
   const showRewardedAd = (onReward, onNotAvailable) => {
     if (rewardedAdLoadedRef.current && rewardedAdRef.current) {
+      // Ad is ready — show immediately
       pendingRewardCallbackRef.current = onReward;
       try {
         rewardedAdRef.current.show();
@@ -1193,20 +1213,22 @@ function App() {
         if (onNotAvailable) onNotAvailable();
       }
     } else {
-      // Queue this tap — the LOADED callback will auto-show as soon as the ad is ready
+      // Queue this tap — LOADED event will auto-show when the ad is ready.
+      // Do NOT call loadRewardedAd() if already loading (guard handles that).
       pendingAdQueueRef.current = { onReward, onNotAvailable };
       setRewardedAdLoading(true);
-      loadRewardedAd();
-      // Safety net: if the ad never loads within 20s, bail out gracefully
+      // If nothing is currently loading, kick off a fresh load
+      if (!rewardedAdLoadingInProgressRef.current) {
+        loadRewardedAd();
+      }
+      // Safety net: give up after 30s and re-enable the button
       setTimeout(() => {
         if (pendingAdQueueRef.current) {
-          const { onNotAvailable: notAvail } = pendingAdQueueRef.current;
           pendingAdQueueRef.current = null;
           setRewardedAdLoading(false);
-          Alert.alert('Ad Unavailable', 'Could not load an ad right now. Please try again shortly.');
-          if (notAvail) notAvail();
+          Alert.alert('Ad Unavailable', 'No ad could be loaded right now. Please try again in a moment.');
         }
-      }, 20000);
+      }, 30000);
     }
   };
 

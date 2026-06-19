@@ -15,9 +15,10 @@ import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './u
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
+import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build22';
+const APP_BUILD = 'preview-1.0.25-build23';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -76,7 +77,7 @@ const getFaithRank = (pointsOrRankObj, backendRank) => {
 };
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
-let mobileAds, BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType;
+let mobileAds, BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType, RewardedAd, RewardedAdEventType;
 let isAdMobAvailable = false;
 
 try {
@@ -88,7 +89,9 @@ try {
   TestIds = adMobModule.TestIds;
   InterstitialAd = adMobModule.InterstitialAd;
   AdEventType = adMobModule.AdEventType;
-  console.log('📺 AdMob exports — mobileAds:', !!mobileAds, 'InterstitialAd:', !!InterstitialAd, 'TestIds:', !!TestIds);
+  RewardedAd = adMobModule.RewardedAd;
+  RewardedAdEventType = adMobModule.RewardedAdEventType;
+  console.log('📺 AdMob exports — mobileAds:', !!mobileAds, 'InterstitialAd:', !!InterstitialAd, 'RewardedAd:', !!RewardedAd, 'TestIds:', !!TestIds);
   isAdMobAvailable = true;
   console.log('📺 ✅ AdMob available = true');
 } catch (e) {
@@ -104,6 +107,12 @@ const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds
 // ⚠️ DIAGNOSTIC: force test ID to confirm pipeline works — switch back to production ID after confirming
 const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds 
   ? TestIds.INTERSTITIAL  // TODO: restore to: (__DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-3440306279423513/9994022974')
+  : null;
+
+// AdMob Rewarded Ad Unit ID — create a rewarded ad unit in AdMob and paste the ID here
+// TODO: replace 'ca-app-pub-3440306279423513/XXXXXXXXXX' with your real rewarded ad unit ID
+const REWARDED_AD_UNIT_ID = isAdMobAvailable && TestIds
+  ? (__DEV__ ? TestIds.REWARDED : 'ca-app-pub-3440306279423513/XXXXXXXXXX')
   : null;
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  
@@ -826,6 +835,16 @@ function App() {
   const interstitialRef = useRef(null);
   const prayerViewCountRef = useRef(0);
   const pendingInterstitialShowRef = useRef(false);
+
+  // Rewarded ad state
+  const rewardedAdLoadedRef = useRef(false);
+  const rewardedAdRef = useRef(null);
+  const pendingRewardCallbackRef = useRef(null);
+
+  // Rewarded ad feature unlocks (persisted via AsyncStorage)
+  const [archiveUnlocked, setArchiveUnlocked] = useState(false);
+  const [premiumBgTheme, setPremiumBgTheme] = useState(null); // null | 'amber' | 'purple' | 'rose' | 'forest' | 'midnight'
+  const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
   
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -948,6 +967,8 @@ function App() {
           console.log('📺 AdMob initialized OK:', JSON.stringify(adapterStatuses));
           // Load the first interstitial ad after initialization
           loadInterstitialAd();
+          // Preload rewarded ad for premium features
+          loadRewardedAd();
         })
         .catch(error => {
           console.log('📺 AdMob initialization error:', error?.message || error);
@@ -1105,7 +1126,57 @@ function App() {
     return false;
   };
 
-  // Deep linking support for password reset and prayer sharing
+  // ─── Rewarded Ad infrastructure ───────────────────────────────────────────
+  const loadRewardedAd = (retryCount = 0) => {
+    if (!isAdMobAvailable || !RewardedAd || !RewardedAdEventType || !REWARDED_AD_UNIT_ID) return;
+    try {
+      const rewarded = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, { requestNonPersonalizedAdsOnly: true });
+
+      rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        console.log('🎁 Rewarded ad LOADED');
+        rewardedAdLoadedRef.current = true;
+        rewardedAdRef.current = rewarded;
+      });
+      rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
+        console.log('🎁 Rewarded ad EARNED_REWARD:', JSON.stringify(reward));
+        const cb = pendingRewardCallbackRef.current;
+        pendingRewardCallbackRef.current = null;
+        if (cb) cb(reward);
+      });
+      rewarded.addAdEventListener(RewardedAdEventType.CLOSED, () => {
+        console.log('🎁 Rewarded ad CLOSED');
+        rewardedAdLoadedRef.current = false;
+        rewardedAdRef.current = null;
+        loadRewardedAd(); // preload next
+      });
+      rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
+        console.log('🎁 Rewarded ad ERROR:', JSON.stringify(error));
+        rewardedAdLoadedRef.current = false;
+        if (retryCount < 3) setTimeout(() => loadRewardedAd(retryCount + 1), 8000);
+      });
+      rewarded.load();
+    } catch (e) {
+      console.log('🎁 Rewarded ad create error:', e?.message || e);
+    }
+  };
+
+  const showRewardedAd = (onReward, onNotAvailable) => {
+    if (rewardedAdLoadedRef.current && rewardedAdRef.current) {
+      pendingRewardCallbackRef.current = onReward;
+      try {
+        rewardedAdRef.current.show();
+      } catch (e) {
+        console.log('🎁 showRewardedAd error:', e?.message || e);
+        pendingRewardCallbackRef.current = null;
+        if (onNotAvailable) onNotAvailable();
+      }
+    } else {
+      loadRewardedAd();
+      if (onNotAvailable) onNotAvailable();
+    }
+  };
+
+  // ─── Deep linking support for password reset and prayer sharing ────────────
   useEffect(() => {
     const handleDeepLink = ({ url }, isInitialUrl = false) => {
       const route = url.replace(/.*?:\/\//g, '');
@@ -2628,6 +2699,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         confettiAnims.forEach(anim => anim.setValue(0));
       }, 500); // Keep showing for a bit longer
     });
+  };
+
+  // Standalone pray-for-request (used by Prayer Walk — no modal, no animation)
+  const prayForRequest = async (prayerId) => {
+    try {
+      await fetch('https://shouldcallpaul.replit.app/prayFor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ userId: currentUser?.id, requestId: prayerId }),
+      });
+    } catch (e) {
+      console.log('prayForRequest error:', e.message);
+    }
+    setCommunityPrayers(prev =>
+      prev.map(p => p.id === prayerId
+        ? { ...p, user_has_prayed: true, prayer_count: (p.prayer_count || 0) + 1 }
+        : p
+      )
+    );
+    if (currentUser) {
+      setCurrentUser(u => ({ ...u, faith_points: (u.faith_points || 0) + 1 }));
+    }
   };
 
   const markAsPrayed = async () => {
@@ -4710,6 +4806,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   // ROSARY SCREENS
+  if (currentScreen === 'prayerWalk') {
+    return (
+      <PrayerWalkScreen
+        prayers={communityPrayers}
+        currentUser={currentUser}
+        onPrayForRequest={prayForRequest}
+        onClose={() => setCurrentScreen('home')}
+      />
+    );
+  }
+
   if (currentScreen === 'dailyBread') {
     return (
       <DailyBreadScreen
@@ -4718,6 +4825,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         pastDevotionals={pastDevotionals}
         onSelectPast={(item) => setSelectedDevotional(item)}
         bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
+        archiveUnlocked={archiveUnlocked}
+        onUnlockArchive={() => showRewardedAd(
+          () => {
+            setArchiveUnlocked(true);
+            AsyncStorage.setItem('archiveUnlocked', 'true');
+          },
+          () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+        )}
       />
     );
   }
@@ -5127,6 +5242,26 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         ) : null}
 
+        {/* ── Prayer Walk Card ── */}
+        {communityPrayers.filter(p => !p.user_has_prayed).length > 0 && (
+          <TouchableOpacity
+            style={styles.prayerWalkCard}
+            activeOpacity={0.88}
+            onPress={() => setCurrentScreen('prayerWalk')}
+          >
+            <View style={styles.prayerWalkLeft}>
+              <Text style={styles.prayerWalkEmoji}>🎧</Text>
+              <View>
+                <Text style={styles.prayerWalkTitle}>Prayer Walk</Text>
+                <Text style={styles.prayerWalkSub}>
+                  {communityPrayers.filter(p => !p.user_has_prayed).length} unprayed requests
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.prayerWalkArrow}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* How to Earn Points Guide */}
         <TouchableOpacity
           style={styles.pointsGuideTrigger}
@@ -5512,10 +5647,63 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
             {prayerLayout === 'gallery' && <View style={styles.galleryBgTint} />}
 
+            {/* Premium theme color overlay */}
+            {premiumBgTheme === 'amber' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'purple' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(124,58,237,0.30)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'rose' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(244,63,94,0.25)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'forest' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(22,101,52,0.30)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'midnight' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 0 }]} pointerEvents="none" />}
+
             {/* Close button - floats top right */}
             <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
               <Text style={styles.fullScreenCloseButtonText}>✕</Text>
             </TouchableOpacity>
+
+            {/* 🎨 Unlock Theme button - floats top left */}
+            <TouchableOpacity
+              style={styles.unlockThemeBtn}
+              onPress={() => setShowPremiumThemePicker(p => !p)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.unlockThemeBtnText}>{premiumBgTheme ? '🎨 Theme ✓' : '🎨 Theme'}</Text>
+            </TouchableOpacity>
+
+            {/* Premium theme picker dropdown */}
+            {showPremiumThemePicker && (
+              <View style={styles.themePicker}>
+                <Text style={styles.themePickerTitle}>Prayer Themes</Text>
+                {[
+                  { key: null, label: '✕ None (default)', color: '#6b7280' },
+                  { key: 'amber', label: '🌅 Golden Sunset', color: '#d97706' },
+                  { key: 'purple', label: '💜 Amethyst', color: '#7c3aed' },
+                  { key: 'rose', label: '🌸 Rose Dawn', color: '#f43f5e' },
+                  { key: 'forest', label: '🌿 Forest', color: '#166534' },
+                  { key: 'midnight', label: '🌌 Midnight', color: '#0f172a' },
+                ].map(theme => (
+                  <TouchableOpacity
+                    key={String(theme.key)}
+                    style={[styles.themeOption, premiumBgTheme === theme.key && styles.themeOptionActive]}
+                    onPress={() => {
+                      if (theme.key === null || premiumBgTheme !== null) {
+                        setPremiumBgTheme(theme.key);
+                        setShowPremiumThemePicker(false);
+                      } else {
+                        setShowPremiumThemePicker(false);
+                        showRewardedAd(
+                          () => { setPremiumBgTheme(theme.key); },
+                          () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+                        );
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.themeOptionText}>{theme.label}</Text>
+                    {premiumBgTheme === theme.key && <Text style={{ color: '#10b981' }}>✓</Text>}
+                    {theme.key !== null && premiumBgTheme === null && <Text style={styles.themeWatchAd}>Watch ad to unlock</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {/* Background toggle button - hidden, random bg selected on each prayer open */}
 
@@ -5543,6 +5731,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
+                  <TouchableOpacity
+                    style={styles.unlockExtendedBtn}
+                    onPress={() => showRewardedAd(
+                      () => Alert.alert('Extended Prayer', 'Paul is building this feature — coming soon! 🙏'),
+                      () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+                    )}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.sanctuaryAmenButtonText}>Amen</Text>
                   </TouchableOpacity>
@@ -6830,6 +7028,56 @@ const styles = StyleSheet.create({
     letterSpacing: 5,
     textTransform: 'uppercase',
   },
+  // ── Prayer Walk card (home feed) ────────────────────────────────────────
+  prayerWalkCard: {
+    marginHorizontal: 15, marginBottom: 12,
+    backgroundColor: '#1e3a5f',
+    borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    elevation: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4,
+  },
+  prayerWalkLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  prayerWalkEmoji: { fontSize: 32 },
+  prayerWalkTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  prayerWalkSub: { color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 2 },
+  prayerWalkArrow: { color: 'rgba(255,255,255,0.4)', fontSize: 28, fontWeight: '300' },
+
+  // ── Prayer modal: unlock theme button ────────────────────────────────────
+  unlockThemeBtn: {
+    position: 'absolute', top: 52, left: 16, zIndex: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  unlockThemeBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+
+  // ── Prayer modal: theme picker dropdown ──────────────────────────────────
+  themePicker: {
+    position: 'absolute', top: 92, left: 16, zIndex: 30,
+    backgroundColor: '#1e293b', borderRadius: 16, padding: 12, minWidth: 220,
+    elevation: 10, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
+  },
+  themePickerTitle: {
+    color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '700',
+    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8,
+  },
+  themeOption: {
+    paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  themeOptionActive: { backgroundColor: 'rgba(96,165,250,0.15)' },
+  themeOptionText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  themeWatchAd: { color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 1 },
+
+  // ── Prayer modal: unlock extended prayer button ───────────────────────────
+  unlockExtendedBtn: {
+    marginBottom: 10, paddingVertical: 10, paddingHorizontal: 20,
+    backgroundColor: 'rgba(245,158,11,0.18)', borderRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
+    alignSelf: 'center',
+  },
+  unlockExtendedBtnText: { color: '#fbbf24', fontSize: 13, fontWeight: '600' },
+
   // CELEBRATION FIREWORKS & CONFETTI styles!
   celebrationContainer: {
     position: 'absolute',

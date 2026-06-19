@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
-  Clipboard, Share, Platform, Dimensions, Alert,
+  Clipboard, Share, Platform, Dimensions, Alert, ScrollView, Modal,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -74,11 +74,20 @@ const waveStyles = StyleSheet.create({
   bar: { width: 4, height: 18, borderRadius: 2, backgroundColor: '#fff' },
 });
 
-export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps }) {
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function isOlderThan30Days(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr.split('T')[0]);
+  return Date.now() - d.getTime() > THIRTY_DAYS_MS;
+}
+
+export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
   const [audioPosition, setAudioPosition] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [showArchive, setShowArchive] = useState(false);
   const soundRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -312,10 +321,75 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
         <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
           <Text style={styles.topBtnText}>← Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
-          <Text style={styles.topBtnText}>Share ↗</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {pastDevotionals.length > 0 && (
+            <TouchableOpacity onPress={() => setShowArchive(true)} style={styles.topBtn} activeOpacity={0.8}>
+              <Text style={styles.topBtnText}>📅 Archive</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
+            <Text style={styles.topBtnText}>Share ↗</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Archive Modal */}
+      <Modal
+        visible={showArchive}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowArchive(false)}
+      >
+        <View style={archiveStyles.overlay}>
+          <View style={archiveStyles.sheet}>
+            <View style={archiveStyles.sheetHandle} />
+            <Text style={archiveStyles.sheetTitle}>📅 Past Devotionals</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {pastDevotionals.map((item, i) => {
+                const locked = !archiveUnlocked && isOlderThan30Days(item.date);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[archiveStyles.item, locked && archiveStyles.itemLocked]}
+                    activeOpacity={locked ? 0.9 : 0.7}
+                    onPress={() => {
+                      if (locked) {
+                        Alert.alert(
+                          '🔒 Locked',
+                          'Watch a short video to unlock devotionals older than 30 days.',
+                          [
+                            { text: 'Not Now', style: 'cancel' },
+                            { text: 'Unlock Archive', onPress: () => { setShowArchive(false); if (onUnlockArchive) onUnlockArchive(); } },
+                          ]
+                        );
+                      } else {
+                        onSelectPast(item);
+                        setShowArchive(false);
+                      }
+                    }}
+                  >
+                    <View style={archiveStyles.itemLeft}>
+                      <Text style={archiveStyles.itemDate}>{formatDate(item.date)}</Text>
+                      <Text style={archiveStyles.itemTitle} numberOfLines={2}>
+                        {locked ? '🔒 ' : ''}{item.title || 'Daily Bread'}
+                      </Text>
+                    </View>
+                    {!locked && <Text style={archiveStyles.itemArrow}>›</Text>}
+                    {locked && (
+                      <View style={archiveStyles.watchAdBtn}>
+                        <Text style={archiveStyles.watchAdText}>Watch ad</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={archiveStyles.closeBtn} onPress={() => setShowArchive(false)} activeOpacity={0.8}>
+              <Text style={archiveStyles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -415,4 +489,43 @@ const styles = StyleSheet.create({
     textAlign: 'center', fontSize: 12, color: '#b0ad9e',
     fontFamily: SERIF, fontStyle: 'italic', marginTop: 8, marginBottom: 20,
   },
+});
+
+const archiveStyles = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 12, paddingHorizontal: 20, paddingBottom: 36,
+    maxHeight: '80%',
+  },
+  sheetHandle: {
+    width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2, alignSelf: 'center', marginBottom: 16,
+  },
+  sheetTitle: {
+    color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 16,
+  },
+  item: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  itemLocked: { opacity: 0.65 },
+  itemLeft: { flex: 1, marginRight: 12 },
+  itemDate: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginBottom: 3 },
+  itemTitle: { color: '#fff', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  itemArrow: { color: 'rgba(255,255,255,0.35)', fontSize: 22 },
+  watchAdBtn: {
+    backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
+  },
+  watchAdText: { color: '#fbbf24', fontSize: 11, fontWeight: '600' },
+  closeBtn: {
+    marginTop: 20, backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+  },
+  closeBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

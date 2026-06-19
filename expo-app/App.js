@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build32';
+const APP_BUILD = 'preview-1.0.25-build33';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -840,6 +840,8 @@ function App() {
   const rewardedAdLoadedRef = useRef(false);
   const rewardedAdRef = useRef(null);
   const pendingRewardCallbackRef = useRef(null);
+  const pendingAdQueueRef = useRef(null); // queued tap while ad is still loading
+  const [rewardedAdLoading, setRewardedAdLoading] = useState(false);
 
   // Rewarded ad feature unlocks (persisted via AsyncStorage)
   const [archiveUnlocked, setArchiveUnlocked] = useState(false);
@@ -1136,6 +1138,17 @@ function App() {
         console.log('🎁 Rewarded ad LOADED');
         rewardedAdLoadedRef.current = true;
         rewardedAdRef.current = rewarded;
+        setRewardedAdLoading(false);
+        // Auto-show if someone tapped while the ad was still loading
+        if (pendingAdQueueRef.current) {
+          const { onReward, onNotAvailable } = pendingAdQueueRef.current;
+          pendingAdQueueRef.current = null;
+          pendingRewardCallbackRef.current = onReward;
+          try { rewarded.show(); } catch (e) {
+            pendingRewardCallbackRef.current = null;
+            if (onNotAvailable) onNotAvailable();
+          }
+        }
       });
       rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
         console.log('🎁 Rewarded ad EARNED_REWARD:', JSON.stringify(reward));
@@ -1147,11 +1160,20 @@ function App() {
         console.log('🎁 Rewarded ad CLOSED');
         rewardedAdLoadedRef.current = false;
         rewardedAdRef.current = null;
+        setRewardedAdLoading(false);
+        pendingAdQueueRef.current = null;
         loadRewardedAd(); // preload next
       });
       rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
         console.log('🎁 Rewarded ad ERROR:', JSON.stringify(error));
         rewardedAdLoadedRef.current = false;
+        setRewardedAdLoading(false);
+        // Fail any queued tap
+        if (pendingAdQueueRef.current) {
+          const { onNotAvailable } = pendingAdQueueRef.current;
+          pendingAdQueueRef.current = null;
+          if (onNotAvailable) onNotAvailable();
+        }
         if (retryCount < 3) setTimeout(() => loadRewardedAd(retryCount + 1), 8000);
       });
       rewarded.load();
@@ -1171,8 +1193,20 @@ function App() {
         if (onNotAvailable) onNotAvailable();
       }
     } else {
+      // Queue this tap — the LOADED callback will auto-show as soon as the ad is ready
+      pendingAdQueueRef.current = { onReward, onNotAvailable };
+      setRewardedAdLoading(true);
       loadRewardedAd();
-      if (onNotAvailable) onNotAvailable();
+      // Safety net: if the ad never loads within 20s, bail out gracefully
+      setTimeout(() => {
+        if (pendingAdQueueRef.current) {
+          const { onNotAvailable: notAvail } = pendingAdQueueRef.current;
+          pendingAdQueueRef.current = null;
+          setRewardedAdLoading(false);
+          Alert.alert('Ad Unavailable', 'Could not load an ad right now. Please try again shortly.');
+          if (notAvail) notAvail();
+        }
+      }, 20000);
     }
   };
 
@@ -5767,17 +5801,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.sanctuaryFooter}>
                   {!extendedPrayer ? (
                     <TouchableOpacity
-                      style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                      style={[styles.unlockExtendedBtn, (loadingExtendedPrayer || rewardedAdLoading) && { opacity: 0.7 }]}
                       onPress={() => showRewardedAd(
                         () => fetchExtendedPrayer(prayerModal.prayer?.id),
-                        () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+                        null
                       )}
                       activeOpacity={0.8}
-                      disabled={loadingExtendedPrayer}
+                      disabled={loadingExtendedPrayer || rewardedAdLoading}
                     >
                       {loadingExtendedPrayer
                         ? <ActivityIndicator color="#fbbf24" size="small" />
-                        : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                        : rewardedAdLoading
+                          ? <><ActivityIndicator color="#fbbf24" size="small" style={{ marginRight: 6 }} /><Text style={styles.unlockExtendedBtnText}>Loading ad…</Text></>
+                          : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
                       }
                     </TouchableOpacity>
                   ) : null}
@@ -5826,17 +5862,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {!extendedPrayer ? (
                     <TouchableOpacity
-                      style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                      style={[styles.unlockExtendedBtn, (loadingExtendedPrayer || rewardedAdLoading) && { opacity: 0.7 }]}
                       onPress={() => showRewardedAd(
                         () => fetchExtendedPrayer(prayerModal.prayer?.id),
-                        () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+                        null
                       )}
                       activeOpacity={0.8}
-                      disabled={loadingExtendedPrayer}
+                      disabled={loadingExtendedPrayer || rewardedAdLoading}
                     >
                       {loadingExtendedPrayer
                         ? <ActivityIndicator color="#fbbf24" size="small" />
-                        : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                        : rewardedAdLoading
+                          ? <><ActivityIndicator color="#fbbf24" size="small" style={{ marginRight: 6 }} /><Text style={styles.unlockExtendedBtnText}>Loading ad…</Text></>
+                          : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
                       }
                     </TouchableOpacity>
                   ) : null}
@@ -6743,20 +6781,20 @@ const styles = StyleSheet.create({
   },
   fullScreenCloseButton: {
     position: 'absolute',
-    top: 56,
-    right: 24,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    top: 90,
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(0, 0, 0, 0.40)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
   fullScreenCloseButtonText: {
     fontSize: 22,
-    color: '#9CA3AF',
-    fontWeight: '300',
+    color: '#ffffff',
+    fontWeight: '400',
   },
   bgToggleButton: {
     position: 'absolute',
@@ -7107,15 +7145,16 @@ const styles = StyleSheet.create({
 
   // ── Prayer modal: unlock theme button ────────────────────────────────────
   unlockThemeBtn: {
-    position: 'absolute', top: 52, left: 16, zIndex: 20,
-    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
+    position: 'absolute', top: 90, left: 16, zIndex: 20,
+    backgroundColor: 'rgba(0,0,0,0.50)', borderRadius: 24,
+    paddingHorizontal: 18, paddingVertical: 12,
+    minWidth: 52, minHeight: 52, justifyContent: 'center', alignItems: 'center',
   },
-  unlockThemeBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  unlockThemeBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
   // ── Prayer modal: theme picker dropdown ──────────────────────────────────
   themePicker: {
-    position: 'absolute', top: 92, left: 16, zIndex: 30,
+    position: 'absolute', top: 152, left: 16, zIndex: 30,
     backgroundColor: '#1e293b', borderRadius: 16, padding: 12, minWidth: 220,
     elevation: 10, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8,
   },
@@ -7133,12 +7172,13 @@ const styles = StyleSheet.create({
 
   // ── Prayer modal: unlock extended prayer button ───────────────────────────
   unlockExtendedBtn: {
-    marginBottom: 10, paddingVertical: 10, paddingHorizontal: 20,
-    backgroundColor: 'rgba(245,158,11,0.18)', borderRadius: 24,
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)',
-    alignSelf: 'center',
+    marginBottom: 12, paddingVertical: 14, paddingHorizontal: 28,
+    backgroundColor: 'rgba(180,120,0,0.85)', borderRadius: 28,
+    borderWidth: 1.5, borderColor: '#fbbf24',
+    alignSelf: 'center', flexDirection: 'row', alignItems: 'center',
+    elevation: 4, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6,
   },
-  unlockExtendedBtnText: { color: '#fbbf24', fontSize: 13, fontWeight: '600' },
+  unlockExtendedBtnText: { color: '#fff', fontSize: 15, fontWeight: '700', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
 
   // CELEBRATION FIREWORKS & CONFETTI styles!
   celebrationContainer: {

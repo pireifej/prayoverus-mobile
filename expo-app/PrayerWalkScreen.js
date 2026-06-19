@@ -22,17 +22,31 @@ const AUTH = () => 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc
 // Strip HTML tags from generated prayer text
 const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
-// Fetch the AI-generated prayer text for a request
-const fetchGeneratedPrayer = async (requestId) => {
-  const res = await fetch(`${BASE_URL}/getPrayerByRequestId`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
-    body: JSON.stringify({ requestId }),
-  });
-  if (!res.ok) throw new Error(`getPrayerByRequestId ${res.status}`);
-  const data = await res.json();
-  if (data.error === 0 && data.prayerText) return stripHtml(data.prayerText);
-  throw new Error('No prayerText returned');
+// Fallback prayer template — mirrors what the modal shows when API has no stored prayer
+const fallbackPrayerText = (prayer) =>
+  `Heavenly Father, we lift up ${prayer.author || 'this person'} to Your loving care and ask for Your blessing upon their prayer request. ` +
+  `Grant ${prayer.author || 'them'} Your peace, guidance, and strength in this situation. ` +
+  `May Your will be accomplished in their life according to Your perfect plan. ` +
+  `Through Christ our Lord. Amen.`;
+
+// Fetch the AI-generated prayer — returns stored prayer text if available, fallback if not
+const fetchBestPrayerText = async (prayer) => {
+  try {
+    const res = await fetch(`${BASE_URL}/getPrayerByRequestId`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
+      body: JSON.stringify({ requestId: prayer.id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // error === 0 means server has a stored generated prayer
+      if (data.error === 0 && data.prayerText) {
+        return stripHtml(data.prayerText);
+      }
+    }
+  } catch (_) {}
+  // Server doesn't have one yet — use the same fallback the modal uses
+  return fallbackPrayerText(prayer);
 };
 
 // Build the spoken intro: "Prayer for Name. Title."
@@ -208,21 +222,14 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     soundRef.current = null;
 
     try {
-      // Cache key v2 = uses generated prayer text, not raw request
-      const localUri = `${FileSystem.cacheDirectory}prayerWalkGen2_${prayer.id}.mp3`;
+      // Cache key v3 = uses fallback-safe prayer text (busts v1/v2 bad caches)
+      const localUri = `${FileSystem.cacheDirectory}prayerWalkGen3_${prayer.id}.mp3`;
       const cached = await FileSystem.getInfoAsync(localUri);
 
       if (!cached.exists) {
-        // Fetch the AI-generated prayer first, fall back to raw content if unavailable
-        let generatedText = '';
-        try {
-          generatedText = await fetchGeneratedPrayer(prayer.id);
-        } catch (e) {
-          console.log('[PrayerWalk] generated prayer unavailable, using raw content:', e.message);
-          generatedText = prayer.content || '';
-        }
-
-        const spokenText = [buildIntro(prayer), generatedText].filter(Boolean).join(' ');
+        // Fetch stored AI prayer, or fall back to the same template the modal uses
+        const prayerText = await fetchBestPrayerText(prayer);
+        const spokenText = [buildIntro(prayer), prayerText].filter(Boolean).join(' ');
 
         const res = await fetch(`${BASE_URL}/getPrayerAudio`, {
           method: 'POST',

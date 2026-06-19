@@ -19,13 +19,27 @@ const base64Encode = (str) => {
 };
 const AUTH = () => 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
 
-// Build the spoken text: "Prayer for Name. Title. Content. Amen."
-const buildSpokenText = (prayer) => {
+// Strip HTML tags from generated prayer text
+const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+// Fetch the AI-generated prayer text for a request
+const fetchGeneratedPrayer = async (requestId) => {
+  const res = await fetch(`${BASE_URL}/getPrayerByRequestId`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
+    body: JSON.stringify({ requestId }),
+  });
+  if (!res.ok) throw new Error(`getPrayerByRequestId ${res.status}`);
+  const data = await res.json();
+  if (data.error === 0 && data.prayerText) return stripHtml(data.prayerText);
+  throw new Error('No prayerText returned');
+};
+
+// Build the spoken intro: "Prayer for Name. Title."
+const buildIntro = (prayer) => {
   const parts = [];
   if (prayer?.author) parts.push(`Prayer for ${prayer.author}.`);
   if (prayer?.title) parts.push(prayer.title + '.');
-  if (prayer?.content) parts.push(prayer.content);
-  parts.push('Amen.');
   return parts.join(' ');
 };
 
@@ -194,11 +208,22 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     soundRef.current = null;
 
     try {
-      const localUri = `${FileSystem.cacheDirectory}prayerWalk_${prayer.id}.mp3`;
+      // Cache key v2 = uses generated prayer text, not raw request
+      const localUri = `${FileSystem.cacheDirectory}prayerWalkGen2_${prayer.id}.mp3`;
       const cached = await FileSystem.getInfoAsync(localUri);
 
       if (!cached.exists) {
-        const spokenText = buildSpokenText(prayer);
+        // Fetch the AI-generated prayer first, fall back to raw content if unavailable
+        let generatedText = '';
+        try {
+          generatedText = await fetchGeneratedPrayer(prayer.id);
+        } catch (e) {
+          console.log('[PrayerWalk] generated prayer unavailable, using raw content:', e.message);
+          generatedText = prayer.content || '';
+        }
+
+        const spokenText = [buildIntro(prayer), generatedText].filter(Boolean).join(' ');
+
         const res = await fetch(`${BASE_URL}/getPrayerAudio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },

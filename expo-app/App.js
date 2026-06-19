@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build26';
+const APP_BUILD = 'preview-1.0.25-build27';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5815,9 +5815,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showsVerticalScrollIndicator={false}
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                  {extendedPrayer ? (
+                    <View style={{ marginTop: 20, padding: 16, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
+                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ Extended Prayer</Text>
+                      <Text style={{ color: '#e2e8f0', fontSize: 16, lineHeight: 26, fontStyle: 'italic' }}>{extendedPrayer}</Text>
+                    </View>
+                  ) : null}
                 </ScrollView>
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
+                  {!extendedPrayer ? (
+                    <TouchableOpacity
+                      style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                      onPress={() => showRewardedAd(
+                        () => fetchExtendedPrayer(prayerModal.prayer?.id),
+                        () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+                      )}
+                      activeOpacity={0.8}
+                      disabled={loadingExtendedPrayer}
+                    >
+                      {loadingExtendedPrayer
+                        ? <ActivityIndicator color="#fbbf24" size="small" />
+                        : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                      }
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity style={styles.immersiveAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.immersiveAmenButtonText}>Amen</Text>
                   </TouchableOpacity>

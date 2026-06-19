@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build27';
+const APP_BUILD = 'preview-1.0.25-build28';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [

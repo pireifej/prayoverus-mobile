@@ -22,8 +22,8 @@ let rcAvailable = false;
 let Purchases = null;
 const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
 const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes';
-const OFFERING_EXTENDED_PRAYER = 'extended_prayer_offering';
-const OFFERING_PREMIUM_THEMES   = 'premium_themes_offering';
+const PRODUCT_EXTENDED_PRAYER = 'extended_ai_prayer';
+const PRODUCT_PREMIUM_THEMES   = 'premium_themes';
 const RC_TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const RC_IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const RC_ANDROID_KEY  = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build42';
+const APP_BUILD = 'preview-1.0.25-build43';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -904,9 +904,9 @@ function App() {
 
   // IAP state
   const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
-  const [iapOfferings, setIapOfferings] = useState(null);
+  const [iapProducts, setIapProducts] = useState([]); // direct product list, no offerings needed
   const [iapPurchasing, setIapPurchasing] = useState(false);
-  const [iapModal, setIapModal] = useState(null); // { offeringKey, title, description } | null
+  const [iapModal, setIapModal] = useState(null); // { productId, title, description } | null
 
   const hasEntitlement = (key) => iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
   const iapExtendedPrayerUnlocked = hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER);
@@ -915,23 +915,25 @@ function App() {
   const loadIapData = async () => {
     if (!rcAvailable || !Purchases) return;
     try {
-      const [info, offs] = await Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings()]);
+      const [info, prods] = await Promise.all([
+        Purchases.getCustomerInfo(),
+        Purchases.getProducts([PRODUCT_EXTENDED_PRAYER, PRODUCT_PREMIUM_THEMES]),
+      ]);
       setIapCustomerInfo(info);
-      setIapOfferings(offs);
+      setIapProducts(prods);
     } catch (e) { console.warn('[IAP] load error:', e?.message); }
   };
 
-  const doIapPurchase = async (offeringKey) => {
-    if (!rcAvailable || !Purchases || !iapOfferings) return;
+  const doIapPurchase = async (productId) => {
+    if (!rcAvailable || !Purchases) return;
     setIapPurchasing(true);
     try {
-      const offering = iapOfferings.all?.[offeringKey];
-      if (!offering) throw new Error('Offering not found');
-      const pkg = offering.availablePackages?.[0];
-      if (!pkg) throw new Error('No package in offering');
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      const product = iapProducts.find(p => p.identifier === productId);
+      if (!product) throw new Error('Product not found — check your App Store / Play Store setup.');
+      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
       setIapCustomerInfo(customerInfo);
       setIapModal(null);
+      Alert.alert('Unlocked! 🙌', 'Thank you — enjoy your new feature.');
     } catch (e) {
       if (!e?.userCancelled) Alert.alert('Purchase failed', e?.message ?? 'Please try again.');
     } finally {
@@ -951,8 +953,8 @@ function App() {
     finally { setIapPurchasing(false); }
   };
 
-  const getIapPrice = (offeringKey) =>
-    iapOfferings?.all?.[offeringKey]?.availablePackages?.[0]?.product?.priceString ?? null;
+  const getIapPrice = (productId) =>
+    iapProducts.find(p => p.identifier === productId)?.priceString ?? null;
   
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -5812,7 +5814,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </Text>
                 <TouchableOpacity
                   style={{ backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, opacity: iapPurchasing ? 0.6 : 1 }}
-                  onPress={() => doIapPurchase(iapModal?.offeringKey)}
+                  onPress={() => doIapPurchase(iapModal?.productId)}
                   disabled={iapPurchasing}
                   activeOpacity={0.85}
                 >
@@ -5820,7 +5822,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     ? <ActivityIndicator color="#1e1b4b" />
                     : <Text style={{ color: '#1e1b4b', fontSize: 17, fontWeight: '800' }}>
                         {rcAvailable
-                          ? `Unlock — ${getIapPrice(iapModal?.offeringKey) ?? '…'}`
+                          ? `Unlock — ${getIapPrice(iapModal?.productId) ?? '…'}`
                           : 'Coming Soon'}
                       </Text>
                   }
@@ -6072,7 +6074,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     ) : (
                       <TouchableOpacity
                         style={styles.unlockExtendedBtn}
-                        onPress={() => setIapModal({ offeringKey: OFFERING_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
+                        onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
                         activeOpacity={0.8}
                       >
                         <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
@@ -6138,7 +6140,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     ) : (
                       <TouchableOpacity
                         style={styles.unlockExtendedBtn}
-                        onPress={() => setIapModal({ offeringKey: OFFERING_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
+                        onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
                         activeOpacity={0.8}
                       >
                         <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>

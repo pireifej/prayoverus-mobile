@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build37';
+const APP_BUILD = 'preview-1.0.25-build38';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5768,15 +5768,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {premiumBgTheme === 'forest' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(22,101,52,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'midnight' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 0 }]} pointerEvents="none" />}
 
-            {/* ── Top bar: Theme (left) + Close (right) — no overlap with prayer content ── */}
-            <View style={styles.prayerModalTopBar}>
-              <TouchableOpacity
-                style={styles.unlockThemeBtn}
-                onPress={() => setShowPremiumThemePicker(p => !p)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.unlockThemeBtnText}>{premiumBgTheme ? '🎨 Theme ✓' : '🎨 Theme'}</Text>
-              </TouchableOpacity>
+            {/* ── Top bar: Close button only ── */}
+            <View style={[styles.prayerModalTopBar, { justifyContent: 'flex-end' }]}>
               <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
                 <Text style={styles.fullScreenCloseButtonText}>✕</Text>
               </TouchableOpacity>

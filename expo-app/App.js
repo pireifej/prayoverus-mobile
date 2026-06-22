@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build40';
+const APP_BUILD = 'preview-1.0.25-build41';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5751,11 +5751,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {filteredPrayers.length > displayedCount && (
             <TouchableOpacity
               onPress={() => setDisplayedCount(c => c + PRAYERS_PAGE_SIZE)}
-              style={{ alignItems: 'center', paddingVertical: 16, marginBottom: 8 }}
+              style={{ alignItems: 'center', paddingVertical: 22, marginBottom: 12, marginHorizontal: 16, backgroundColor: '#f1f5f9', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: '#6b7280', fontSize: 14, fontWeight: '600' }}>
-                ↓  Load more prayers ({filteredPrayers.length - displayedCount} remaining)
+              <Text style={{ fontSize: 28, marginBottom: 4 }}>⬇️</Text>
+              <Text style={{ color: '#374151', fontSize: 17, fontWeight: '700' }}>
+                Load more prayers
+              </Text>
+              <Text style={{ color: '#6b7280', fontSize: 14, marginTop: 2 }}>
+                {filteredPrayers.length - displayedCount} more waiting
               </Text>
             </TouchableOpacity>
           )}

@@ -5,8 +5,14 @@ import { View, Text, Image } from 'react-native';
 
 export function getRelativeTime(timestamp) {
   if (!timestamp) return '';
-  const diff   = Date.now() - new Date(timestamp).getTime();
-  if (isNaN(diff)) return typeof timestamp === 'string' ? timestamp : '';
+  // Ensure server timestamps (which are stored as UTC) are parsed as UTC.
+  // Without a 'Z', JS treats the string as LOCAL time → shows hours older than reality.
+  let ts = timestamp;
+  if (typeof ts === 'string' && !ts.endsWith('Z') && !/[+\-]\d{2}:?\d{2}$/.test(ts)) {
+    ts = ts.replace(' ', 'T') + 'Z';
+  }
+  const diff   = Date.now() - new Date(ts).getTime();
+  if (isNaN(diff) || diff < 0) return typeof timestamp === 'string' ? timestamp : '';
   const minutes = Math.floor(diff / 60000);
   const hours   = Math.floor(diff / 3600000);
   const days    = Math.floor(diff / 86400000);
@@ -14,7 +20,8 @@ export function getRelativeTime(timestamp) {
   if (months  >= 1) return `${months}mo ago`;
   if (days    >= 1) return `${days}d ago`;
   if (hours   >= 1) return `${hours}h ago`;
-  return `${minutes}m ago`;
+  if (minutes >= 1) return `${minutes}m ago`;
+  return 'just now';
 }
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────

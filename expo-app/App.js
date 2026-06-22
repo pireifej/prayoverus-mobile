@@ -18,7 +18,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build36';
+const APP_BUILD = 'preview-1.0.25-build37';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -750,6 +750,8 @@ function App() {
   }, []);
   const [prayers, setPrayers] = useState([]);
   const [communityPrayers, setCommunityPrayers] = useState([]);
+  const PRAYERS_PAGE_SIZE = 12;
+  const [displayedCount, setDisplayedCount] = useState(PRAYERS_PAGE_SIZE);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
@@ -1400,8 +1402,18 @@ function App() {
   // Load community prayers when entering home or community screen OR when filter changes
   useEffect(() => {
     if (currentUser && (currentScreen === 'home' || currentScreen === 'community')) {
-      // Clear current prayers and show loading indicator when filter changes
-      setCommunityPrayers([]);
+      // Show cached prayers immediately while fresh data loads in background
+      AsyncStorage.getItem('communityPrayers_cache').then(cached => {
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setCommunityPrayers(parsed);
+            }
+          } catch (_) {}
+        }
+      });
+      setDisplayedCount(PRAYERS_PAGE_SIZE);
       setRefreshingCommunity(true);
       loadCommunityPrayers(true);
     }
@@ -1597,6 +1609,9 @@ function App() {
           
           console.log('📱 Parsed community prayers:', communityPrayers.length, 'items');
           setCommunityPrayers(communityPrayers);
+          setDisplayedCount(PRAYERS_PAGE_SIZE);
+          // Cache for instant display on next launch
+          AsyncStorage.setItem('communityPrayers_cache', JSON.stringify(communityPrayers)).catch(() => {});
         } else {
           console.log('📱 No community prayers found in response');
           setCommunityPrayers([]);
@@ -5520,7 +5535,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </View>
             )}
-            {filteredPrayers.map((prayer) => (
+            {filteredPrayers.slice(0, displayedCount).map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
               {/* Prayer Count Badge - Opens detail view */}
               {prayer.prayer_count > 0 && (
@@ -5603,6 +5618,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
             </View>
           ))}
+          {filteredPrayers.length > displayedCount && (
+            <TouchableOpacity
+              onPress={() => setDisplayedCount(c => c + PRAYERS_PAGE_SIZE)}
+              style={{ alignItems: 'center', paddingVertical: 16, marginBottom: 8 }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ color: '#6b7280', fontSize: 14, fontWeight: '600' }}>
+                ↓  Load more prayers ({filteredPrayers.length - displayedCount} remaining)
+              </Text>
+            </TouchableOpacity>
+          )}
           </>);
         })()}
       </ScrollView>

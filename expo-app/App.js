@@ -17,8 +17,28 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 
+// ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
+let rcAvailable = false;
+let Purchases = null;
+const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
+const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes';
+const OFFERING_EXTENDED_PRAYER = 'extended_prayer_offering';
+const OFFERING_PREMIUM_THEMES   = 'premium_themes_offering';
+const RC_TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
+const RC_IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
+const RC_ANDROID_KEY  = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
+try {
+  Purchases = require('react-native-purchases').default;
+  if (RC_TEST_KEY || RC_IOS_KEY || RC_ANDROID_KEY) {
+    const { Platform } = require('react-native');
+    const key = (__DEV__ || Platform.OS === 'web') ? RC_TEST_KEY
+      : Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY;
+    if (key) { Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); Purchases.configure({ apiKey: key }); rcAvailable = true; }
+  }
+} catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
+
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build38';
+const APP_BUILD = 'preview-1.0.25-build39';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -850,6 +870,58 @@ function App() {
   const [archiveUnlocked, setArchiveUnlocked] = useState(false);
   const [premiumBgTheme, setPremiumBgTheme] = useState(null); // null | 'amber' | 'purple' | 'rose' | 'forest' | 'midnight'
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
+
+  // IAP state
+  const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
+  const [iapOfferings, setIapOfferings] = useState(null);
+  const [iapPurchasing, setIapPurchasing] = useState(false);
+  const [iapModal, setIapModal] = useState(null); // { offeringKey, title, description } | null
+
+  const hasEntitlement = (key) => iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
+  const iapExtendedPrayerUnlocked = hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER);
+  const iapThemesUnlocked = hasEntitlement(ENTITLEMENT_PREMIUM_THEMES);
+
+  const loadIapData = async () => {
+    if (!rcAvailable || !Purchases) return;
+    try {
+      const [info, offs] = await Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings()]);
+      setIapCustomerInfo(info);
+      setIapOfferings(offs);
+    } catch (e) { console.warn('[IAP] load error:', e?.message); }
+  };
+
+  const doIapPurchase = async (offeringKey) => {
+    if (!rcAvailable || !Purchases || !iapOfferings) return;
+    setIapPurchasing(true);
+    try {
+      const offering = iapOfferings.all?.[offeringKey];
+      if (!offering) throw new Error('Offering not found');
+      const pkg = offering.availablePackages?.[0];
+      if (!pkg) throw new Error('No package in offering');
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      setIapCustomerInfo(customerInfo);
+      setIapModal(null);
+    } catch (e) {
+      if (!e?.userCancelled) Alert.alert('Purchase failed', e?.message ?? 'Please try again.');
+    } finally {
+      setIapPurchasing(false);
+    }
+  };
+
+  const doIapRestore = async () => {
+    if (!rcAvailable || !Purchases) return;
+    setIapPurchasing(true);
+    try {
+      const info = await Purchases.restorePurchases();
+      setIapCustomerInfo(info);
+      Alert.alert('Restored!', 'Your purchases have been restored.');
+      setIapModal(null);
+    } catch (e) { Alert.alert('Restore failed', e?.message ?? 'Please try again.'); }
+    finally { setIapPurchasing(false); }
+  };
+
+  const getIapPrice = (offeringKey) =>
+    iapOfferings?.all?.[offeringKey]?.availablePackages?.[0]?.product?.priceString ?? null;
   
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -956,6 +1028,9 @@ function App() {
       }
     })();
   }, []);
+
+  // Load IAP data on startup
+  useEffect(() => { loadIapData(); }, []);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -5633,6 +5708,59 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         })()}
       </ScrollView>
 
+      {/* ── IAP Purchase Modal ── */}
+      <Modal
+        visible={!!iapModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => !iapPurchasing && setIapModal(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => !iapPurchasing && setIapModal(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+            <TouchableWithoutFeedback>
+              <View style={{ backgroundColor: '#1e1b4b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+                <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
+                  {iapModal?.title ?? ''}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
+                  {iapModal?.description ?? ''}
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, opacity: iapPurchasing ? 0.6 : 1 }}
+                  onPress={() => doIapPurchase(iapModal?.offeringKey)}
+                  disabled={iapPurchasing}
+                  activeOpacity={0.85}
+                >
+                  {iapPurchasing
+                    ? <ActivityIndicator color="#1e1b4b" />
+                    : <Text style={{ color: '#1e1b4b', fontSize: 17, fontWeight: '800' }}>
+                        {rcAvailable
+                          ? `Unlock — ${getIapPrice(iapModal?.offeringKey) ?? '…'}`
+                          : 'Coming Soon'}
+                      </Text>
+                  }
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={doIapRestore}
+                  disabled={iapPurchasing}
+                  style={{ alignItems: 'center', paddingVertical: 10 }}
+                >
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Already purchased? Restore</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setIapModal(null)}
+                  disabled={iapPurchasing}
+                  style={{ alignItems: 'center', paddingVertical: 6 }}
+                >
+                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       {/* Testimony Modal - Prayer Answered */}
       <Modal
         visible={answeredModal.visible}
@@ -5845,22 +5973,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
                   {!extendedPrayer ? (
-                    <TouchableOpacity
-                      style={[styles.unlockExtendedBtn, (loadingExtendedPrayer || rewardedAdLoading) && { opacity: 0.7 }]}
-                      onPress={() => showRewardedAd(
-                        () => fetchExtendedPrayer(prayerModal.prayer?.id),
-                        null
-                      )}
-                      activeOpacity={0.8}
-                      disabled={loadingExtendedPrayer || rewardedAdLoading}
-                    >
-                      {loadingExtendedPrayer
-                        ? <ActivityIndicator color="#fbbf24" size="small" />
-                        : rewardedAdLoading
-                          ? <><ActivityIndicator color="#fbbf24" size="small" style={{ marginRight: 6 }} /><Text style={styles.unlockExtendedBtnText}>Loading ad…</Text></>
-                          : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
-                      }
-                    </TouchableOpacity>
+                    iapExtendedPrayerUnlocked ? (
+                      <TouchableOpacity
+                        style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                        onPress={() => fetchExtendedPrayer(prayerModal.prayer?.id)}
+                        activeOpacity={0.8}
+                        disabled={loadingExtendedPrayer}
+                      >
+                        {loadingExtendedPrayer
+                          ? <ActivityIndicator color="#fbbf24" size="small" />
+                          : <Text style={styles.unlockExtendedBtnText}>✨ Generate Extended Prayer</Text>
+                        }
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.unlockExtendedBtn}
+                        onPress={() => setIapModal({ offeringKey: OFFERING_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                      </TouchableOpacity>
+                    )
                   ) : null}
                   <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.sanctuaryAmenButtonText}>Amen</Text>
@@ -5906,22 +6039,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {!extendedPrayer ? (
-                    <TouchableOpacity
-                      style={[styles.unlockExtendedBtn, (loadingExtendedPrayer || rewardedAdLoading) && { opacity: 0.7 }]}
-                      onPress={() => showRewardedAd(
-                        () => fetchExtendedPrayer(prayerModal.prayer?.id),
-                        null
-                      )}
-                      activeOpacity={0.8}
-                      disabled={loadingExtendedPrayer || rewardedAdLoading}
-                    >
-                      {loadingExtendedPrayer
-                        ? <ActivityIndicator color="#fbbf24" size="small" />
-                        : rewardedAdLoading
-                          ? <><ActivityIndicator color="#fbbf24" size="small" style={{ marginRight: 6 }} /><Text style={styles.unlockExtendedBtnText}>Loading ad…</Text></>
-                          : <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
-                      }
-                    </TouchableOpacity>
+                    iapExtendedPrayerUnlocked ? (
+                      <TouchableOpacity
+                        style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                        onPress={() => fetchExtendedPrayer(prayerModal.prayer?.id)}
+                        activeOpacity={0.8}
+                        disabled={loadingExtendedPrayer}
+                      >
+                        {loadingExtendedPrayer
+                          ? <ActivityIndicator color="#fbbf24" size="small" />
+                          : <Text style={styles.unlockExtendedBtnText}>✨ Generate Extended Prayer</Text>
+                        }
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.unlockExtendedBtn}
+                        onPress={() => setIapModal({ offeringKey: OFFERING_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                      </TouchableOpacity>
+                    )
                   ) : null}
                   <TouchableOpacity style={styles.immersiveAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.immersiveAmenButtonText}>Amen</Text>

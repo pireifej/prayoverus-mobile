@@ -1,0 +1,35 @@
+Paul Ireifej
+
+Matawan, NJ 07747 | pireifej@gmail.com | 973-610-3686 | www.shouldcallpaul.com
+
+PROFESSIONAL SUMMARY
+
+Senior Software Engineer with nearly 20 years of expertise engineering and optimizing mission-critical secure platforms for government and Fortune 500 clients. Spearheads high-impact software delivery through mastery of Agile methodologies, Java, JavaScript, and robust CI/CD pipeline orchestration. Expertise encompasses the strategic integration of Generative and Agentic AI toolsets, including Windsurf and GitHub Copilot, to revolutionize system troubleshooting and internal development velocity within cloud-native Azure and Kubernetes environments. Expert at navigating the intersection of complex security requirements and modern DevOps to ensure the integrity of defense-level enterprise solutions.
+
+CORE TECHNICAL SKILLS
+
+Primary Focus Areas: Java, JavaScript (AngularJS), Agile (Scrum Master), CI/CD (GitHub Actions), Microsoft Azure, Kubernetes (AKS), Helm, Windsurf, GitHub Copilot. Security & Compliance: Veracode, SonarQube, WAF, Entra ID, Fraud Mitigation, Automated Compliance (100%). Databases: MongoDB Atlas (Online Archive), Oracle DB XML, Hadoop.
+
+PROFESSIONAL WORK HISTORY
+
+AT&T | Principal Member of Technical Staff / DevOps Lead | Jan 2020 – Sept 2026 Engineered high-performance architectural leadership for API gateways serving elite retail clients such as Apple and Walmart, orchestrating over 110 production releases with zero rollbacks. As the primary technical escalation point and Scrum Master for Avertack, Paul broke technical barriers for a mission-critical platform defending a $32 billion retail fraud industry. He spearheaded enterprise-scale migrations to Microsoft Azure and MongoDB Atlas (Online Archive), slashing database costs by 60% and generating $32,000 in annual savings. By exposing public load balancers via Azure Kubernetes Service (AKS) secured by Web Application Firewalls (WAF), he automated security protocols to maintain 100% compliance standards. His strategic use of Agentic AI, Windsurf, and GitHub Copilot significantly accelerated development velocity and system troubleshooting, marking a high-impact tenure that concludes with a strategic transition following a corporate-wide restructuring and surplus of 138 positions.
+
+AT&T | Senior System Engineer (Government & Enterprise Solutions) | Jan 2013 – Dec 2019 Directed mission-critical defense support and custom software enhancements for the Electronic Law Enforcement Activity Tracker (ELEAT) and the Parent Locator Service (PLS) within secure government environments. Paul utilized JavaScript, HTML, CSS, and AngularJS to redesign complex web-based CRM and case management interfaces, significantly modernizing enterprise user experiences. As a lead performance troubleshooter, he isolated critical bottlenecks and resolved complex software-network issues using advanced browser developer tools and scripting, ensuring the high availability and integrity of government-mandated enterprise systems.
+
+AT&T | Senior Member of Technical Staff (Database & Analytics) | Jul 2009 – Dec 2012 Engineered secure, large-scale data analytics platforms and corporate compliance systems for global enterprise operations. He applied expert database principles to Oracle DB XML and Hadoop environments to facilitate large-scale data maintenance, troubleshooting, and secure analytics. Furthermore, he modernized legacy web-based compliance systems using PHP and HTML to guarantee cross-platform functionality and maintain rigorous data accuracy across diverse secure network infrastructures.
+
+AMD | Software Developer | 2008 Developed foundational high-performance software components at a global semiconductor leader, focusing on robust Java development and clean code practices. He contributed across the entire Software Development Lifecycle (SDLC), designing and testing software in a high-concurrency computing environment. This role established a rigorous standard for building scalable, efficient software integrated within complex hardware-centric ecosystems.
+
+Should Call Paul LLC / Toastmasters | Technical Educator & Speaker (Volunteer/Unpaid) Synthesized deep technical knowledge with executive-level communication to found the "AI Decoded" series and the Young Speakers Academy, a program culminating in community showcases for local leadership. He designed and led technical workshops for municipalities and school districts, translating complex emerging technologies into actionable insights for non-technical stakeholders. His mastery of influential communication is validated by multiple District-level Championships in Evaluation and Humorous Speaking, enabling him to bridge the gap between engineering teams and organizational executives.
+
+TECHNICAL PROJECTS, PATENTS, & AWARDS
+
+Paul’s record of innovation includes winning first place for Fraud Finder (2019), a real-time retail identification tool, and second place for Shift Happens (2025), an AI stroke recovery tool proven to reduce recovery time by 30%. He also received an Honorable Mention for Speech Sensei (2026), an AI cognitive therapy platform featuring 49 evidence-based exercises. He holds significant patents, including US 11,561,933 B2 (Transformation as a Service) and US 10,827,413 (Routing Optimization), and has been honored with the Vice President Excellence Award and multiple AT&T Connection Awards for excellence in Cloud Migration and DORA Integrations.
+
+EDUCATION
+
+Rensselaer Polytechnic Institute (RPI): Master of Science in Information Technology and Software Design.
+
+Rensselaer Polytechnic Institute (RPI): Bachelor of Science in Computer and Systems Engineering & Computer Science.
+
+Udacity: Front End Web Developer Nanodegree.

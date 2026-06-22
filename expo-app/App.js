@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build41';
+const APP_BUILD = 'preview-1.0.25-build42';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5059,6 +5059,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onSelectPast={(item) => setSelectedDevotional(item)}
         bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
         archiveUnlocked={archiveUnlocked}
+        userId={currentUser?.id}
+        onNewBadge={showBadgeCelebration}
         onUnlockArchive={() => showRewardedAd(
           () => {
             setArchiveUnlocked(true);

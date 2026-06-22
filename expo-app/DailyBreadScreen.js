@@ -7,6 +7,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding — works in both web and React Native environments
 const base64Encode = (str) => {
@@ -82,14 +83,43 @@ function isOlderThan30Days(dateStr) {
   return Date.now() - d.getTime() > THIRTY_DAYS_MS;
 }
 
-export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive }) {
+export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive, userId, onNewBadge }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
   const [audioPosition, setAudioPosition] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [showArchive, setShowArchive] = useState(false);
+  const [streak, setStreak] = useState(null);
   const soundRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Call readDailyBread once per day to award points, track streak, check for new badge
+  useEffect(() => {
+    if (!userId || !devotional) return;
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `readDailyBread_${today}`;
+    AsyncStorage.getItem(storageKey).then(async (alreadyRead) => {
+      if (alreadyRead) return; // already called today
+      try {
+        const res = await fetch('https://shouldcallpaul.replit.app/readDailyBread', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          },
+          body: JSON.stringify({ userId, devotionalId: devotional.id || devotional.date }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.streak) setStreak(data.streak);
+          if (data.new_badge && onNewBadge) onNewBadge(data.new_badge);
+          await AsyncStorage.setItem(storageKey, '1');
+        }
+      } catch (e) {
+        console.warn('[DailyBread] readDailyBread error:', e?.message);
+      }
+    });
+  }, [userId, devotional?.id]);
 
   // Unload audio when leaving the screen
   useEffect(() => {

@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build39';
+const APP_BUILD = 'preview-1.0.25-build40';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -871,6 +871,37 @@ function App() {
   const [premiumBgTheme, setPremiumBgTheme] = useState(null); // null | 'amber' | 'purple' | 'rose' | 'forest' | 'midnight'
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
 
+  // Badge state
+  const [userBadges, setUserBadges] = useState([]);
+  const [badgeCelebration, setBadgeCelebration] = useState(null); // { badge_key, title, icon, description } | null
+
+  const BADGE_META = {
+    first_responder:       { icon: '⚡', title: 'First Responder',       description: 'One of the first 3 people to pray on a new request!' },
+    midnight_intercessor:  { icon: '🌙', title: 'Midnight Intercessor',  description: 'You prayed in the quiet hours of the night.' },
+    daily_bread_streak:    { icon: '📖', title: 'Daily Bread Streak',    description: '7 days of devotionals in a row!' },
+    deep_waters:           { icon: '🌊', title: 'Deep Waters',           description: 'You go deeper — 10 heartfelt comments shared.' },
+    the_rejoicer:          { icon: '🙌', title: 'The Rejoicer',          description: '5 prayers marked answered. God is faithful!' },
+    global_heart:          { icon: '🌍', title: 'Global Heart',          description: 'You prayed across 3 different churches.' },
+  };
+
+  const showBadgeCelebration = (badge) => {
+    if (!badge?.badge_key) return;
+    const meta = BADGE_META[badge.badge_key] || { icon: '🏅', title: badge.badge_key, description: 'New achievement unlocked!' };
+    setBadgeCelebration({ ...badge, ...meta });
+  };
+
+  const loadUserBadges = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
+        headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
+      });
+      const data = await res.json();
+      const badges = Array.isArray(data) ? data : (data.result || data.badges || []);
+      setUserBadges(badges.map(b => ({ ...b, ...(BADGE_META[b.badge_key] || { icon: '🏅', title: b.badge_key }) })));
+    } catch (e) { console.warn('[Badges] load error:', e?.message); }
+  };
+
   // IAP state
   const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
   const [iapOfferings, setIapOfferings] = useState(null);
@@ -1461,11 +1492,10 @@ function App() {
         console.log('📍 Profile screen opened. Current churchName:', currentUser.churchName, 'Current churchId:', currentUser.churchId);
         setIsLoadingProfile(true);
         try {
-          // Load profile data first to get the latest church info
           await refreshUserProfile();
-          // Then load user's prayers and answered prayers
           await loadUserPrayers();
           loadAnsweredPrayers();
+          loadUserBadges();
         } finally {
           setIsLoadingProfile(false);
         }
@@ -2882,7 +2912,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Standalone pray-for-request (used by Prayer Walk — no modal, no animation)
   const prayForRequest = async (prayerId) => {
     try {
-      await fetch('https://shouldcallpaul.replit.app/prayFor', {
+      const res = await fetch('https://shouldcallpaul.replit.app/prayFor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2890,6 +2920,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         },
         body: JSON.stringify({ userId: currentUser?.id, requestId: prayerId }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.new_badge) showBadgeCelebration(data.new_badge);
+      }
     } catch (e) {
       console.log('prayForRequest error:', e.message);
     }
@@ -2935,12 +2969,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       if (response.ok) {
         const data = await response.json();
-        
         if (data.error === 0) {
           console.log('Prayer action recorded successfully in database');
-        } else {
         }
-      } else {
+        if (data.new_badge) showBadgeCelebration(data.new_badge);
       }
     } catch (error) {
       console.log('Failed to record prayer action:', error.message);
@@ -3242,10 +3274,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         const notified = data.notified || data.pushCount || 0;
         const prayerId = answeredModal.prayer.id;
         setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
-        // Mark as answered in Mine tab (keep card, show green) instead of removing
         setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
         setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
         playHeavenlyChime();
+        if (data.new_badge) showBadgeCelebration(data.new_badge);
         const peopleWord = notified === 1 ? 'person' : 'people';
         const verbWord = notified === 1 ? 'has' : 'have';
         showToast(`🙌 Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`);
@@ -4332,6 +4364,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </Text>
               ) : (
                 <Text style={styles.memberFaithPoints}>Maximum rank achieved!</Text>
+              )}
+            </View>
+
+            <View style={styles.memberProfileSection}>
+              <Text style={styles.memberProfileSectionTitle}>Badges {userBadges.length > 0 ? `(${userBadges.length})` : ''}</Text>
+              {userBadges.length === 0 ? (
+                <Text style={{ color: '#94a3b8', fontSize: 14, fontStyle: 'italic', marginTop: 4 }}>
+                  Earn badges by praying, reading Daily Bread, and supporting others.
+                </Text>
+              ) : (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                  {userBadges.map((badge, i) => (
+                    <TouchableOpacity
+                      key={badge.badge_key ?? i}
+                      onPress={() => showBadgeCelebration(badge)}
+                      style={{ alignItems: 'center', backgroundColor: '#f0f4ff', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: '#c7d2fe', minWidth: 80 }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={{ fontSize: 28, marginBottom: 4 }}>{badge.icon}</Text>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#3730a3', textAlign: 'center' }}>{badge.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               )}
             </View>
 
@@ -5707,6 +5762,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </>);
         })()}
       </ScrollView>
+
+      {/* ── Badge Celebration Modal ── */}
+      <Modal visible={!!badgeCelebration} transparent animationType="fade" onRequestClose={() => setBadgeCelebration(null)}>
+        <TouchableWithoutFeedback onPress={() => setBadgeCelebration(null)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+            <TouchableWithoutFeedback>
+              <View style={{ backgroundColor: '#1e1b4b', borderRadius: 24, padding: 32, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: 'rgba(251,191,36,0.4)' }}>
+                <Text style={{ fontSize: 64, marginBottom: 8 }}>{badgeCelebration?.icon ?? '🏅'}</Text>
+                <Text style={{ color: '#fbbf24', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>New Badge Unlocked!</Text>
+                <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>{badgeCelebration?.title}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>{badgeCelebration?.description}</Text>
+                <TouchableOpacity
+                  onPress={() => setBadgeCelebration(null)}
+                  style={{ backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32 }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#1e1b4b', fontSize: 16, fontWeight: '800' }}>Praise God! 🙏</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* ── IAP Purchase Modal ── */}
       <Modal

@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build46';
+const APP_BUILD = 'preview-1.0.26-build47';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4610,7 +4610,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               try {
                 const endpoint = 'https://shouldcallpaul.replit.app/deleteUser';
                 const requestPayload = {
-                  userId: currentUser?.id.toString()
+                  userId: currentUser?.id.toString(),
+                  confirmPhrase: 'DELETE MY ACCOUNT',
                 };
                 
                 console.log('📱 MOBILE APP API CALL:');

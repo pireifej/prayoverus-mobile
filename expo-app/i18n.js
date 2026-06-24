@@ -1,5 +1,3 @@
-import * as Localization from 'expo-localization';
-
 const translations = {
   en: {
     // Navigation
@@ -156,7 +154,7 @@ const translations = {
   },
 };
 
-const locale = Localization.getLocales?.()?.[0]?.languageCode ?? 'en';
+const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en';
 export const lang = locale.startsWith('es') ? 'es' : 'en';
 
 const strings = translations[lang] || translations.en;

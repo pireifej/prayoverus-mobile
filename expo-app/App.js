@@ -33,13 +33,13 @@ try {
   if (RC_TEST_KEY || RC_IOS_KEY || RC_ANDROID_KEY) {
     const { Platform } = require('react-native');
     const key = (__DEV__ || Platform.OS === 'web') ? RC_TEST_KEY
-      : Platform.OS === 'ios' ? RC_IOS_KEY : RC_ANDROID_KEY;
+      : Platform.OS === 'ios' ? (RC_IOS_KEY || RC_TEST_KEY) : (RC_ANDROID_KEY || RC_TEST_KEY);
     if (key) { Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); Purchases.configure({ apiKey: key }); rcAvailable = true; }
   }
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build48';
+const APP_BUILD = 'preview-1.0.26-build49';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -5992,8 +5992,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {premiumBgTheme === 'forest' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(22,101,52,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'midnight' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 0 }]} pointerEvents="none" />}
 
-            {/* ── Top bar: Close button only ── */}
-            <View style={[styles.prayerModalTopBar, { justifyContent: 'flex-end' }]}>
+            {/* ── Top bar: Theme + Close buttons ── */}
+            <View style={styles.prayerModalTopBar}>
+              <TouchableOpacity
+                onPress={() => setShowPremiumThemePicker(v => !v)}
+                style={styles.unlockThemeBtn}
+              >
+                <Text style={styles.unlockThemeBtnText}>🎨 Themes</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
                 <Text style={styles.fullScreenCloseButtonText}>✕</Text>
               </TouchableOpacity>

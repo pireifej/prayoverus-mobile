@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build44';
+const APP_BUILD = 'preview-1.0.26-build45';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -6005,22 +6005,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     key={String(theme.key)}
                     style={[styles.themeOption, premiumBgTheme === theme.key && styles.themeOptionActive]}
                     onPress={() => {
-                      if (theme.key === null || premiumBgTheme !== null) {
+                      if (theme.key === null || iapThemesUnlocked) {
                         setPremiumBgTheme(theme.key);
                         setShowPremiumThemePicker(false);
                       } else {
                         setShowPremiumThemePicker(false);
-                        showRewardedAd(
-                          () => { setPremiumBgTheme(theme.key); },
-                          () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
-                        );
+                        setIapModal({ productId: PRODUCT_PREMIUM_THEMES, title: '🎨 Premium Themes', description: 'Unlock beautiful prayer themes — Golden Sunset, Amethyst, Rose Dawn, Forest, and Midnight — forever.' });
                       }
                     }}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.themeOptionText}>{theme.label}</Text>
                     {premiumBgTheme === theme.key && <Text style={{ color: '#10b981' }}>✓</Text>}
-                    {theme.key !== null && premiumBgTheme === null && <Text style={styles.themeWatchAd}>Watch ad to unlock</Text>}
+                    {theme.key !== null && !iapThemesUnlocked && <Text style={styles.themeWatchAd}>🔒 $1.99 — unlock all</Text>}
                   </TouchableOpacity>
                 ))}
               </View>

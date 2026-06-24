@@ -16,6 +16,7 @@ import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
+import t, { lang as userLang } from './i18n';
 
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
@@ -38,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build45';
+const APP_BUILD = 'preview-1.0.26-build46';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -1551,9 +1552,9 @@ function App() {
 
   const fetchDailyDevotional = async () => {
     try {
-      const DB_TODAY_KEY = '@db_today_date';
-      const DB_CACHE_KEY = '@db_today_data';
-      const DB_HISTORY_KEY = '@db_history';
+      const DB_TODAY_KEY = `@db_today_date_${userLang}`;
+      const DB_CACHE_KEY = `@db_today_data_${userLang}`;
+      const DB_HISTORY_KEY = `@db_history_${userLang}`;
 
       const today = new Date().toDateString();
       const [lastDate, cachedStr, historyStr] = await Promise.all([
@@ -1573,7 +1574,11 @@ function App() {
       }
 
       // Always fetch from API to check if a newer article was generated today
-      const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional');
+      const res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang: userLang }),
+      });
       const data = await res.json();
 
       // API returns {error:0, result:{...}} on success, {error:1} when empty
@@ -2116,6 +2121,7 @@ function App() {
         formData.append('userId', currentUser?.id.toString());
         formData.append('sendEmail', 'true');
         formData.append('idempotencyKey', idempotencyKey);
+        formData.append('lang', userLang);
         // Add myChurchOnly flag when checkbox is checked (isPublic = false)
         if (!prayer.isPublic) {
           formData.append('myChurchOnly', 'true');
@@ -2141,6 +2147,7 @@ function App() {
           userId: currentUser?.id,
           sendEmail: "true",
           idempotencyKey: idempotencyKey,
+          lang: userLang,
           // Add myChurchOnly flag when checkbox is checked (isPublic = false)
           ...((!prayer.isPublic) && { myChurchOnly: true })
         };
@@ -2224,7 +2231,8 @@ function App() {
       try {
         const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
         const requestPayload = {
-          requestId: prayerRequest.id
+          requestId: prayerRequest.id,
+          lang: userLang,
         };
         
         // Clean debug output - endpoint and payload ONLY
@@ -2297,7 +2305,7 @@ Through Christ our Lord. Amen.`;
           'Content-Type': 'application/json',
           'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
-        body: JSON.stringify({ requestId: prayerId }),
+        body: JSON.stringify({ requestId: prayerId, lang: userLang }),
       });
       const data = await res.json();
       if (data.error === 0 && data.result) {
@@ -5063,6 +5071,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         archiveUnlocked={archiveUnlocked}
         userId={currentUser?.id}
         onNewBadge={showBadgeCelebration}
+        lang={userLang}
         onUnlockArchive={() => showRewardedAd(
           () => {
             setArchiveUnlocked(true);

@@ -31,11 +31,12 @@ function formatMs(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+function formatDate(dateStr, lang) {
+  const locale = lang === 'es' ? 'es-MX' : 'en-US';
+  if (!dateStr) return new Date().toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
   const d = new Date(year, month - 1, day);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  return d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // Animated sound wave — 3 bars that pulse while audio plays
@@ -83,7 +84,7 @@ function isOlderThan30Days(dateStr) {
   return Date.now() - d.getTime() > THIRTY_DAYS_MS;
 }
 
-export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive, userId, onNewBadge }) {
+export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive, userId, onNewBadge, lang = 'en' }) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
   const [audioPosition, setAudioPosition] = useState(0);
@@ -246,7 +247,8 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     }
   };
 
-  const audioLabel = audioStatus === 'loading' ? 'Loading...' : audioStatus === 'playing' ? '⏸ Pause' : audioStatus === 'paused' ? '▶ Resume' : '🔊 Listen';
+  const isEs = lang === 'es';
+  const audioLabel = audioStatus === 'loading' ? (isEs ? 'Cargando...' : 'Loading...') : audioStatus === 'playing' ? '⏸ Pause' : audioStatus === 'paused' ? '▶ Resume' : (isEs ? '🔊 Escuchar' : '🔊 Listen');
 
   return (
     <View style={styles.container}>
@@ -278,8 +280,8 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
         <View style={{ height: IMAGE_HEIGHT - 24 }} />
 
         <View style={styles.contentCard}>
-          <Text style={styles.sectionLabel}>Daily Bread</Text>
-          <Text style={styles.dateText}>{formatDate(devotional.date)}</Text>
+          <Text style={styles.sectionLabel}>{lang === 'es' ? 'Pan Diario' : 'Daily Bread'}</Text>
+          <Text style={styles.dateText}>{formatDate(devotional.date, lang)}</Text>
           <Text style={styles.title}>{devotional.title}</Text>
 
           {/* Listen button + progress bar */}
@@ -327,7 +329,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
                 activeOpacity={0.8}
               >
                 <Text style={styles.copyBtnText}>
-                  {prayerCopied ? '✓ Copied to Clipboard' : '🙏 Copy Prayer'}
+                  {prayerCopied ? (lang === 'es' ? '✓ Copiado' : '✓ Copied to Clipboard') : (lang === 'es' ? '🙏 Copiar Oración' : '🙏 Copy Prayer')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -373,7 +375,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
         <View style={archiveStyles.overlay}>
           <View style={archiveStyles.sheet}>
             <View style={archiveStyles.sheetHandle} />
-            <Text style={archiveStyles.sheetTitle}>📅 Past Devotionals</Text>
+            <Text style={archiveStyles.sheetTitle}>{lang === 'es' ? '📅 Devocionales Anteriores' : '📅 Past Devotionals'}</Text>
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
               {pastDevotionals.map((item, i) => {
                 const locked = !archiveUnlocked && isOlderThan30Days(item.date);
@@ -399,7 +401,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
                     }}
                   >
                     <View style={archiveStyles.itemLeft}>
-                      <Text style={archiveStyles.itemDate}>{formatDate(item.date)}</Text>
+                      <Text style={archiveStyles.itemDate}>{formatDate(item.date, lang)}</Text>
                       <Text style={archiveStyles.itemTitle} numberOfLines={2}>
                         {locked ? '🔒 ' : ''}{item.title || 'Daily Bread'}
                       </Text>

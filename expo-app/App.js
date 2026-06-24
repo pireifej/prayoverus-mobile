@@ -38,7 +38,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.25-build43';
+const APP_BUILD = 'preview-1.0.26-build44';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [

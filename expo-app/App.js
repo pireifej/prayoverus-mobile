@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build49';
+const APP_BUILD = 'preview-1.0.26-build50';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4684,7 +4684,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {/* Security Section */}
             <View style={styles.settingsSection}>
               <Text style={styles.settingsSectionTitle}>Security</Text>
-              <TouchableOpacity style={styles.settingsButton}>
+              <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setAuthScreen('forgot'); setShowAuth(true); }}>
                 <Text style={styles.settingsButtonText}>Change Password</Text>
               </TouchableOpacity>
             </View>

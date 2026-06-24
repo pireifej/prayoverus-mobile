@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build47';
+const APP_BUILD = 'preview-1.0.26-build48';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -8037,7 +8037,7 @@ const styles = StyleSheet.create({
   npImagePreview: {
     position: 'relative',
     width: '100%',
-    height: 200,
+    aspectRatio: 4 / 3,
     marginBottom: 12,
     borderRadius: 14,
     overflow: 'hidden',
@@ -8046,6 +8046,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 14,
+    resizeMode: 'cover',
   },
   npImageRemove: {
     position: 'absolute',
@@ -8408,7 +8409,7 @@ const styles = StyleSheet.create({
   },
   prayerCardImage: {
     width: '100%',
-    height: 200,
+    aspectRatio: 4 / 3,
     borderRadius: 12,
     marginTop: 12,
     marginBottom: 12,

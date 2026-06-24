@@ -1,0 +1,49 @@
+Resolved "production" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+No environment variables with visibility "Plain text" and "Sensitive" found for the "production" environment on EAS.
+
+
+🍏 iOS build
+✔ Using remote iOS credentials (Expo server)
+
+Distribution Certificate is not validated for non-interactive builds.
+Skipping Provisioning Profile validation on Apple Servers because we aren't authenticated.
+
+Project Credentials Configuration
+
+Project                   @pireifej/pray-over-us
+Bundle Identifier         com.pireifej.prayoverus
+                          
+App Store Configuration   
+                          
+Distribution Certificate  
+Serial Number             6787EF60B1D5A191EECEBE7C06E0ED1B
+Expiration Date           Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                MC4R3L639K (Paul Ireifej (Individual))
+Updated                   9 months ago
+                          
+Provisioning Profile      
+Developer Portal ID       S4639SU4A9
+Status                    active
+Expiration                Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                MC4R3L639K (Paul Ireifej (Individual))
+Updated                   7 months ago
+                          
+All credentials are ready to build @pireifej/pray-over-us (com.pireifej.prayoverus)
+
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+✔ Compressed project files 13s (169 MB)
+Your project archive is 169 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+✔ Uploaded to EAS 2s
+✔ Computed project fingerprint
+
+See 🤖 Android logs: https://expo.dev/accounts/pireifej/projects/pray-over-us/builds/b7cf23f1-d9af-489d-9686-70a0af91bf42
+See 🍏 iOS logs: https://expo.dev/accounts/pireifej/projects/pray-over-us/builds/aa41ff69-038e-4a9d-8ead-6d13fda0de88
+
+✖ 🤖 Android build - status: failed
+  🍏 iOS build - status: failed
+🤖 Android build failed:
+Unknown error. See logs of the Install dependencies build phase for more information.
+
+🍏 iOS build failed:
+Unknown error. See logs of the Install dependencies build phase for more information.

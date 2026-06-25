@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build52';
+const APP_BUILD = 'preview-1.0.26-build53';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4530,14 +4530,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
           <View style={{ alignItems: 'center', paddingVertical: 16, opacity: 0.45 }}>
             <Text style={{ fontSize: 11, color: '#64748b', letterSpacing: 0.3 }}>
-              v{Constants.expoConfig?.version || '—'}
-              {Updates.updateId ? `  ·  update ${Updates.updateId.slice(-8)}` : ''}
+              {APP_BUILD}
             </Text>
-            {Updates.channel ? (
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                {Updates.channel} channel
-              </Text>
-            ) : null}
           </View>
         </ScrollView>
         )}

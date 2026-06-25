@@ -74,6 +74,10 @@ const translations = {
     tryAgain: 'Please try again.',
     networkError: 'Network error. Please check your connection.',
     prayerError: 'Unable to generate a prayer at this time.',
+
+    // Language
+    language: 'Language',
+    languageToggle: 'Switch to Spanish',
   },
 
   es: {
@@ -151,13 +155,25 @@ const translations = {
     tryAgain: 'Por favor intenta de nuevo.',
     networkError: 'Error de red. Verifica tu conexión.',
     prayerError: 'No se pudo generar una oración en este momento.',
+
+    // Language
+    language: 'Idioma',
+    languageToggle: 'Cambiar a Inglés',
   },
 };
 
 const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en';
-export const lang = locale.startsWith('es') ? 'es' : 'en';
+const deviceLang = locale.startsWith('es') ? 'es' : 'en';
 
-const strings = translations[lang] || translations.en;
+export let lang = deviceLang;
+let strings = translations[lang] || translations.en;
+
+export function setLang(newLang) {
+  if (translations[newLang]) {
+    lang = newLang;
+    strings = translations[newLang];
+  }
+}
 
 export function t(key) {
   return strings[key] || translations.en[key] || key;

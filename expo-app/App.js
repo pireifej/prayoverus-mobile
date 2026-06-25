@@ -16,7 +16,7 @@ import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
-import t, { lang as userLang } from './i18n';
+import t, { lang as userLang, setLang } from './i18n';
 
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build53';
+const APP_BUILD = 'preview-1.0.26-build54';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -842,6 +842,7 @@ function App() {
   // Faith rank level-up celebration state
   const [showLevelUp, setShowLevelUp] = useState(null);
   const previousRankRef = useRef(null);
+  const [langVersion, setLangVersion] = useState(0);
 
   // Gamification — floating +pt popup & XP bar
   const [showPointsGuide, setShowPointsGuide] = useState(false);
@@ -1065,6 +1066,16 @@ function App() {
 
   // Load IAP data on startup
   useEffect(() => { loadIapData(); }, []);
+
+  // Load saved language preference
+  useEffect(() => {
+    AsyncStorage.getItem('@language_pref').then(saved => {
+      if (saved && saved !== userLang) {
+        setLang(saved);
+        setLangVersion(v => v + 1);
+      }
+    });
+  }, []);
 
   // Check for stored user session on app start
   useEffect(() => {
@@ -4702,6 +4713,33 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.settingsSectionTitle}>Privacy</Text>
               <Text style={styles.settingsDescription}>Privacy settings will be available soon.</Text>
             </View>
+          </View>
+
+          {/* Language Section - VISIBLE */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>{t('language')}</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.settingsButton, { flex: 1, backgroundColor: userLang === 'en' ? '#1e3a5f' : undefined }]}
+                onPress={async () => { setLang('en'); await AsyncStorage.setItem('@language_pref', 'en'); setLangVersion(v => v + 1); }}
+              >
+                <Text style={[styles.settingsButtonText, { color: userLang === 'en' ? '#fff' : undefined }]}>🇺🇸 English</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.settingsButton, { flex: 1, backgroundColor: userLang === 'es' ? '#1e3a5f' : undefined }]}
+                onPress={async () => { setLang('es'); await AsyncStorage.setItem('@language_pref', 'es'); setLangVersion(v => v + 1); }}
+              >
+                <Text style={[styles.settingsButtonText, { color: userLang === 'es' ? '#fff' : undefined }]}>🇲🇽 Español</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Security Section - VISIBLE */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>{userLang === 'es' ? 'Seguridad' : 'Security'}</Text>
+            <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setAuthScreen('forgot'); setShowAuth(true); }}>
+              <Text style={styles.settingsButtonText}>🔑 {userLang === 'es' ? 'Cambiar Contraseña' : 'Change Password'}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Account Section - VISIBLE */}

@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build51';
+const APP_BUILD = 'preview-1.0.26-build52';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -1574,9 +1574,13 @@ function App() {
       }
 
       // Always fetch from API to check if a newer article was generated today
+      const dbHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+      };
       let res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: dbHeaders,
         body: JSON.stringify({ lang: userLang }),
       });
       let data = await res.json();
@@ -1585,7 +1589,7 @@ function App() {
       if ((!data || data.error !== 0 || !data.result?.title) && userLang !== 'en') {
         const fallbackRes = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: dbHeaders,
           body: JSON.stringify({ lang: 'en' }),
         });
         data = await fallbackRes.json();

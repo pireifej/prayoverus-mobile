@@ -1,0 +1,17 @@
+{
+    "error": 0,
+    "result": {
+        "id": 82,
+        "date": "2026-06-25",
+        "theme": "Silence",
+        "title": "Finding God in the Quiet Moments",
+        "article_body": "In our bustling lives, silence often feels elusive. We fill our days with noise, distractions, and constant activity, leaving little room for reflection or connection. Yet, it is in the moments of silence that we can truly encounter God. Just as Jesus withdrew to solitary places to pray, we too must carve out time to step away from the chaos and listen. Silence allows us to hear the gentle whispers of the Holy Spirit guiding us in our daily decisions, reminding us of His presence and love. \n\nEmbracing silence can be challenging, but it is a vital part of our spiritual growth. In the stillness, we can bring our worries and fears before God, allowing Him to speak peace into our hearts. The Psalmist reminds us that “Be still, and know that I am God” (Psalm 46:10). As we cultivate this practice, we learn to trust in God’s faithfulness and find comfort in His promises. Today, let’s intentionally seek moments of silence to invite God into our hearts, allowing His voice to drown out the noise around us.",
+        "bible_verse": "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth.",
+        "verse_reference": "Psalm 46:10",
+        "prayer": "Lord, help me to embrace the silence and recognize Your voice amidst the noise of my life. Teach me to find peace in stillness and to trust in Your presence. May I seek You in quiet moments, allowing Your love to fill my heart.",
+        "image_url": "https://res.cloudinary.com/dclyvhsee/image/upload/v1782426668/devotionals/rjmootvd8npe7n3qqxuy.jpg",
+        "image_prompt": "A serene lakeside at dawn, with mist rising off the water and soft golden light filtering through tall trees. The still surface of the lake mirrors the colorful sky, creating a tranquil scene that invites contemplation and peace.",
+        "created_at": "2026-06-25T00:04:47.342Z",
+        "lang": "en"
+    }
+}

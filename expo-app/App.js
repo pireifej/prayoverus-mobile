@@ -139,6 +139,10 @@ const REWARDED_AD_UNIT_ID = isAdMobAvailable && TestIds
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Safe-area constants without useSafeAreaInsets (avoids white-screen crash)
+const STATUS_BAR_HEIGHT = Constants.statusBarHeight ?? (Platform.OS === 'android' ? 24 : 44);
+const BOTTOM_INSET = Platform.OS === 'android' ? 50 : 34;
+
 // Base64 encoding that works in both web and React Native
 const base64Encode = (str) => {
   if (typeof btoa !== 'undefined') {
@@ -736,7 +740,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
 
   const renderBottomNav = () => (
-    <View style={[styles.bottomNav, { paddingBottom: Platform.OS === 'android' ? 20 : 34 }]}>
+    <View style={[styles.bottomNav, { paddingBottom: BOTTOM_INSET }]}>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
         <Text style={styles.bottomNavIcon}>🏠</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>{t('home')}</Text>
@@ -6842,7 +6846,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   gradientHeader: {
-    paddingTop: 52,
+    paddingTop: STATUS_BAR_HEIGHT + 12,
     paddingBottom: 14,
     paddingHorizontal: 16,
   },
@@ -6959,7 +6963,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: STATUS_BAR_HEIGHT + 14,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
@@ -7420,7 +7424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 52,
+    paddingTop: STATUS_BAR_HEIGHT + 8,
     paddingBottom: 8,
     zIndex: 20,
   },
@@ -10014,7 +10018,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 55,
+    paddingTop: STATUS_BAR_HEIGHT + 14,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },

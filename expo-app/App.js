@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build58';
+const APP_BUILD = 'preview-1.0.26-build59';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4003,6 +4003,136 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  if (currentScreen === 'changePassword') {
+    const userEmail = currentUser?.email || '';
+    const [sendingReset, setSendingReset] = React.useState(false);
+    const [resetSent, setResetSent] = React.useState(false);
+
+    const doSendReset = async () => {
+      setSendingReset(true);
+      try {
+        const res = await fetch('https://shouldcallpaul.replit.app/requestPasswordReset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userEmail }),
+        });
+        const data = await res.json();
+        if (data.error === 0) {
+          setResetSent(true);
+        } else {
+          Alert.alert(t('errorTitle'), data.result || t('resetLinkError'));
+        }
+      } catch {
+        Alert.alert(t('errorTitle'), t('networkError'));
+      } finally {
+        setSendingReset(false);
+      }
+    };
+
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity
+            onPress={() => setCurrentScreen('profile')}
+            style={{ padding: 10, minWidth: 60 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={{ fontSize: 22, color: '#fff' }}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.communityHeaderTitle}>{t('changePasswordTitle')}</Text>
+          <View style={{ minWidth: 60 }} />
+        </LinearGradient>
+
+        <ScrollView
+          style={{ flex: 1, backgroundColor: '#f1f5f9' }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {resetSent ? (
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              padding: 28,
+              alignItems: 'center',
+              shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            }}>
+              <Text style={{ fontSize: 40, marginBottom: 14 }}>✉️</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 10, textAlign: 'center' }}>
+                {t('changePasswordTitle')}
+              </Text>
+              <Text style={{ fontSize: 15, color: '#64748b', lineHeight: 22, textAlign: 'center' }}>
+                {t('resetLinkSent')}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setCurrentScreen('profile')}
+                style={{ marginTop: 24, paddingVertical: 12, paddingHorizontal: 28, backgroundColor: '#2563eb', borderRadius: 12 }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>← {t('myProfile')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              padding: 24,
+              shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            }}>
+              <Text style={{ fontSize: 30, marginBottom: 10 }}>🔑</Text>
+              <Text style={{ fontSize: 16, color: '#475569', lineHeight: 23, marginBottom: 20 }}>
+                {t('changePasswordDesc')}
+              </Text>
+
+              <View style={{
+                backgroundColor: '#f1f5f9',
+                borderRadius: 10,
+                padding: 14,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: '#e2e8f0',
+              }}>
+                <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  {t('helpEmailLabel')}
+                </Text>
+                <Text style={{ fontSize: 16, color: '#0f172a', fontWeight: '600' }}>{userEmail}</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={doSendReset}
+                disabled={sendingReset}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={sendingReset ? ['#94a3b8', '#94a3b8'] : ['#2563eb', '#1e40af']}
+                  style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
+                    {sendingReset ? t('sendingReset') : t('sendResetLink')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
   if (currentScreen === 'help') {
     return (
       <View style={styles.container}>
@@ -4711,7 +4841,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {/* Security Section */}
             <View style={styles.settingsSection}>
               <Text style={styles.settingsSectionTitle}>Security</Text>
-              <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setAuthScreen('forgot'); setShowAuth(true); }}>
+              <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changePassword'); }}>
                 <Text style={styles.settingsButtonText}>Change Password</Text>
               </TouchableOpacity>
             </View>
@@ -4745,7 +4875,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {/* Security Section - VISIBLE */}
           <View style={styles.settingsSection}>
             <Text style={styles.settingsSectionTitle}>{t('security')}</Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setAuthScreen('forgot'); setShowAuth(true); }}>
+            <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changePassword'); }}>
               <Text style={styles.settingsButtonText}>🔑 {t('changePassword')}</Text>
             </TouchableOpacity>
           </View>

@@ -148,6 +148,14 @@ const translations = {
     helpPhonePlaceholder: 'Your phone (optional)',
     helpSendButton: 'Send Message',
 
+    // Change password screen
+    changePasswordTitle: 'Change Password',
+    changePasswordDesc: 'We\'ll send a password reset link to your email address on file.',
+    sendResetLink: 'Send Reset Link',
+    sendingReset: 'Sending...',
+    resetLinkSent: 'Reset link sent! Check your email inbox (and spam folder).',
+    resetLinkError: 'Could not send reset link. Please try again.',
+
     // Settings screen
     settingsTitle: 'Settings',
     language: 'Language',
@@ -357,6 +365,14 @@ const translations = {
     helpPhoneLabel: 'Número de Teléfono (Opcional)',
     helpPhonePlaceholder: 'Tu teléfono (opcional)',
     helpSendButton: 'Enviar Mensaje',
+
+    // Change password screen
+    changePasswordTitle: 'Cambiar Contraseña',
+    changePasswordDesc: 'Enviaremos un enlace para restablecer tu contraseña al correo electrónico registrado.',
+    sendResetLink: 'Enviar Enlace de Restablecimiento',
+    sendingReset: 'Enviando...',
+    resetLinkSent: '¡Enlace enviado! Revisa tu bandeja de entrada (y la carpeta de spam).',
+    resetLinkError: 'No se pudo enviar el enlace. Por favor intenta de nuevo.',
 
     // Settings screen
     settingsTitle: 'Configuración',

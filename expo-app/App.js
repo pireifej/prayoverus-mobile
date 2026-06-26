@@ -876,7 +876,9 @@ function App() {
 
   // Badge state
   const [userBadges, setUserBadges] = useState([]);
-  const [badgeCelebration, setBadgeCelebration] = useState(null); // { badge_key, title, icon, description } | null
+  const [badgeCelebration, setBadgeCelebration] = useState(null);
+  const [allBadges, setAllBadges] = useState([]);
+  const [isLoadingAllBadges, setIsLoadingAllBadges] = useState(false);
 
   const BADGE_META = {
     first_responder:       { icon: '⚡', title: 'First Responder',       description: 'One of the first 3 people to pray on a new request!' },
@@ -903,6 +905,19 @@ function App() {
       const badges = Array.isArray(data) ? data : (data.result || data.badges || []);
       setUserBadges(badges.map(b => ({ ...b, ...(BADGE_META[b.badge_key] || { icon: '🏅', title: b.badge_key }) })));
     } catch (e) { console.warn('[Badges] load error:', e?.message); }
+  };
+
+  const loadAllBadges = async () => {
+    if (!currentUser?.id) return;
+    setIsLoadingAllBadges(true);
+    try {
+      const res = await fetch(`https://shouldcallpaul.replit.app/getAllBadges?userId=${currentUser.id}`, {
+        headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
+      });
+      const data = await res.json();
+      if (data.error === 0) setAllBadges(data.badges || []);
+    } catch (e) { console.warn('[AllBadges] load error:', e?.message); }
+    finally { setIsLoadingAllBadges(false); }
   };
 
   // IAP state
@@ -1495,6 +1510,11 @@ function App() {
       }
     }
   }, [pendingDeepLinkPrayerId, currentUser, communityPrayers]);
+
+  // Load all badges when badge showcase screen opens
+  useEffect(() => {
+    if (currentScreen === 'badges') loadAllBadges();
+  }, [currentScreen]);
 
   // Load user prayers ONLY when entering profile screen
   useEffect(() => {
@@ -4172,6 +4192,106 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  if (currentScreen === 'badges') {
+    const earned = allBadges.filter(b => b.earned);
+    const locked = allBadges.filter(b => !b.earned);
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient colors={['#0f172a','#1e3a5f','#2563eb']} style={styles.communityHeader} start={{x:0,y:0}} end={{x:1,y:1}}>
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={{padding:8}}>
+            <Text style={{color:'#fff',fontSize:15,fontWeight:'600'}}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.communityHeaderTitle}>🏅 {userLang === 'es' ? 'Insignias' : 'Badges'}</Text>
+          <View style={{width:60}} />
+        </LinearGradient>
+
+        {isLoadingAllBadges ? (
+          <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={{marginTop:16,color:'#64748b',fontSize:15}}>Loading badges…</Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.screenContent} contentContainerStyle={{paddingBottom:100,paddingTop:4}}>
+
+            {/* ── Summary pill ── */}
+            <View style={{backgroundColor:'#eff6ff',borderRadius:18,marginHorizontal:16,marginVertical:12,padding:18,flexDirection:'row',alignItems:'center',justifyContent:'space-around',borderWidth:1,borderColor:'#bfdbfe'}}>
+              <View style={{alignItems:'center'}}>
+                <Text style={{fontSize:32,fontWeight:'900',color:'#2563eb'}}>{earned.length}</Text>
+                <Text style={{fontSize:12,color:'#64748b',fontWeight:'700',marginTop:2}}>{userLang==='es'?'Ganadas':'Earned'}</Text>
+              </View>
+              <Text style={{fontSize:40}}>🏅</Text>
+              <View style={{alignItems:'center'}}>
+                <Text style={{fontSize:32,fontWeight:'900',color:'#94a3b8'}}>{locked.length}</Text>
+                <Text style={{fontSize:12,color:'#64748b',fontWeight:'700',marginTop:2}}>{userLang==='es'?'Bloqueadas':'Locked'}</Text>
+              </View>
+            </View>
+
+            {/* ── Earned ── */}
+            {earned.length > 0 && (
+              <>
+                <Text style={{fontSize:12,fontWeight:'800',color:'#0f172a',letterSpacing:1.2,textTransform:'uppercase',paddingHorizontal:16,marginTop:4,marginBottom:8}}>✨ {userLang==='es'?'Ganadas':'Earned'}</Text>
+                {earned.map(badge => (
+                  <TouchableOpacity
+                    key={badge.badge_key}
+                    onPress={() => showBadgeCelebration(badge)}
+                    activeOpacity={0.85}
+                    style={{backgroundColor:'#fff',borderRadius:18,marginHorizontal:16,marginBottom:10,padding:16,flexDirection:'row',alignItems:'center',shadowColor:'#2563eb',shadowOffset:{width:0,height:2},shadowOpacity:0.09,shadowRadius:8,elevation:3,borderWidth:1,borderColor:'#e0e7ff'}}
+                  >
+                    <View style={{width:58,height:58,backgroundColor:'#eff6ff',borderRadius:14,justifyContent:'center',alignItems:'center',marginRight:14}}>
+                      <Text style={{fontSize:32}}>{badge.icon}</Text>
+                    </View>
+                    <View style={{flex:1}}>
+                      <Text style={{fontSize:16,fontWeight:'800',color:'#0f172a',marginBottom:3}}>{badge.title}</Text>
+                      <Text style={{fontSize:13,color:'#475569',lineHeight:19,marginBottom:badge.earned_at?4:0}}>{badge.description}</Text>
+                      {badge.earned_at && (
+                        <Text style={{fontSize:12,color:'#2563eb',fontWeight:'700'}}>
+                          {userLang==='es'?'Ganada':'Earned'} {new Date(badge.earned_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={{fontSize:22,color:'#fbbf24',marginLeft:8}}>★</Text>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {/* ── Locked ── */}
+            {locked.length > 0 && (
+              <>
+                <Text style={{fontSize:12,fontWeight:'800',color:'#94a3b8',letterSpacing:1.2,textTransform:'uppercase',paddingHorizontal:16,marginTop:16,marginBottom:8}}>🔒 {userLang==='es'?'Bloqueadas':'Locked'}</Text>
+                {locked.map(badge => (
+                  <View
+                    key={badge.badge_key}
+                    style={{backgroundColor:'#f8fafc',borderRadius:18,marginHorizontal:16,marginBottom:10,padding:16,flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:'#e2e8f0'}}
+                  >
+                    <View style={{width:58,height:58,backgroundColor:'#f1f5f9',borderRadius:14,justifyContent:'center',alignItems:'center',marginRight:14,opacity:0.45}}>
+                      <Text style={{fontSize:32}}>{badge.icon}</Text>
+                    </View>
+                    <View style={{flex:1}}>
+                      <Text style={{fontSize:16,fontWeight:'800',color:'#94a3b8',marginBottom:3}}>{badge.title}</Text>
+                      <Text style={{fontSize:13,color:'#94a3b8',lineHeight:19,marginBottom:badge.total_earned>0?4:0}}>{badge.description}</Text>
+                      {badge.total_earned > 0 && (
+                        <Text style={{fontSize:12,color:'#b0bec5',fontWeight:'600'}}>
+                          {badge.total_earned} {badge.total_earned===1?(userLang==='es'?'persona tiene esto':'person has this'):(userLang==='es'?'personas tienen esto':'people have this')}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={{fontSize:20,color:'#cbd5e1',marginLeft:8}}>🔒</Text>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {allBadges.length === 0 && !isLoadingAllBadges && (
+              <Text style={{textAlign:'center',color:'#94a3b8',fontSize:14,marginTop:40}}>Could not load badges. Please try again.</Text>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    );
+  }
+
   if (currentScreen === 'help') {
     return (
       <View style={styles.container}>
@@ -4580,7 +4700,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
 
             <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>{userBadges.length > 0 ? t('badgesLabel')(userBadges.length) : (userLang === 'es' ? 'Insignias' : 'Badges')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={styles.memberProfileSectionTitle}>{userBadges.length > 0 ? t('badgesLabel')(userBadges.length) : (userLang === 'es' ? 'Insignias' : 'Badges')}</Text>
+                <TouchableOpacity onPress={() => setCurrentScreen('badges')} activeOpacity={0.7}>
+                  <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: '700' }}>{userLang === 'es' ? 'Ver todas →' : 'View all →'}</Text>
+                </TouchableOpacity>
+              </View>
               {userBadges.length === 0 ? (
                 <Text style={{ color: '#94a3b8', fontSize: 14, fontStyle: 'italic', marginTop: 4 }}>
                   {t('earnBadges')}

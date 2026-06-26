@@ -27,6 +27,10 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    "notification": {
+      "icon": "./assets/cross-hands.png",
+      "color": "#2563eb"
+    },
     "android": {
       "versionCode": 53,
       "adaptiveIcon": {

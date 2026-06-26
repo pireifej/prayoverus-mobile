@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build54';
+const APP_BUILD = 'preview-1.0.26-build55';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -374,7 +374,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
       ? `${prayer.title}\n\n${prayer.content}` 
       : prayer.content;
     Clipboard.setString(textToCopy);
-    Alert.alert('Copied', 'Request text copied to clipboard');
+    Alert.alert(t('copiedTitle'), t('copiedRequest'));
   };
   
   const handleCopyPrayerText = async () => {
@@ -398,19 +398,19 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
           const plainText = data.prayerText.replace(/<[^>]*>/g, '');
           Clipboard.setString(plainText);
           setMenuVisible(false);
-          Alert.alert('Copied', 'Prayer text copied to clipboard');
+          Alert.alert(t('copiedTitle'), t('copiedPrayer'));
         } else {
           setMenuVisible(false);
-          Alert.alert('Error', 'Could not fetch prayer text');
+          Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
         }
       } else {
         setMenuVisible(false);
-        Alert.alert('Error', 'Could not fetch prayer text');
+        Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
       }
     } catch (error) {
       console.log('Error fetching prayer text:', error);
       setMenuVisible(false);
-      Alert.alert('Error', 'Could not fetch prayer text');
+      Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
     } finally {
       setIsCopyingPrayer(false);
     }
@@ -464,7 +464,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
               data-testid={`button-share-${prayer.id}`}
             >
               <Text style={optionsMenuStyles.menuIcon}>🔗</Text>
-              <Text style={optionsMenuStyles.menuItemText}>Share Prayer</Text>
+              <Text style={optionsMenuStyles.menuItemText}>{t('sharePrayerMenu')}</Text>
             </TouchableOpacity>
             
             {/* Copy Request Text - Always visible */}
@@ -474,7 +474,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
               data-testid={`button-copy-request-${prayer.id}`}
             >
               <Text style={optionsMenuStyles.menuIcon}>📋</Text>
-              <Text style={optionsMenuStyles.menuItemText}>Copy Request Text</Text>
+              <Text style={optionsMenuStyles.menuItemText}>{t('copyRequestText')}</Text>
             </TouchableOpacity>
             
             {/* Copy Prayer Text - Always visible */}
@@ -486,7 +486,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
             >
               <Text style={optionsMenuStyles.menuIcon}>{isCopyingPrayer ? '⏳' : '🙏'}</Text>
               <Text style={optionsMenuStyles.menuItemText}>
-                {isCopyingPrayer ? 'Loading...' : 'Copy Prayer Text'}
+                {isCopyingPrayer ? t('loadingPrayers') : t('copyPrayerText')}
               </Text>
             </TouchableOpacity>
             
@@ -498,7 +498,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
                 data-testid={`button-edit-${prayer.id}`}
               >
                 <Text style={optionsMenuStyles.menuIcon}>✏️</Text>
-                <Text style={optionsMenuStyles.menuItemText}>Edit</Text>
+                <Text style={optionsMenuStyles.menuItemText}>{t('edit') || 'Edit'}</Text>
               </TouchableOpacity>
             )}
             
@@ -510,7 +510,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
                 data-testid={`button-answered-${prayer.id}`}
               >
                 <Text style={optionsMenuStyles.menuIcon}>🙌</Text>
-                <Text style={[optionsMenuStyles.menuItemText, { color: '#16a34a' }]}>Prayer Answered</Text>
+                <Text style={[optionsMenuStyles.menuItemText, { color: '#16a34a' }]}>{t('prayerAnsweredMenu')}</Text>
               </TouchableOpacity>
             )}
 
@@ -522,7 +522,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
                 data-testid={`button-delete-${prayer.id}`}
               >
                 <Text style={optionsMenuStyles.menuIcon}>🗑️</Text>
-                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Delete</Text>
+                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>{t('deleteMenuItem')}</Text>
               </TouchableOpacity>
             )}
             
@@ -531,7 +531,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
               style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemCancel]}
               onPress={() => setMenuVisible(false)}
             >
-              <Text style={optionsMenuStyles.menuItemTextCancel}>Cancel</Text>
+              <Text style={optionsMenuStyles.menuItemTextCancel}>{t('cancelMenuItem')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -547,16 +547,16 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
         <View style={optionsMenuStyles.modalOverlay}>
           <View style={optionsMenuStyles.deleteConfirmContainer}>
             <Text style={optionsMenuStyles.deleteConfirmIcon}>🗑️</Text>
-            <Text style={optionsMenuStyles.deleteConfirmTitle}>Delete Prayer Request</Text>
+            <Text style={optionsMenuStyles.deleteConfirmTitle}>{t('deletePrayerTitle')}</Text>
             <Text style={optionsMenuStyles.deleteConfirmMessage}>
-              Are you sure you want to delete this prayer request? This cannot be undone.
+              {t('deleteConfirmMsg')}
             </Text>
             <View style={optionsMenuStyles.deleteConfirmButtons}>
               <TouchableOpacity 
                 style={optionsMenuStyles.cancelButton}
                 onPress={() => setDeleteConfirmVisible(false)}
               >
-                <Text style={optionsMenuStyles.cancelButtonText}>Cancel</Text>
+                <Text style={optionsMenuStyles.cancelButtonText}>{t('cancelMenuItem')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={optionsMenuStyles.deleteButton}
@@ -738,11 +738,11 @@ function App() {
     <View style={[styles.bottomNav, { paddingBottom: Platform.OS === 'android' ? 20 : 34 }]}>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
         <Text style={styles.bottomNavIcon}>🏠</Text>
-        <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>Home</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>{t('home')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => { setSelectedChurch(null); setViewingMember(null); setCommunityMembers([]); setCurrentScreen('community'); }}>
         <Text style={styles.bottomNavIcon}>🌍</Text>
-        <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>Community</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>{t('community')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
         <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
@@ -751,11 +751,11 @@ function App() {
       </TouchableOpacity>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('groups')}>
         <Text style={styles.bottomNavIcon}>👥</Text>
-        <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>Groups</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>{t('groups')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('profile')}>
         <Text style={styles.bottomNavIcon}>👤</Text>
-        <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>Profile</Text>
+        <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>{t('profile')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -1662,6 +1662,13 @@ function App() {
     }
   }, [currentUser?.id]);
 
+  // Re-fetch Daily Bread in the new language when user switches
+  useEffect(() => {
+    if (currentUser && langVersion > 0) {
+      fetchDailyDevotional();
+    }
+  }, [langVersion]);
+
   // ───────────────────────────────────────────────────────────────────────────
 
   const loadCommunityPrayers = async (showRefreshIndicator = false) => {
@@ -2298,11 +2305,9 @@ function App() {
       }
 
       // Fallback prayer if API fails
-      const fallbackPrayer = `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request. 
-
-Grant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.
-
-Through Christ our Lord. Amen.`;
+      const fallbackPrayer = userLang === 'es'
+        ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`
+        : `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request.\n\nGrant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.\n\nThrough Christ our Lord. Amen.`;
       
       setPrayerModal(prev => ({
         ...prev,
@@ -2312,10 +2317,13 @@ Through Christ our Lord. Amen.`;
 
     } catch (error) {
       console.error('Error generating prayer:', error);
+      const errorMsg = userLang === 'es'
+        ? 'Lo sentimos, no podemos generar una oración en este momento. Por favor tómate un momento para orar con tu corazón por esta petición.'
+        : 'We apologize, but we are unable to generate a prayer at this time. Please take a moment to offer your own heartfelt prayer for this request.';
       setPrayerModal(prev => ({
         ...prev,
         loading: false,
-        generatedPrayer: 'We apologize, but we are unable to generate a prayer at this time. Please take a moment to offer your own heartfelt prayer for this request.'
+        generatedPrayer: errorMsg
       }));
     }
   };
@@ -3927,7 +3935,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           end={{ x: 1, y: 1 }}
         >
           <View style={{ minWidth: 60 }} />
-          <Text style={styles.communityHeaderTitle}>Groups</Text>
+          <Text style={styles.communityHeaderTitle}>{t('groupsTitle')}</Text>
           <View style={{ minWidth: 60 }} />
         </LinearGradient>
 
@@ -3936,7 +3944,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         >
           {/* Rosary cards */}
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>ROSARY</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>{t('rosarySection')}</Text>
 
           {/* Solo Rosary */}
           <TouchableOpacity onPress={() => setCurrentScreen('soloRosary')} activeOpacity={0.85}>
@@ -3948,9 +3956,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <Text style={{ fontSize: 48 }}>📿</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Solo Rosary</Text>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>{t('soloRosary')}</Text>
                 <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 20 }}>
-                  Guided through all 5 decades — manual or auto-play with music.
+                  {t('soloRosaryDesc')}
                 </Text>
               </View>
               <Text style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)' }}>›</Text>
@@ -3967,9 +3975,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <Text style={{ fontSize: 48 }}>🕯️</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>Group Rosary</Text>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 }}>{t('groupRosary')}</Text>
                 <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 20 }}>
-                  Pray together in the same room — host leads, everyone stays in sync.
+                  {t('groupRosaryDesc')}
                 </Text>
               </View>
               <Text style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)' }}>›</Text>
@@ -3977,15 +3985,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
 
           {/* Coming soon placeholder */}
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>GROUPS</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>{t('groupsSection')}</Text>
           <View style={{
             backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center',
             shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
           }}>
             <Text style={{ fontSize: 36, marginBottom: 10 }}>👥</Text>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 6 }}>Prayer Groups Coming Soon</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 6 }}>{t('comingSoonTitle')}</Text>
             <Text style={{ fontSize: 14, color: '#64748b', textAlign: 'center', lineHeight: 21 }}>
-              Join your church group, share a prayer feed, and pray the Rosary together in real time.
+              {t('comingSoonDesc')}
             </Text>
           </View>
         </ScrollView>
@@ -4187,7 +4195,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           end={{ x: 1, y: 1 }}
         >
           <View style={{width: 60}} />
-          <Text style={styles.communityHeaderTitle}>My Profile</Text>
+          <Text style={styles.communityHeaderTitle}>{t('myProfile')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {!isEditingProfile && (
               <TouchableOpacity 
@@ -4221,7 +4229,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         {isLoadingProfile ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 }}>
             <ActivityIndicator size="large" color="#2563eb" />
-            <Text style={{ marginTop: 16, color: '#64748b', fontSize: 16 }}>Loading profile...</Text>
+            <Text style={{ marginTop: 16, color: '#64748b', fontSize: 16 }}>{t('loadingProfile')}</Text>
           </View>
         ) : (
         <ScrollView 
@@ -4321,40 +4329,40 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <View style={styles.memberRankRow}>
                 <Text style={{fontSize: 18}}>🛡️</Text>
                 <Text style={styles.memberRankName}>{rank.name}</Text>
-                <Text style={styles.memberRankLevel}>Level {rank.level}</Text>
+                <Text style={styles.memberRankLevel}>{t('levelLabel')} {rank.level}</Text>
               </View>
 
               <View style={styles.memberStatsRow}>
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{currentUser.request_count ?? currentUser.requestCount ?? '—'}</Text>
-                  <Text style={styles.memberStatLabel}>Requests</Text>
+                  <Text style={styles.memberStatLabel}>{t('statRequests')}</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{currentUser.prayer_count ?? currentUser.prayerCount ?? '—'}</Text>
-                  <Text style={styles.memberStatLabel}>Prayers</Text>
+                  <Text style={styles.memberStatLabel}>{t('statPrayers')}</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{currentUser.rosary_count ?? 0}</Text>
-                  <Text style={styles.memberStatLabel}>Rosaries</Text>
+                  <Text style={styles.memberStatLabel}>{t('statRosaries')}</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{currentUser.faith_points || rank.points || 0}</Text>
-                  <Text style={styles.memberStatLabel}>Points</Text>
+                  <Text style={styles.memberStatLabel}>{t('statPoints')}</Text>
                 </View>
               </View>
             </View>
 
             {isEditingProfile ? (
               <View style={styles.memberProfileSection}>
-                <Text style={styles.memberProfileSectionTitle}>About</Text>
+                <Text style={styles.memberProfileSectionTitle}>{t('aboutSection')}</Text>
                 <TextInput
                   style={[styles.profileEditInlineInput, { textAlign: 'left', minHeight: 70 }]}
                   value={profileForm.about}
                   onChangeText={(text) => setProfileForm({...profileForm, about: text})}
-                  placeholder="Tell us about yourself"
+                  placeholder={t('tellUsAboutYourself')}
                   multiline
                   numberOfLines={3}
                   data-testid="input-edit-about"
@@ -4362,8 +4370,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
             ) : (
               <View style={styles.memberProfileSection}>
-                <Text style={styles.memberProfileSectionTitle}>About</Text>
-                <Text style={styles.memberProfileSectionText}>{currentUser.about || 'Not set'}</Text>
+                <Text style={styles.memberProfileSectionTitle}>{t('aboutSection')}</Text>
+                <Text style={styles.memberProfileSectionText}>{currentUser.about || t('notSet')}</Text>
               </View>
             )}
 
@@ -4398,15 +4406,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {Math.max(rank.nextRank.minPoints - rank.points, 0)} pts to {rank.nextRank.title}
                 </Text>
               ) : (
-                <Text style={styles.memberFaithPoints}>Maximum rank achieved!</Text>
+                <Text style={styles.memberFaithPoints}>{t('maxRankReached')}</Text>
               )}
             </View>
 
             <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>Badges {userBadges.length > 0 ? `(${userBadges.length})` : ''}</Text>
+              <Text style={styles.memberProfileSectionTitle}>{userBadges.length > 0 ? t('badgesLabel')(userBadges.length) : (userLang === 'es' ? 'Insignias' : 'Badges')}</Text>
               {userBadges.length === 0 ? (
                 <Text style={{ color: '#94a3b8', fontSize: 14, fontStyle: 'italic', marginTop: 4 }}>
-                  Earn badges by praying, reading Daily Bread, and supporting others.
+                  {t('earnBadges')}
                 </Text>
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
@@ -4433,7 +4441,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   disabled={isSavingProfile}
                   data-testid="button-cancel-edit"
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>{t('cancelBtn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.editActionButton, styles.saveButton, isSavingProfile && styles.saveButtonDisabled]}
@@ -4444,7 +4452,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {isSavingProfile ? (
                     <ActivityIndicator color="white" size="small" />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                    <Text style={styles.saveButtonText}>{t('saveChangesBtn')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -4501,7 +4509,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 if (next && answeredPrayers.length === 0 && !loadingAnswered) loadAnsweredPrayers();
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>✅ Answered Prayers</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#166534' }}>{t('answeredPrayers')}</Text>
               <Text style={{ fontSize: 16, color: '#166534' }}>{answeredExpanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
 
@@ -4511,7 +4519,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <ActivityIndicator color="#16a34a" style={{ marginVertical: 16 }} />
                 ) : answeredPrayers.length === 0 ? (
                   <Text style={{ color: '#64748b', textAlign: 'center', padding: 16, fontStyle: 'italic', fontSize: 14 }}>
-                    No answered prayers yet.{'\n'}When God answers your prayer, tap "Prayer Answered 🙌" from the ⋮ menu on any of your requests.
+                    {t('noAnsweredPrayers')}
                   </Text>
                 ) : (
                   answeredPrayers.map(prayer => (
@@ -4520,7 +4528,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       <Text style={{ fontSize: 13, color: '#475569', marginBottom: prayer.answered_message ? 10 : 0, lineHeight: 19 }} numberOfLines={3}>{prayer.content}</Text>
                       {prayer.answered_message ? (
                         <View style={{ backgroundColor: '#f0fdf4', borderRadius: 8, padding: 12, borderLeftWidth: 3, borderLeftColor: '#16a34a' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: '#166534', textTransform: 'uppercase', marginBottom: 5 }}>Your Testimony</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1, color: '#166534', textTransform: 'uppercase', marginBottom: 5 }}>{t('yourTestimony')}</Text>
                           <Text style={{ fontSize: 14, color: '#166534', fontStyle: 'italic', lineHeight: 21 }}>"{prayer.answered_message}"</Text>
                         </View>
                       ) : null}
@@ -4536,7 +4544,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             onPress={() => setCurrentScreen('help')}
             data-testid="button-help-support"
           >
-            <Text style={styles.helpSupportButtonText}>❓ Help & Support</Text>
+            <Text style={styles.helpSupportButtonText}>{t('helpSupport')}</Text>
           </TouchableOpacity>
 
           <View style={{ alignItems: 'center', paddingVertical: 16, opacity: 0.45 }}>
@@ -4561,7 +4569,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={styles.editModalOverlay}>
               <View style={styles.editModalContent}>
                 <View style={styles.editModalHeader}>
-                  <Text style={styles.editModalTitle}>Edit Prayer Request</Text>
+                  <Text style={styles.editModalTitle}>{t('editPrayerHeader')}</Text>
                   <TouchableOpacity 
                     onPress={() => setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false })}
                     style={styles.editModalCloseButton}
@@ -4574,7 +4582,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.inputLabel}>Prayer Request</Text>
                   <TextInput
                     style={[styles.input, styles.textArea, { minHeight: 150 }]}
-                    placeholder="Your prayer request..."
+                    placeholder={t('prayerPlaceholder')}
                     multiline
                     numberOfLines={8}
                     value={editPrayerModal.content}
@@ -4683,7 +4691,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.backButton}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t('settingsTitle')}</Text>
         </View>
         
         <ScrollView style={styles.screenContent}>
@@ -4736,17 +4744,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
           {/* Security Section - VISIBLE */}
           <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>{userLang === 'es' ? 'Seguridad' : 'Security'}</Text>
+            <Text style={styles.settingsSectionTitle}>{t('security')}</Text>
             <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setAuthScreen('forgot'); setShowAuth(true); }}>
-              <Text style={styles.settingsButtonText}>🔑 {userLang === 'es' ? 'Cambiar Contraseña' : 'Change Password'}</Text>
+              <Text style={styles.settingsButtonText}>🔑 {t('changePassword')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Account Section - VISIBLE */}
           <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>Account</Text>
+            <Text style={styles.settingsSectionTitle}>{t('accountSection')}</Text>
             <Text style={styles.settingsDescription}>
-              Manage your account settings and data.
+              {t('manageAccountDesc')}
             </Text>
             
             {/* Hidden profile picture change - to be implemented */}
@@ -4761,7 +4769,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               onPress={handleDeleteAccount}
               data-testid="button-delete-account"
             >
-              <Text style={styles.deleteButtonText}>Delete Account</Text>
+              <Text style={styles.deleteButtonText}>{t('deleteAccount')}</Text>
             </TouchableOpacity>
 
             <Text style={{ textAlign: 'center', color: '#bbb', fontSize: 11, marginTop: 16, marginBottom: 4 }}>
@@ -4925,9 +4933,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           end={{ x: 1, y: 1 }}
         >
           <TouchableOpacity onPress={handleCancelDraft} style={styles.communityBackButton}>
-            <Text style={styles.communityBackText}>← Cancel</Text>
+            <Text style={styles.communityBackText}>{t('cancelBack')}</Text>
           </TouchableOpacity>
-          <Text style={styles.communityHeaderTitle}>{isEditing ? 'Edit Prayer' : 'New Prayer'}</Text>
+          <Text style={styles.communityHeaderTitle}>{isEditing ? t('editPrayerHeader') : t('newPrayerHeader')}</Text>
           <TouchableOpacity onPress={handleClearForm} style={{ padding: 8 }}>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Clear</Text>
           </TouchableOpacity>
@@ -5523,7 +5531,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 colors={['transparent', 'rgba(0,0,0,0.72)']}
                 style={styles.dailyBreadCardOverlay}
               >
-                <Text style={styles.dailyBreadPill}>🍞 Daily Bread</Text>
+                <Text style={styles.dailyBreadPill}>{t('dailyBreadPill')}</Text>
                 <Text style={styles.dailyBreadCardTitle} numberOfLines={2}>
                   {dailyDevotional.title}
                 </Text>
@@ -5688,17 +5696,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           // Show loading state during refresh instead of empty message
           if (refreshingCommunity && !showMyRequestsOnly && communityPrayers.length === 0) {
-            return <Text style={styles.emptyText}>Loading prayers...</Text>;
+            return <Text style={styles.emptyText}>{t('loadingPrayers')}</Text>;
           }
 
           if (filteredPrayers.length === 0) {
             if (showMyRequestsOnly) {
-              return <Text style={styles.emptyText}>You haven't shared any prayer requests yet. Tap "Share a Prayer Request" above!</Text>;
+              return <Text style={styles.emptyText}>{t('emptyMyPrayers')}</Text>;
             }
             if (showChurchOnly) {
-              return <Text style={styles.emptyText}>No prayers from your church yet. Tap the church button to see all prayers.</Text>;
+              return <Text style={styles.emptyText}>{t('emptyChurchPrayers')}</Text>;
             }
-            return <Text style={styles.emptyText}>No prayers yet. Be the first to share!</Text>;
+            return <Text style={styles.emptyText}>{t('emptyFeed')}</Text>;
           }
 
           // Pending prayers nudge — unanswered prayers older than 7 days
@@ -5717,10 +5725,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.pendingNudgeIcon}>📋</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pendingNudgeTitle}>
-                    {pendingOldPrayers.length} prayer{pendingOldPrayers.length > 1 ? 's' : ''} awaiting your testimony
+                    {pendingOldPrayers.length === 1 ? t('pendingNudgeSingular') : t('pendingNudgePlural')(pendingOldPrayers.length)}
                   </Text>
                   <Text style={styles.pendingNudgeSubtext}>
-                    Tap ⋮ on any request below and choose "Prayer Answered 🙌" to share what God did.
+                    {t('pendingNudgeSubtext')}
                   </Text>
                 </View>
               </View>
@@ -5735,7 +5743,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   data-testid={`badge-prayer-count-${prayer.id}`}
                 >
                   <Text style={styles.prayerCountText}>
-                    🙏 {prayer.prayer_count} {prayer.prayer_count === 1 ? 'person' : 'people'} prayed
+                    {prayer.prayer_count === 1 ? t('prayerCountSingular') : t('prayerCountPlural')(prayer.prayer_count)}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -6094,14 +6102,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.loadingPulse}>
                   <Text style={styles.loadingPrayerHands}>🙏</Text>
                 </View>
-                <Text style={styles.fullScreenLoadingText}>Preparing your prayer...</Text>
+                <Text style={styles.fullScreenLoadingText}>{t('preparingPrayer')}</Text>
               </View>
             ) : prayerLayout === 'sanctuary' ? (
               /* ===== OPTION 1: SANCTUARY LAYOUT ===== */
               <View style={styles.sanctuaryLayout}>
                 <View style={styles.sanctuaryHeader}>
-                  <Text style={styles.sanctuaryHeaderTitle}>Prayer</Text>
-                  <Text style={styles.sanctuaryHeaderSubtitle}>for {prayerModal.prayer?.author}</Text>
+                  <Text style={styles.sanctuaryHeaderTitle}>{t('prayerHeader')}</Text>
+                  <Text style={styles.sanctuaryHeaderSubtitle}>{t('forAuthorPrefix')} {prayerModal.prayer?.author}</Text>
                 </View>
                 <ScrollView
                   style={styles.sanctuaryScrollView}
@@ -6111,7 +6119,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
                   {extendedPrayer ? (
                     <View style={{ marginTop: 20, padding: 16, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ Extended Prayer</Text>
+                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ {t('extendedPrayerLabel')}</Text>
                       <Text style={{ color: '#e2e8f0', fontSize: 16, lineHeight: 26, fontStyle: 'italic' }}>{extendedPrayer}</Text>
                     </View>
                   ) : null}
@@ -6127,7 +6135,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       >
                         {loadingExtendedPrayer
                           ? <ActivityIndicator color="#fbbf24" size="small" />
-                          : <Text style={styles.unlockExtendedBtnText}>✨ Generate Extended Prayer</Text>
+                          : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
                         }
                       </TouchableOpacity>
                     ) : (
@@ -6136,12 +6144,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                        <Text style={styles.unlockExtendedBtnText}>✨ {t('unlockExtended').replace('✨ ', '')}</Text>
                       </TouchableOpacity>
                     )
                   ) : null}
                   <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.sanctuaryAmenButtonText}>Amen</Text>
+                    <Text style={styles.sanctuaryAmenButtonText}>{t('amen')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -6176,7 +6184,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
                   {extendedPrayer ? (
                     <View style={{ marginTop: 20, padding: 16, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ Extended Prayer</Text>
+                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ {t('extendedPrayerLabel')}</Text>
                       <Text style={{ color: '#e2e8f0', fontSize: 16, lineHeight: 26, fontStyle: 'italic' }}>{extendedPrayer}</Text>
                     </View>
                   ) : null}
@@ -6193,7 +6201,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       >
                         {loadingExtendedPrayer
                           ? <ActivityIndicator color="#fbbf24" size="small" />
-                          : <Text style={styles.unlockExtendedBtnText}>✨ Generate Extended Prayer</Text>
+                          : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
                         }
                       </TouchableOpacity>
                     ) : (
@@ -6202,7 +6210,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.unlockExtendedBtnText}>✨ Unlock Extended Prayer</Text>
+                        <Text style={styles.unlockExtendedBtnText}>✨ {t('unlockExtended').replace('✨ ', '')}</Text>
                       </TouchableOpacity>
                     )
                   ) : null}

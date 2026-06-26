@@ -911,11 +911,24 @@ function App() {
     if (!currentUser?.id) return;
     setIsLoadingAllBadges(true);
     try {
-      const res = await fetch(`https://shouldcallpaul.replit.app/getAllBadges?userId=${currentUser.id}`, {
+      const res = await fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
         headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
       });
       const data = await res.json();
-      if (data.error === 0) setAllBadges(data.badges || []);
+      const earnedRaw = Array.isArray(data) ? data : (data.result || data.badges || []);
+      const earnedKeys = new Set(earnedRaw.map(b => b.badge_key));
+      // Build full list: earned badges first (with API data), then locked from BADGE_META
+      const full = Object.entries(BADGE_META).map(([key, meta]) => {
+        const apiEntry = earnedRaw.find(b => b.badge_key === key);
+        return {
+          badge_key: key,
+          ...meta,
+          earned: earnedKeys.has(key),
+          earned_at: apiEntry?.earned_at || null,
+          total_earned: apiEntry?.total_earned || 0,
+        };
+      });
+      setAllBadges(full);
     } catch (e) { console.warn('[AllBadges] load error:', e?.message); }
     finally { setIsLoadingAllBadges(false); }
   };

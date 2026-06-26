@@ -16,7 +16,7 @@ import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
-import t, { lang as userLang, setLang } from './i18n';
+import t, { lang as userLang, setLang, translateRank } from './i18n';
 
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build57';
+const APP_BUILD = 'preview-1.0.26-build58';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4403,7 +4403,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
               {rank.nextRank ? (
                 <Text style={styles.memberFaithPoints}>
-                  {t('ptsToRank')(Math.max(rank.nextRank.minPoints - rank.points, 0), rank.nextRank.title)}
+                  {t('ptsToRank')(Math.max(rank.nextRank.minPoints - rank.points, 0), translateRank(rank.nextRank.title))}
                 </Text>
               ) : (
                 <Text style={styles.memberFaithPoints}>{t('maxRankReached')}</Text>
@@ -5423,10 +5423,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               {/* Row 2: XP bar — always visible, always the same height */}
               <TouchableOpacity onPress={() => setCurrentScreen('profile')} activeOpacity={0.85} style={styles.xpBarContainer}>
                 <View style={styles.xpBarTopRow}>
-                  <Text style={styles.xpBarRankLabel}>{r.icon} {r.title}</Text>
-                  <Text style={styles.xpBarPts}>{pts} pts</Text>
+                  <Text style={styles.xpBarRankLabel}>{r.icon} {translateRank(r.title)}</Text>
+                  <Text style={styles.xpBarPts}>{pts} {t('ptsLabel')}</Text>
                   {r.nextRank ? (
-                    <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {r.nextRank.title}</Text>
+                    <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {translateRank(r.nextRank.title)}</Text>
                   ) : (
                     <Text style={styles.xpBarNextLabel}>{t('maxLevel')}</Text>
                   )}
@@ -5508,7 +5508,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       >
         {/* ── Tagline strip ── */}
         <View style={styles.taglineStrip}>
-          <Text style={styles.taglineStripText}>🙏 Your prayers make a difference</Text>
+          <Text style={styles.taglineStripText}>{t('prayersMakeADifference')}</Text>
         </View>
 
         {/* ── Daily Bread Card ── */}

@@ -206,6 +206,7 @@ const translations = {
     failedSendMessage: 'Failed to send message. Please try again later.',
     extendedPrayerError: 'Could not load the extended prayer. Please try again.',
     tryAgain: 'Please try again.',
+    prayersMakeADifference: '🙏 Your prayers make a difference',
   },
 
   es: {
@@ -415,6 +416,20 @@ const translations = {
     failedSendMessage: 'Error al enviar el mensaje. Por favor intenta más tarde.',
     extendedPrayerError: 'No se pudo cargar la oración extendida. Por favor intenta de nuevo.',
     tryAgain: 'Por favor intenta de nuevo.',
+    prayersMakeADifference: '🙏 Tus oraciones hacen la diferencia',
+    rankTitles: {
+      'Newcomer':         'Recién Llegado',
+      'New Believer':     'Nuevo Creyente',
+      'Seed Planter':     'Sembrador de Semillas',
+      'Growing in Faith': 'Creciendo en Fe',
+      'Prayer Partner':   'Compañero de Oración',
+      'Faithful Friend':  'Amigo Fiel',
+      'Prayer Leader':    'Líder de Oración',
+      'Devoted Believer': 'Creyente Devoto',
+      'Prayer Champion':  'Campeón de Oración',
+      'Faithful Servant': 'Siervo Fiel',
+      'Prayer Warrior':   'Guerrero de Oración',
+    },
   },
 };
 
@@ -434,6 +449,12 @@ export function setLang(newLang) {
 export function t(key) {
   const val = strings[key] ?? translations.en[key];
   return val !== undefined ? val : key;
+}
+
+export function translateRank(englishTitle) {
+  if (!englishTitle) return englishTitle;
+  const map = strings.rankTitles;
+  return (map && map[englishTitle]) ? map[englishTitle] : englishTitle;
 }
 
 export default t;

@@ -884,54 +884,56 @@ function App() {
   const [allBadges, setAllBadges] = useState([]);
   const [isLoadingAllBadges, setIsLoadingAllBadges] = useState(false);
 
-  const BADGE_META = {
-    first_responder:       { icon: '⚡', title: 'First Responder',       description: 'One of the first 3 people to pray on a new request!' },
-    midnight_intercessor:  { icon: '🌙', title: 'Midnight Intercessor',  description: 'You prayed in the quiet hours of the night.' },
-    daily_bread_streak:    { icon: '📖', title: 'Daily Bread Streak',    description: '7 days of devotionals in a row!' },
-    deep_waters:           { icon: '🌊', title: 'Deep Waters',           description: 'You go deeper — 10 heartfelt comments shared.' },
-    the_rejoicer:          { icon: '🙌', title: 'The Rejoicer',          description: '5 prayers marked answered. God is faithful!' },
-    global_heart:          { icon: '🌍', title: 'Global Heart',          description: 'You prayed across 3 different churches.' },
-  };
-
   const showBadgeCelebration = (badge) => {
     if (!badge?.badge_key) return;
-    const meta = BADGE_META[badge.badge_key] || { icon: '🏅', title: badge.badge_key, description: 'New achievement unlocked!' };
-    setBadgeCelebration({ ...badge, ...meta });
+    setBadgeCelebration({
+      icon: '🏅', title: badge.badge_key, description: 'New achievement unlocked!',
+      ...badge,
+    });
   };
 
+  // Fetch all badge definitions from server (no auth needed)
+  const fetchBadgeDefinitions = async () => {
+    const res = await fetch('https://shouldcallpaul.replit.app/getBadgeDefinitions');
+    const data = await res.json();
+    return (data.error === 0 ? data.badges : null) || [];
+  };
+
+  // Profile screen: earned badges only, enriched with server definitions
   const loadUserBadges = async () => {
     if (!currentUser?.id) return;
     try {
-      const res = await fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
-        headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
-      });
-      const data = await res.json();
-      const badges = Array.isArray(data) ? data : (data.result || data.badges || []);
-      setUserBadges(badges.map(b => ({ ...b, ...(BADGE_META[b.badge_key] || { icon: '🏅', title: b.badge_key }) })));
+      const [defsData, earnedData] = await Promise.all([
+        fetchBadgeDefinitions(),
+        fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
+          headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
+        }).then(r => r.json()),
+      ]);
+      const defs = Object.fromEntries(defsData.map(d => [d.badge_key, d]));
+      const earned = Array.isArray(earnedData) ? earnedData : (earnedData.result || earnedData.badges || []);
+      setUserBadges(earned.map(b => ({ ...b, ...(defs[b.badge_key] || { icon: '🏅', title: b.badge_key }) })));
     } catch (e) { console.warn('[Badges] load error:', e?.message); }
   };
 
+  // Badge showcase screen: all definitions merged with earned status
   const loadAllBadges = async () => {
     if (!currentUser?.id) return;
     setIsLoadingAllBadges(true);
     try {
-      const res = await fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
-        headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
-      });
-      const data = await res.json();
-      const earnedRaw = Array.isArray(data) ? data : (data.result || data.badges || []);
-      const earnedKeys = new Set(earnedRaw.map(b => b.badge_key));
-      // Build full list: earned badges first (with API data), then locked from BADGE_META
-      const full = Object.entries(BADGE_META).map(([key, meta]) => {
-        const apiEntry = earnedRaw.find(b => b.badge_key === key);
-        return {
-          badge_key: key,
-          ...meta,
-          earned: earnedKeys.has(key),
-          earned_at: apiEntry?.earned_at || null,
-          total_earned: apiEntry?.total_earned || 0,
-        };
-      });
+      const [definitions, earnedData] = await Promise.all([
+        fetchBadgeDefinitions(),
+        fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
+          headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
+        }).then(r => r.json()),
+      ]);
+      const earnedRaw = Array.isArray(earnedData) ? earnedData : (earnedData.result || earnedData.badges || []);
+      const earnedMap = Object.fromEntries(earnedRaw.map(b => [b.badge_key, b]));
+      const full = definitions.map(def => ({
+        ...def,
+        earned: !!earnedMap[def.badge_key],
+        earned_at: earnedMap[def.badge_key]?.earned_at || null,
+        total_earned: earnedMap[def.badge_key]?.total_earned ?? def.total_earned ?? 0,
+      }));
       setAllBadges(full);
     } catch (e) { console.warn('[AllBadges] load error:', e?.message); }
     finally { setIsLoadingAllBadges(false); }

@@ -1,8 +1,17 @@
 import { registerRootComponent } from 'expo';
-
+import React from 'react';
+import { View } from 'react-native';
 import App from './App';
+import { AppToast, AppModal } from './AppModals';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+function RootApp() {
+  return (
+    <View style={{ flex: 1 }}>
+      <App />
+      <AppToast />
+      <AppModal />
+    </View>
+  );
+}
+
+registerRootComponent(RootApp);

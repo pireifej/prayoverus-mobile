@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,7 @@ import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 import t, { lang as userLang, setLang, translateRank } from './i18n';
+import { showToast, showModal } from './AppModals';
 
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
@@ -374,7 +375,7 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
       ? `${prayer.title}\n\n${prayer.content}` 
       : prayer.content;
     Clipboard.setString(textToCopy);
-    Alert.alert(t('copiedTitle'), t('copiedRequest'));
+    showToast(t('copiedRequest'), '📋');
   };
   
   const handleCopyPrayerText = async () => {
@@ -398,19 +399,19 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
           const plainText = data.prayerText.replace(/<[^>]*>/g, '');
           Clipboard.setString(plainText);
           setMenuVisible(false);
-          Alert.alert(t('copiedTitle'), t('copiedPrayer'));
+          showToast(t('copiedPrayer'), '📋');
         } else {
           setMenuVisible(false);
-          Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
+          showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
         }
       } else {
         setMenuVisible(false);
-        Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
+        showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
       }
     } catch (error) {
       console.log('Error fetching prayer text:', error);
       setMenuVisible(false);
-      Alert.alert(t('errorTitle'), t('couldNotFetchPrayer'));
+      showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
     } finally {
       setIsCopyingPrayer(false);
     }
@@ -935,9 +936,9 @@ function App() {
       const { customerInfo } = await Purchases.purchaseStoreProduct(product);
       setIapCustomerInfo(customerInfo);
       setIapModal(null);
-      Alert.alert('Unlocked! 🙌', 'Thank you — enjoy your new feature.');
+      showToast('Thank you — enjoy your new feature.', '🙌');
     } catch (e) {
-      if (!e?.userCancelled) Alert.alert('Purchase failed', e?.message ?? 'Please try again.');
+      if (!e?.userCancelled) showModal({ icon: '😔', title: 'Purchase failed', message: e?.message ?? 'Please try again.' });
     } finally {
       setIapPurchasing(false);
     }
@@ -949,9 +950,9 @@ function App() {
     try {
       const info = await Purchases.restorePurchases();
       setIapCustomerInfo(info);
-      Alert.alert('Restored!', 'Your purchases have been restored.');
+      showToast('Your purchases have been restored.', '✅');
       setIapModal(null);
-    } catch (e) { Alert.alert('Restore failed', e?.message ?? 'Please try again.'); }
+    } catch (e) { showModal({ icon: '😔', title: 'Restore failed', message: e?.message ?? 'Please try again.' }); }
     finally { setIapPurchasing(false); }
   };
 
@@ -1348,11 +1349,7 @@ function App() {
         if (pendingAdQueueRef.current) {
           pendingAdQueueRef.current = null;
           setRewardedAdLoading(false);
-          Alert.alert(
-            'Ad Unavailable',
-            'No ad could be loaded right now — this is normal for newer apps. Please try again in a moment.',
-            [{ text: 'OK' }]
-          );
+          showModal({ icon: '📶', title: 'Ad Unavailable', message: 'No ad could be loaded right now — this is normal for newer apps. Please try again in a moment.' });
         }
       }, 10000);
     }
@@ -1405,7 +1402,7 @@ function App() {
           // User is truly not logged in (auth check completed)
           console.log('📱 User not logged in, will navigate after login');
           setPendingDeepLinkPrayerId(prayerId);
-          Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
+          showModal({ icon: '🔐', title: 'Sign In Required', message: 'Please sign in to view this prayer request.' });
         }
         return;
       }
@@ -1454,7 +1451,7 @@ function App() {
         } else {
           console.log('📱 User not logged in after auth check, showing sign in alert');
           setPendingDeepLinkPrayerId(prayerId);
-          Alert.alert('Sign In Required', 'Please sign in to view this prayer request.');
+          showModal({ icon: '🔐', title: 'Sign In Required', message: 'Please sign in to view this prayer request.' });
         }
       }
       
@@ -1765,7 +1762,7 @@ function App() {
       }
     } catch (error) {
       console.error('❌ Failed to load community prayers:', error.message);
-      Alert.alert('Load Error', `Could not load community prayers: ${error.message}`);
+      showModal({ icon: '⚠️', title: 'Load Error', message: `Could not load community prayers: ${error.message}` });
       
       // Fallback to sample data for testing
       setCommunityPrayers([
@@ -2111,10 +2108,10 @@ function App() {
           setNewPrayer({ title: '', content: '', isPublic: true });
           setPrayerImage(null);
           setShowTitleInput(false);
-          Alert.alert('Offline Mode', 'Prayer saved locally. It will sync when you have internet connection.');
+          showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
         } else {
           // Server error or validation error - show the actual error message
-          Alert.alert('Error', error.message || 'Unable to create prayer request. Please try again.');
+          showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
           // Don't clear the form so user can retry
         }
       } finally {
@@ -2122,7 +2119,7 @@ function App() {
         setIsPosting(false);
       }
     } else {
-      Alert.alert('Error', 'Please enter your prayer request');
+      showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
     }
   };
 
@@ -2210,7 +2207,7 @@ function App() {
         console.log('Prayer request saved successfully:', data.message);
         // Show success message only once per idempotency key
         if (!hasShownSuccessForCurrentKey) {
-          Alert.alert('Success', data.message || 'Your prayer has been shared!');
+          showToast(data.message || 'Your prayer has been shared!', '🙏');
           setHasShownSuccessForCurrentKey(true);
         }
         // Clear the idempotency key on successful completion
@@ -2344,11 +2341,11 @@ function App() {
       if (data.error === 0 && data.result) {
         setExtendedPrayer(data.result);
       } else {
-        Alert.alert('Extended Prayer', 'Could not load the extended prayer. Please try again.');
+        showModal({ icon: '🙏', title: 'Extended Prayer', message: 'Could not load the extended prayer. Please try again.' });
       }
     } catch (e) {
       console.log('[ExtendedPrayer] error:', e.message);
-      Alert.alert('Error', 'Could not load the extended prayer.');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Could not load the extended prayer.' });
     } finally {
       setLoadingExtendedPrayer(false);
     }
@@ -2787,7 +2784,7 @@ Through Christ our Lord. Amen.`;
 
   const submitHelpForm = async () => {
     if (!helpForm.message.trim() || !helpForm.name.trim() || !helpForm.email.trim()) {
-      Alert.alert('Error', 'Please fill in message, name, and email fields');
+      showModal({ icon: '✏️', title: 'Error', message: 'Please fill in message, name, and email fields' });
       return;
     }
 
@@ -2824,14 +2821,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       });
       
       if (response.ok) {
-        Alert.alert('Success', 'Your message has been sent successfully!');
+        showToast('Your message has been sent successfully!', '✉️');
         setHelpForm({ message: '', name: '', email: '', phone: '' });
         setCurrentScreen('home');
       } else {
         throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send message. Please try again later.');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to send message. Please try again later.' });
       console.log('Contact form error:', error.message);
     }
   };
@@ -3131,7 +3128,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Save edited prayer - calls editRequest endpoint
   const saveEditedPrayer = async () => {
     if (!editPrayerModal.content.trim()) {
-      Alert.alert('Error', 'Please enter your prayer request');
+      showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
       return;
     }
 
@@ -3180,18 +3177,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           );
           
           setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
-          Alert.alert('Success', 'Prayer request updated successfully');
+          showToast('Prayer request updated successfully', '✅');
         } else if (data.error === 1) {
-          // Show the result message from the API
-          Alert.alert('Error', data.result || 'Failed to update prayer');
+          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update prayer' });
         } else {
-          Alert.alert('Error', data.result || data.message || 'Failed to update prayer');
+          showModal({ icon: '⚠️', title: 'Error', message: data.result || data.message || 'Failed to update prayer' });
         }
       } else {
         throw new Error('Server error');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update prayer request. Please try again.');
+      showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to update prayer request. Please try again.' });
     } finally {
       setEditPrayerModal(prev => ({ ...prev, isLoading: false }));
     }
@@ -3231,20 +3227,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
         setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
         
-        Alert.alert('Success', message);
+        showToast(message, '✅');
       } else if (data.error) {
-        // API returned an error
-        Alert.alert('Error', data.result || 'Failed to delete prayer request');
+        showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to delete prayer request' });
       } else {
         throw new Error('Unexpected response from server');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to delete prayer request. Please try again.');
+      showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to delete prayer request. Please try again.' });
     }
   };
 
-  // Show a brief toast notification
-  const showToast = (message) => {
+  // Legacy in-app toast (kept for badge/testimony animations inside the home feed)
+  const _legacyToast = (message) => {
     setToast({ visible: true, message });
     toastAnim.setValue(0);
     Animated.sequence([
@@ -3323,15 +3318,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         if (data.new_badge) showBadgeCelebration(data.new_badge);
         const peopleWord = notified === 1 ? 'person' : 'people';
         const verbWord = notified === 1 ? 'has' : 'have';
-        showToast(`🙌 Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`);
+        showToast(`Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`, '🙌');
       } else {
         const errMsg = data.result || data.message || data.error || 'Failed to share testimony';
-        Alert.alert('Error', String(errMsg));
+        showModal({ icon: '⚠️', title: 'Error', message: String(errMsg) });
         setAnsweredModal(prev => ({ ...prev, isLoading: false }));
       }
     } catch (e) {
       console.log('📥 markPrayerAnswered error:', e?.message);
-      Alert.alert('Error', 'Could not reach the server. Please check your connection.');
+      showModal({ icon: '📶', title: 'Error', message: 'Could not reach the server. Please check your connection.' });
       setAnsweredModal(prev => ({ ...prev, isLoading: false }));
     }
   };
@@ -3355,7 +3350,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       }
     } catch (error) {
       console.log('Error fetching churches:', error);
-      Alert.alert('Error', 'Failed to load churches');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to load churches' });
     }
   };
 
@@ -3471,17 +3466,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           await saveUserToStorage(updatedUser);
           
           console.log('Profile updated successfully:', data.result);
-          Alert.alert('Success', 'Profile updated successfully!');
+          showToast('Profile updated successfully!', '✅');
           setIsEditingProfile(false);
         } else {
-          Alert.alert('Error', data.result || 'Failed to update profile');
+          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update profile' });
         }
       } else {
-        Alert.alert('Error', 'Failed to update profile');
+        showModal({ icon: '⚠️', title: 'Error', message: 'Failed to update profile' });
       }
     } catch (error) {
       console.log('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile changes');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to save profile changes' });
     } finally {
       setIsSavingProfile(false);
     }
@@ -3492,7 +3487,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please grant camera roll permissions to add an image.');
+        showModal({ icon: '📷', title: 'Permission Required', message: 'Please grant camera roll permissions to add an image.' });
         return;
       }
 
@@ -3508,7 +3503,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       }
     } catch (error) {
       console.log('Error picking prayer image:', error);
-      Alert.alert('Error', 'Failed to select image');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to select image' });
     }
   };
 
@@ -3518,7 +3513,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       // Request permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please grant camera roll permissions to upload a profile picture.');
+        showModal({ icon: '📷', title: 'Permission Required', message: 'Please grant camera roll permissions to upload a profile picture.' });
         return;
       }
 
@@ -3536,7 +3531,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       }
     } catch (error) {
       console.log('Error picking image:', error);
-      Alert.alert('Error', 'Failed to select image');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to select image' });
     }
   };
 
@@ -3583,17 +3578,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           await saveUserToStorage(updatedUser);
           
           console.log('✅ Profile picture uploaded:', data.profile_picture_url);
-          Alert.alert('Success', 'Profile picture updated!');
+          showToast('Profile picture updated!', '📸');
         } else {
-          Alert.alert('Error', data.result || 'Failed to upload profile picture');
+          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to upload profile picture' });
         }
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.result || 'Failed to upload profile picture');
+        showModal({ icon: '⚠️', title: 'Error', message: errorData.result || 'Failed to upload profile picture' });
       }
     } catch (error) {
       console.log('Error uploading profile picture:', error);
-      Alert.alert('Error', 'Failed to upload profile picture. Please try again.');
+      showModal({ icon: '⚠️', title: 'Error', message: 'Failed to upload profile picture. Please try again.' });
     } finally {
       setIsUploadingPicture(false);
     }
@@ -4796,16 +4791,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   if (currentScreen === 'settings') {
     const handleDeleteAccount = () => {
-      Alert.alert(
-        'Delete Account',
-        'This will permanently delete your account and all associated data. This action cannot be undone. Are you absolutely sure?',
-        [
+      showModal({
+        icon: '🗑️',
+        title: 'Delete Account',
+        message: 'This will permanently delete your account and all associated data. This action cannot be undone. Are you absolutely sure?',
+        buttons: [
+          { label: 'Cancel', style: 'cancel' },
           {
-            text: 'Cancel',
-            style: 'cancel'
-          },
-          {
-            text: 'Delete',
+            label: 'Delete Forever',
             style: 'destructive',
             onPress: async () => {
               try {
@@ -4814,11 +4807,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   userId: currentUser?.id.toString(),
                   confirmPhrase: 'DELETE MY ACCOUNT',
                 };
-                
-                console.log('📱 MOBILE APP API CALL:');
-                console.log('POST ' + endpoint);
-                console.log(JSON.stringify(requestPayload, null, 2));
-                
                 const response = await fetch(endpoint, {
                   method: 'POST',
                   headers: {
@@ -4828,34 +4816,30 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   },
                   body: JSON.stringify(requestPayload)
                 });
-                
                 if (response.ok) {
                   const data = await response.json();
-                  
                   if (data.error === 0) {
-                    const message = data.result || 'User deleted successfully';
-                    Alert.alert('Success', message, [
-                      { 
-                        text: 'OK', 
-                        onPress: async () => {
-                          await handleLogout();
-                        }
-                      }
-                    ]);
+                    const message = data.result || 'Your account has been deleted.';
+                    showModal({
+                      icon: '✅',
+                      title: 'Account Deleted',
+                      message,
+                      buttons: [{ label: 'OK', onPress: handleLogout }]
+                    });
                   } else {
                     const errorMessage = data.result || data.message || 'Failed to delete account';
-                    Alert.alert('Error', errorMessage);
+                    showModal({ icon: '⚠️', title: 'Error', message: errorMessage });
                   }
                 } else {
-                  Alert.alert('Error', 'Account deletion service unavailable');
+                  showModal({ icon: '⚠️', title: 'Error', message: 'Account deletion service unavailable' });
                 }
               } catch (error) {
-                Alert.alert('Error', 'Network error. Please try again.');
+                showModal({ icon: '📶', title: 'Error', message: 'Network error. Please try again.' });
               }
             }
           }
         ]
-      );
+      });
     };
 
     return (
@@ -4969,19 +4953,20 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         setPrayerImage(null);
         setShowTitleInput(false);
       } else if (hasContent) {
-        Alert.alert('Draft Saved', 'Your prayer request has been saved as a draft.');
+        showToast('Your prayer request has been saved as a draft.', '📝');
       }
       setCurrentScreen('home');
     };
     
     const handleClearForm = () => {
-      Alert.alert(
-        'Clear Form',
-        'Are you sure you want to clear everything?',
-        [
-          { text: 'No', style: 'cancel' },
-          { 
-            text: 'Yes, Clear', 
+      showModal({
+        icon: '🗑️',
+        title: 'Clear Form',
+        message: 'Are you sure you want to clear everything?',
+        buttons: [
+          { label: 'No', style: 'cancel' },
+          {
+            label: 'Yes, Clear',
             style: 'destructive',
             onPress: () => {
               setNewPrayer({ title: '', content: '', isPublic: true });
@@ -4990,13 +4975,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             }
           }
         ]
-      );
+      });
     };
     
     // Update existing prayer via API
     const handleUpdatePrayer = async () => {
       if (!newPrayer.content.trim()) {
-        Alert.alert('Error', 'Please enter your prayer request');
+        showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
         return;
       }
       
@@ -5080,15 +5065,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             setShowTitleInput(false);
             setCurrentScreen('home');
             
-            Alert.alert('Success', 'Prayer request updated successfully');
+            showToast('Prayer request updated successfully', '✅');
           } else {
-            Alert.alert('Error', data.result || 'Failed to update prayer');
+            showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update prayer' });
           }
         } else {
           throw new Error('Server error');
         }
       } catch (error) {
-        Alert.alert('Error', error.message || 'Failed to update prayer request. Please try again.');
+        showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to update prayer request. Please try again.' });
       } finally {
         setIsPosting(false);
       }
@@ -5306,7 +5291,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             setArchiveUnlocked(true);
             AsyncStorage.setItem('archiveUnlocked', 'true');
           },
-          () => Alert.alert('Ad Not Ready', 'Please try again in a moment.')
+          () => showModal({ icon: '📶', title: 'Ad Not Ready', message: 'Please try again in a moment.' })
         )}
       />
     );
@@ -5410,13 +5395,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <View style={styles.header}>
             <TouchableOpacity 
               onPress={() => {
-                Alert.alert(
-                  'Leave Session?',
-                  'Are you sure you want to leave this Rosary session?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'Leave', 
+                showModal({
+                  icon: '🚪',
+                  title: 'Leave Session?',
+                  message: 'Are you sure you want to leave this Rosary session?',
+                  buttons: [
+                    { label: 'Cancel', style: 'cancel' },
+                    {
+                      label: 'Leave',
                       style: 'destructive',
                       onPress: () => {
                         setRosaryScreen('lobby');
@@ -5425,7 +5411,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       }
                     }
                   ]
-                );
+                });
               }} 
               style={styles.backButton}
             >
@@ -5512,7 +5498,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <TouchableOpacity 
                   style={styles.rosaryNextPrayerButton}
                   onPress={() => {
-                    Alert.alert('Next Prayer', 'In production, this would advance to the next bead and update all participants in real-time via WebSocket.');
+                    showModal({ icon: '📿', title: 'Next Prayer', message: 'In production, this would advance to the next bead and update all participants in real-time via WebSocket.' });
                   }}
                   data-testid="button-next-prayer"
                 >
@@ -5521,23 +5507,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <TouchableOpacity 
                   style={styles.rosaryEndSessionButton}
                   onPress={() => {
-                    Alert.alert(
-                      'End Session?',
-                      'This will end the Rosary session for all participants.',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { 
-                          text: 'End Session', 
+                    showModal({
+                      icon: '🕊️',
+                      title: 'End Session?',
+                      message: 'This will end the Rosary session for all participants.',
+                      buttons: [
+                        { label: 'Cancel', style: 'cancel' },
+                        {
+                          label: 'End Session',
                           style: 'destructive',
                           onPress: () => {
                             setRosaryScreen('lobby');
                             setRosarySession(null);
                             setRosaryRole(null);
-                            Alert.alert('Session Ended', 'Thank you for praying!');
+                            showToast('Thank you for praying!', '🙏');
                           }
                         }
                       ]
-                    );
+                    });
                   }}
                   data-testid="button-end-session"
                 >

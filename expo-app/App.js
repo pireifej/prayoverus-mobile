@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build56';
+const APP_BUILD = 'preview-1.0.26-build57';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4958,7 +4958,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={styles.npComposerInfo}>
               <Text style={styles.npComposerName}>{currentUser?.firstName || 'You'}</Text>
               <Text style={styles.npComposerHint}>
-                {isEditing ? 'Edit your prayer request below' : "What's on your heart today?"}
+                {isEditing ? t('editPrayerHint') : (() => { const d = new Date(); const day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000); return t('heartPrompts')[day % 10]; })()}
               </Text>
             </View>
           </View>
@@ -4977,7 +4977,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             
             <TextInput
               style={styles.npTextArea}
-              placeholder="Share your prayer request with the community..."
+              placeholder={t('shareWithCommunity')}
               placeholderTextColor="#94a3b8"
               multiline
               numberOfLines={6}
@@ -5010,7 +5010,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               >
                 <Text style={styles.npOptionPillIcon}>📝</Text>
                 <Text style={[styles.npOptionPillLabel, showTitleInput && styles.npOptionPillLabelActive]}>
-                  {showTitleInput ? 'Hide Title' : 'Add Title'}
+                  {showTitleInput ? t('hideTitle') : t('addTitle')}
                 </Text>
               </TouchableOpacity>
               
@@ -5021,14 +5021,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               >
                 <Text style={styles.npOptionPillIcon}>📷</Text>
                 <Text style={[styles.npOptionPillLabel, prayerImage && styles.npOptionPillLabelActive]}>
-                  {prayerImage ? 'Change Photo' : 'Add Photo'}
+                  {prayerImage ? t('changePhoto') : t('addPhoto')}
                 </Text>
               </TouchableOpacity>
             </View>
             
             {currentUser?.churchName && currentUser.churchName !== 'None' && (
               <View style={styles.npVisibilitySection}>
-                <Text style={styles.npVisibilityTitle}>Who can see this?</Text>
+                <Text style={styles.npVisibilityTitle}>{t('whoCanSee')}</Text>
                 <View style={styles.npSegmentedControl}>
                   <TouchableOpacity 
                     style={[styles.npSegment, newPrayer.isPublic && styles.npSegmentActive]}
@@ -5036,7 +5036,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     disabled={isPosting}
                   >
                     <Text style={[styles.npSegmentText, newPrayer.isPublic && styles.npSegmentTextActive]}>
-                      🌍 Everyone
+                      {t('everyone')}
                     </Text>
                   </TouchableOpacity>
                   
@@ -5074,12 +5074,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 isPosting ? (
                   <View style={styles.npPostButtonInner}>
                     <ActivityIndicator color="white" size="small" />
-                    <Text style={styles.npPostButtonText}>Posting...</Text>
+                    <Text style={styles.npPostButtonText}>{t('posting')}</Text>
                   </View>
                 ) : (
                   <View style={styles.npPostButtonInner}>
                     <Text style={[styles.npPostButtonText, { opacity: 0.7 }]}>
-                      {isEditing ? 'Update Prayer Request' : 'Post Prayer Request'}
+                      {isEditing ? t('updatePrayerRequest') : t('postPrayerRequest')}
                     </Text>
                   </View>
                 )
@@ -5091,7 +5091,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   end={{ x: 1, y: 0 }}
                 >
                   <Text style={styles.npPostButtonText}>
-                    {isEditing ? 'Update Prayer Request' : '🙏 Post Prayer Request'}
+                    {isEditing ? t('updatePrayerRequest') : t('postPrayerRequest')}
                   </Text>
                 </LinearGradient>
               )}

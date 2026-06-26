@@ -150,11 +150,18 @@ const translations = {
 
     // Change password screen
     changePasswordTitle: 'Change Password',
-    changePasswordDesc: 'We\'ll send a password reset link to your email address on file.',
-    sendResetLink: 'Send Reset Link',
-    sendingReset: 'Sending...',
-    resetLinkSent: 'Reset link sent! Check your email inbox (and spam folder).',
-    resetLinkError: 'Could not send reset link. Please try again.',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    currentPasswordPlaceholder: 'Enter your current password',
+    newPasswordPlaceholder: 'Enter your new password',
+    confirmPasswordPlaceholder: 'Re-enter your new password',
+    passwordsDoNotMatch: 'Passwords do not match',
+    passwordTooShort: 'New password must be at least 6 characters',
+    updatePassword: 'Update Password',
+    updatingPassword: 'Updating...',
+    passwordUpdated: '✅ Password updated successfully!',
+    passwordUpdatedDesc: 'Your password has been changed. Use it next time you sign in.',
 
     // Settings screen
     settingsTitle: 'Settings',
@@ -368,11 +375,18 @@ const translations = {
 
     // Change password screen
     changePasswordTitle: 'Cambiar Contraseña',
-    changePasswordDesc: 'Enviaremos un enlace para restablecer tu contraseña al correo electrónico registrado.',
-    sendResetLink: 'Enviar Enlace de Restablecimiento',
-    sendingReset: 'Enviando...',
-    resetLinkSent: '¡Enlace enviado! Revisa tu bandeja de entrada (y la carpeta de spam).',
-    resetLinkError: 'No se pudo enviar el enlace. Por favor intenta de nuevo.',
+    currentPassword: 'Contraseña Actual',
+    newPassword: 'Nueva Contraseña',
+    confirmNewPassword: 'Confirmar Nueva Contraseña',
+    currentPasswordPlaceholder: 'Ingresa tu contraseña actual',
+    newPasswordPlaceholder: 'Ingresa tu nueva contraseña',
+    confirmPasswordPlaceholder: 'Vuelve a ingresar tu nueva contraseña',
+    passwordsDoNotMatch: 'Las contraseñas no coinciden',
+    passwordTooShort: 'La nueva contraseña debe tener al menos 6 caracteres',
+    updatePassword: 'Actualizar Contraseña',
+    updatingPassword: 'Actualizando...',
+    passwordUpdated: '✅ ¡Contraseña actualizada!',
+    passwordUpdatedDesc: 'Tu contraseña ha sido cambiada. Úsala la próxima vez que inicies sesión.',
 
     // Settings screen
     settingsTitle: 'Configuración',

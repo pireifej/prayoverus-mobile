@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build59';
+const APP_BUILD = 'preview-1.0.26-build60';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -4004,29 +4004,61 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'changePassword') {
-    const userEmail = currentUser?.email || '';
-    const [sendingReset, setSendingReset] = React.useState(false);
-    const [resetSent, setResetSent] = React.useState(false);
+    const [cpCurrent, setCpCurrent] = React.useState('');
+    const [cpNew, setCpNew] = React.useState('');
+    const [cpConfirm, setCpConfirm] = React.useState('');
+    const [cpLoading, setCpLoading] = React.useState(false);
+    const [cpDone, setCpDone] = React.useState(false);
+    const [cpError, setCpError] = React.useState('');
 
-    const doSendReset = async () => {
-      setSendingReset(true);
+    const doChangePassword = async () => {
+      setCpError('');
+      if (cpNew.length < 6) { setCpError(t('passwordTooShort')); return; }
+      if (cpNew !== cpConfirm) { setCpError(t('passwordsDoNotMatch')); return; }
+      setCpLoading(true);
       try {
-        const res = await fetch('https://shouldcallpaul.replit.app/requestPasswordReset', {
+        const res = await fetch('https://shouldcallpaul.replit.app/changePassword', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: userEmail }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          },
+          body: JSON.stringify({
+            userId: currentUser.id,
+            currentPassword: cpCurrent,
+            newPassword: cpNew,
+          }),
         });
         const data = await res.json();
         if (data.error === 0) {
-          setResetSent(true);
+          setCpDone(true);
         } else {
-          Alert.alert(t('errorTitle'), data.result || t('resetLinkError'));
+          setCpError(data.result || t('tryAgain'));
         }
       } catch {
-        Alert.alert(t('errorTitle'), t('networkError'));
+        setCpError(t('networkError'));
       } finally {
-        setSendingReset(false);
+        setCpLoading(false);
       }
+    };
+
+    const inputStyle = {
+      backgroundColor: '#f8fafc',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      padding: 14,
+      fontSize: 16,
+      color: '#0f172a',
+      marginBottom: 16,
+    };
+    const labelStyle = {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#64748b',
+      letterSpacing: 0.8,
+      marginBottom: 6,
+      textTransform: 'uppercase',
     };
 
     return (
@@ -4054,24 +4086,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
           keyboardShouldPersistTaps="handled"
         >
-          {resetSent ? (
+          {cpDone ? (
             <View style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              padding: 28,
-              alignItems: 'center',
-              shadowColor: '#0f172a',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.08,
-              shadowRadius: 8,
-              elevation: 3,
+              backgroundColor: '#fff', borderRadius: 16, padding: 28,
+              alignItems: 'center', shadowColor: '#0f172a',
+              shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
             }}>
-              <Text style={{ fontSize: 40, marginBottom: 14 }}>✉️</Text>
+              <Text style={{ fontSize: 48, marginBottom: 14 }}>🔐</Text>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 10, textAlign: 'center' }}>
-                {t('changePasswordTitle')}
+                {t('passwordUpdated')}
               </Text>
               <Text style={{ fontSize: 15, color: '#64748b', lineHeight: 22, textAlign: 'center' }}>
-                {t('resetLinkSent')}
+                {t('passwordUpdatedDesc')}
               </Text>
               <TouchableOpacity
                 onPress={() => setCurrentScreen('profile')}
@@ -4082,48 +4108,66 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           ) : (
             <View style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              padding: 24,
-              shadowColor: '#0f172a',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.08,
-              shadowRadius: 8,
-              elevation: 3,
+              backgroundColor: '#fff', borderRadius: 16, padding: 24,
+              shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
             }}>
-              <Text style={{ fontSize: 30, marginBottom: 10 }}>🔑</Text>
-              <Text style={{ fontSize: 16, color: '#475569', lineHeight: 23, marginBottom: 20 }}>
-                {t('changePasswordDesc')}
-              </Text>
+              <Text style={{ fontSize: 30, marginBottom: 16 }}>🔑</Text>
 
-              <View style={{
-                backgroundColor: '#f1f5f9',
-                borderRadius: 10,
-                padding: 14,
-                marginBottom: 24,
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-              }}>
-                <Text style={{ fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                  {t('helpEmailLabel')}
-                </Text>
-                <Text style={{ fontSize: 16, color: '#0f172a', fontWeight: '600' }}>{userEmail}</Text>
-              </View>
+              <Text style={labelStyle}>{t('currentPassword')}</Text>
+              <TextInput
+                style={inputStyle}
+                placeholder={t('currentPasswordPlaceholder')}
+                placeholderTextColor="#94a3b8"
+                secureTextEntry
+                autoCapitalize="none"
+                value={cpCurrent}
+                onChangeText={v => { setCpCurrent(v); setCpError(''); }}
+              />
+
+              <Text style={labelStyle}>{t('newPassword')}</Text>
+              <TextInput
+                style={inputStyle}
+                placeholder={t('newPasswordPlaceholder')}
+                placeholderTextColor="#94a3b8"
+                secureTextEntry
+                autoCapitalize="none"
+                value={cpNew}
+                onChangeText={v => { setCpNew(v); setCpError(''); }}
+              />
+
+              <Text style={labelStyle}>{t('confirmNewPassword')}</Text>
+              <TextInput
+                style={[inputStyle, { marginBottom: cpError ? 8 : 24 }]}
+                placeholder={t('confirmPasswordPlaceholder')}
+                placeholderTextColor="#94a3b8"
+                secureTextEntry
+                autoCapitalize="none"
+                value={cpConfirm}
+                onChangeText={v => { setCpConfirm(v); setCpError(''); }}
+              />
+
+              {cpError ? (
+                <View style={{ backgroundColor: '#fef2f2', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#fecaca' }}>
+                  <Text style={{ color: '#dc2626', fontSize: 14, fontWeight: '600' }}>⚠️ {cpError}</Text>
+                </View>
+              ) : null}
 
               <TouchableOpacity
-                onPress={doSendReset}
-                disabled={sendingReset}
+                onPress={doChangePassword}
+                disabled={cpLoading || !cpCurrent || !cpNew || !cpConfirm}
                 activeOpacity={0.85}
               >
                 <LinearGradient
-                  colors={sendingReset ? ['#94a3b8', '#94a3b8'] : ['#2563eb', '#1e40af']}
+                  colors={(cpLoading || !cpCurrent || !cpNew || !cpConfirm) ? ['#94a3b8', '#94a3b8'] : ['#2563eb', '#1e40af']}
                   style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>
-                    {sendingReset ? t('sendingReset') : t('sendResetLink')}
-                  </Text>
+                  {cpLoading
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>{t('updatePassword')}</Text>
+                  }
                 </LinearGradient>
               </TouchableOpacity>
             </View>

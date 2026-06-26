@@ -1,0 +1,49 @@
+That's expected — the endpoint is protected by authenticate. Let me check what that middleware needs so I can test it properly and write accurate frontend docs:
+
+
+4 actions
+The endpoint is live and working. Here are the frontend instructions:
+
+POST /changePassword — Frontend Integration
+The call
+It uses the same Basic Auth header as every other endpoint in the app — nothing new there. The only thing the body needs is the logged-in user's ID plus both passwords.
+
+const response = await fetch('https://your-api-url/changePassword', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Basic ' + btoa(`${API_USERNAME}:${API_PASSWORD}`)
+    // same header you already use everywhere else
+  },
+  body: JSON.stringify({
+    userId: currentUser.user_id,       // from your stored login session
+    currentPassword: 'WhatTheyTyped',  // the "current password" field
+    newPassword: 'TheirNewPassword'    // the "new password" field
+  })
+});
+const data = await response.json();
+
+Responses
+Scenario	error	result
+Success	0	"Password changed successfully"
+Wrong current password	1	"Current password is incorrect"
+New password too short (<6 chars)	1	"New password must be at least 6 characters"
+Same password as current	1	"New password must be different from your current password"
+Missing any field	1	"userId, currentPassword, and newPassword are required"
+Handling it in the UI
+if (data.error === 0) {
+  // Success — show confirmation, clear the form
+  alert('Password updated!');
+} else {
+  // Show data.result as an error message directly to the user —
+  // all the messages are already human-readable
+  alert(data.result);
+}
+
+Typical screen layout
+Your Change Password screen just needs three text inputs:
+
+Current password (secure/masked)
+New password (secure/masked)
+Confirm new password (validate client-side that it matches new password before sending — the API doesn't need confirmPassword, just don't let the user submit if they don't match)
+userId comes from whatever you store after login — same place you get it for all other authenticated calls.

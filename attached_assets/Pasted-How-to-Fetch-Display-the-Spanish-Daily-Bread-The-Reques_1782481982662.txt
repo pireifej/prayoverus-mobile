@@ -1,0 +1,56 @@
+How to Fetch & Display the Spanish Daily Bread
+The Request
+POST /getDailyDevotional
+Authorization: Basic <your_credentials>
+Content-Type: application/json
+{ "lang": "es" }
+
+Use "lang": "en" for English, "lang": "es" for Spanish
+Requires Basic Auth (same credentials as all other authenticated endpoints)
+Always returns today's article. If it doesn't exist yet, the server auto-generates it on the first call (may take a few extra seconds that one time)
+The Response
+{
+  "error": 0,
+  "result": {
+    "id": 15,
+    "date": "2026-06-25",
+    "lang": "es",
+    "title": "El poder de la compasión",
+    "bible_verse": "Por tanto, como elegidos de Dios...",
+    "verse_reference": "Colosenses 3:12",
+    "article_body": "La compasión es una de las manifestaciones...\n\nCuando practicamos la compasión...",
+    "prayer": "Señor, gracias por recordarme la importancia...",
+    "theme": "Compassion",
+    "image_url": "https://res.cloudinary.com/..."
+  }
+}
+
+Check error === 0 before displaying. If error === 1, show a fallback message.
+
+Field-by-Field Display Guide
+Field	How to display it
+image_url	Hero image at the top. It's a Cloudinary CDN URL — load it directly in an <img> tag
+title	Large heading
+verse_reference	Small label, e.g. in a badge or italics — "Colosenses 3:12"
+bible_verse	Styled as a quote block (indented, italic, or highlighted)
+article_body	Main body text. Split on \n\n to get paragraphs and render each as its own <p>
+prayer	Closing section — good to separate visually with a divider or a small icon. Could label it "Oración de hoy"
+date	Already formatted as YYYY-MM-DD — convert to a readable local date if needed
+theme	Optional — use as a tag, subtitle, or color accent if your design has a theme system
+Example (React)
+const res = await fetch('/getDailyDevotional', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Basic ' + btoa('user:pass'),
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ lang: 'es' })
+});
+const data = await res.json();
+if (data.error !== 0) {
+  // show fallback
+  return;
+}
+const { title, bible_verse, verse_reference, article_body, prayer, image_url, date } = data.result;
+// Render paragraphs:
+const paragraphs = article_body.split('\n\n');

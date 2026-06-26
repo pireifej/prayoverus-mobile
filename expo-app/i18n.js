@@ -6,10 +6,24 @@ const translations = {
     groups: 'Groups',
     profile: 'Profile',
 
+    // Greeting
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
+    greetingFriend: 'Friend',
+
+    // Home header
+    logout: 'Logout',
+    maxLevel: '👑 Max Level!',
+    ptsLabel: 'pts',
+
+    // Home feed filters
+    hidePrayed: 'Hide prayed',
+    filterAll: '🌍 All',
+    filterMine: '✍️ Mine',
+    filterChurch: '⛪ My Church',
+
     // Home screen
-    goodMorning: 'Good Morning',
-    goodAfternoon: 'Good Afternoon',
-    goodEvening: 'Good Evening',
     dailyBreadPill: '🍞 Daily Bread',
     loadingPrayers: 'Loading prayers...',
     emptyMyPrayers: 'You haven\'t shared any prayer requests yet. Tap "Share a Prayer Request" above!',
@@ -25,10 +39,20 @@ const translations = {
     newBadgeTitle: 'New Badge Unlocked!',
     praiseGod: 'Praise God! 🙏',
 
+    // Faith Points guide
+    howToEarnPoints: '💡 How to earn Faith Points',
+    pointsRow1: '🙏 Pray for someone',
+    pointsRow2: '✍️ Post a prayer request',
+    pointsRow3: '📸 Post with a photo',
+    pointsRow4: '🙌 Mark prayer answered',
+    earnMorePoints: 'Earn more points to rise through the ranks! 🛡️',
+
+    // Share prayer button
+    sharePrayerRequest: 'Share a Prayer Request',
+
     // Prayer cards / actions
     prayForThis: '🙏 Pray for this',
     youPrayed: '✓ You Prayed',
-    hidePrayed: 'Hide Prayed ✓',
 
     // Prayer options menu
     sharePrayerMenu: 'Share Prayer',
@@ -68,9 +92,15 @@ const translations = {
     statPoints: 'Points',
     levelLabel: 'Level',
     aboutSection: 'About',
+    churchSection: 'Church',
+    faithProgressSection: 'Faith Progress',
+    faithPointsSection: 'Faith Points',
+    ptsToRank: (pts, rankName) => `${pts} pts to ${rankName}`,
+    pointsLabel: (n) => `${n} points`,
     tellUsAboutYourself: 'Tell us about yourself',
     notSet: 'Not set',
     profileIconOptional: 'Profile icon (optional)',
+    selectChurch: 'Select a church...',
     maxRankReached: 'Maximum rank achieved!',
     badgesLabel: (n) => `Badges (${n})`,
     earnBadges: 'Earn badges by praying, reading Daily Bread, and supporting others.',
@@ -80,6 +110,20 @@ const translations = {
     noAnsweredPrayers: 'No answered prayers yet.\nWhen God answers your prayer, tap "Prayer Answered 🙌" from the ⋮ menu on any of your requests.',
     yourTestimony: 'Your Testimony',
     helpSupport: '❓ Help & Support',
+
+    // Help & Support screen
+    helpScreenTitle: 'Help & Support',
+    helpContactUs: 'Contact Us',
+    helpIntroText: 'Have questions or need support? Send us a message and we\'ll get back to you as soon as possible.',
+    helpMessageLabel: 'Message',
+    helpMessagePlaceholder: 'Your message...',
+    helpNameLabel: 'Name',
+    helpNamePlaceholder: 'Your name',
+    helpEmailLabel: 'Email Address',
+    helpEmailPlaceholder: 'Your email',
+    helpPhoneLabel: 'Phone Number (Optional)',
+    helpPhonePlaceholder: 'Your phone (optional)',
+    helpSendButton: 'Send Message',
 
     // Settings screen
     settingsTitle: 'Settings',
@@ -148,10 +192,24 @@ const translations = {
     groups: 'Grupos',
     profile: 'Perfil',
 
+    // Greeting
+    goodMorning: 'Buenos días',
+    goodAfternoon: 'Buenas tardes',
+    goodEvening: 'Buenas noches',
+    greetingFriend: 'Amigo',
+
+    // Home header
+    logout: 'Salir',
+    maxLevel: '👑 ¡Nivel Máx!',
+    ptsLabel: 'pts',
+
+    // Home feed filters
+    hidePrayed: 'Ocultar oradas',
+    filterAll: '🌍 Todas',
+    filterMine: '✍️ Las mías',
+    filterChurch: '⛪ Mi Iglesia',
+
     // Home screen
-    goodMorning: 'Buenos Días',
-    goodAfternoon: 'Buenas Tardes',
-    goodEvening: 'Buenas Noches',
     dailyBreadPill: '🍞 Pan Diario',
     loadingPrayers: 'Cargando oraciones...',
     emptyMyPrayers: 'Aún no has compartido peticiones. ¡Toca "Compartir Petición" arriba!',
@@ -167,10 +225,20 @@ const translations = {
     newBadgeTitle: '¡Nueva Insignia Desbloqueada!',
     praiseGod: '¡Gloria a Dios! 🙏',
 
+    // Faith Points guide
+    howToEarnPoints: '💡 Cómo ganar Puntos de Fe',
+    pointsRow1: '🙏 Orar por alguien',
+    pointsRow2: '✍️ Publicar una petición',
+    pointsRow3: '📸 Publicar con foto',
+    pointsRow4: '🙌 Marcar oración contestada',
+    earnMorePoints: '¡Gana más puntos para subir de rango! 🛡️',
+
+    // Share prayer button
+    sharePrayerRequest: 'Compartir una Petición de Oración',
+
     // Prayer cards / actions
     prayForThis: '🙏 Orar por esto',
     youPrayed: '✓ Oraste',
-    hidePrayed: 'Ocultar Oradas ✓',
 
     // Prayer options menu
     sharePrayerMenu: 'Compartir Oración',
@@ -210,9 +278,15 @@ const translations = {
     statPoints: 'Puntos',
     levelLabel: 'Nivel',
     aboutSection: 'Acerca de',
+    churchSection: 'Iglesia',
+    faithProgressSection: 'Progreso de Fe',
+    faithPointsSection: 'Puntos de Fe',
+    ptsToRank: (pts, rankName) => `${pts} pts para ${rankName}`,
+    pointsLabel: (n) => `${n} puntos`,
     tellUsAboutYourself: 'Cuéntanos sobre ti',
     notSet: 'No establecido',
     profileIconOptional: 'Ícono de perfil (opcional)',
+    selectChurch: 'Selecciona una iglesia...',
     maxRankReached: '¡Rango máximo alcanzado!',
     badgesLabel: (n) => `Insignias (${n})`,
     earnBadges: 'Gana insignias orando, leyendo el Pan Diario y apoyando a otros.',
@@ -222,6 +296,20 @@ const translations = {
     noAnsweredPrayers: 'Aún no hay oraciones contestadas.\nCuando Dios conteste tu oración, toca "Oración Contestada 🙌" en el menú ⋮ de cualquier petición.',
     yourTestimony: 'Tu Testimonio',
     helpSupport: '❓ Ayuda y Soporte',
+
+    // Help & Support screen
+    helpScreenTitle: 'Ayuda y Soporte',
+    helpContactUs: 'Contáctanos',
+    helpIntroText: '¿Tienes preguntas o necesitas ayuda? Envíanos un mensaje y te responderemos lo antes posible.',
+    helpMessageLabel: 'Mensaje',
+    helpMessagePlaceholder: 'Tu mensaje...',
+    helpNameLabel: 'Nombre',
+    helpNamePlaceholder: 'Tu nombre',
+    helpEmailLabel: 'Correo Electrónico',
+    helpEmailPlaceholder: 'Tu correo',
+    helpPhoneLabel: 'Número de Teléfono (Opcional)',
+    helpPhonePlaceholder: 'Tu teléfono (opcional)',
+    helpSendButton: 'Enviar Mensaje',
 
     // Settings screen
     settingsTitle: 'Configuración',

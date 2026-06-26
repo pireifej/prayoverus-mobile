@@ -39,7 +39,7 @@ try {
 } catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
 
 // App build tag — bump this with every OTA push so users can confirm their version
-const APP_BUILD = 'preview-1.0.26-build55';
+const APP_BUILD = 'preview-1.0.26-build56';
 
 // Faith Rank System - tiered Christian ranking based on faith_points
 const FAITH_RANKS = [
@@ -725,9 +725,9 @@ const optionsMenuStyles = StyleSheet.create({
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return t('goodMorning');
+  if (hour < 17) return t('goodAfternoon');
+  return t('goodEvening');
 };
 
 function App() {
@@ -3729,22 +3729,22 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
             {member.about ? (
               <View style={styles.memberProfileSection}>
-                <Text style={styles.memberProfileSectionTitle}>About</Text>
+                <Text style={styles.memberProfileSectionTitle}>{t('aboutSection')}</Text>
                 <Text style={styles.memberProfileSectionText}>{member.about}</Text>
               </View>
             ) : null}
 
             <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>Church</Text>
-              <Text style={styles.memberProfileSectionText}>⛪ {selectedChurch?.church_name || member.church_name || 'Not set'}</Text>
+              <Text style={styles.memberProfileSectionTitle}>{t('churchSection')}</Text>
+              <Text style={styles.memberProfileSectionText}>⛪ {selectedChurch?.church_name || member.church_name || t('notSet')}</Text>
             </View>
 
             <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>Faith Points</Text>
+              <Text style={styles.memberProfileSectionTitle}>{t('faithPointsSection')}</Text>
               <View style={styles.memberFaithBar}>
                 <View style={[styles.memberFaithBarFill, { width: `${Math.min(((member.faith_points || 0) / Math.max(memberRank.maxPoints, 1)) * 100, 100)}%` }]} />
               </View>
-              <Text style={styles.memberFaithPoints}>{member.faith_points || 0} points</Text>
+              <Text style={styles.memberFaithPoints}>{t('pointsLabel')(member.faith_points || 0)}</Text>
             </View>
           </View>
         </ScrollView>
@@ -4020,7 +4020,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           >
             <Text style={{ fontSize: 22, color: '#fff' }}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.communityHeaderTitle}>Help & Support</Text>
+          <Text style={styles.communityHeaderTitle}>{t('helpScreenTitle')}</Text>
           <View style={{ minWidth: 60 }} />
         </LinearGradient>
 
@@ -4043,10 +4043,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           }}>
             <Text style={{ fontSize: 22, marginBottom: 8 }}>🙏</Text>
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 6 }}>
-              Contact Us
+              {t('helpContactUs')}
             </Text>
             <Text style={{ fontSize: 15, color: '#64748b', lineHeight: 22 }}>
-              Have questions or need support? Send us a message and we'll get back to you as soon as possible.
+              {t('helpIntroText')}
             </Text>
           </View>
 
@@ -4063,7 +4063,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             marginBottom: 16,
           }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
-              Message
+              {t('helpMessageLabel')}
             </Text>
             <TextInput
               style={{
@@ -4078,7 +4078,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 textAlignVertical: 'top',
                 marginBottom: 16,
               }}
-              placeholder="Your message..."
+              placeholder={t('helpMessagePlaceholder')}
               placeholderTextColor="#94a3b8"
               multiline
               numberOfLines={4}
@@ -4088,7 +4088,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
 
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
-              Name
+              {t('helpNameLabel')}
             </Text>
             <TextInput
               style={{
@@ -4101,7 +4101,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 color: '#0f172a',
                 marginBottom: 16,
               }}
-              placeholder="Your name"
+              placeholder={t('helpNamePlaceholder')}
               placeholderTextColor="#94a3b8"
               value={helpForm.name}
               onChangeText={(text) => setHelpForm({...helpForm, name: text})}
@@ -4109,7 +4109,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
 
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
-              Email Address
+              {t('helpEmailLabel')}
             </Text>
             <TextInput
               style={{
@@ -4122,7 +4122,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 color: '#0f172a',
                 marginBottom: 16,
               }}
-              placeholder="Your email"
+              placeholder={t('helpEmailPlaceholder')}
               placeholderTextColor="#94a3b8"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -4132,7 +4132,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
 
             <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' }}>
-              Phone Number (Optional)
+              {t('helpPhoneLabel')}
             </Text>
             <TextInput
               style={{
@@ -4145,7 +4145,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 color: '#0f172a',
                 marginBottom: 4,
               }}
-              placeholder="Your phone (optional)"
+              placeholder={t('helpPhonePlaceholder')}
               placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
               value={helpForm.phone}
@@ -4171,7 +4171,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               end={{ x: 1, y: 0 }}
             >
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
-                Send Message
+                {t('helpSendButton')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -4391,19 +4391,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
             ) : (
               <View style={styles.memberProfileSection}>
-                <Text style={styles.memberProfileSectionTitle}>Church</Text>
-                <Text style={styles.memberProfileSectionText}>⛪ {currentUser.churchName || 'Not set'}</Text>
+                <Text style={styles.memberProfileSectionTitle}>{t('churchSection')}</Text>
+                <Text style={styles.memberProfileSectionText}>⛪ {currentUser.churchName || t('notSet')}</Text>
               </View>
             )}
 
             <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>Faith Progress</Text>
+              <Text style={styles.memberProfileSectionTitle}>{t('faithProgressSection')}</Text>
               <View style={styles.memberFaithBar}>
                 <View style={[styles.memberFaithBarFill, { width: `${rank.progress * 100}%` }]} />
               </View>
               {rank.nextRank ? (
                 <Text style={styles.memberFaithPoints}>
-                  {Math.max(rank.nextRank.minPoints - rank.points, 0)} pts to {rank.nextRank.title}
+                  {t('ptsToRank')(Math.max(rank.nextRank.minPoints - rank.points, 0), rank.nextRank.title)}
                 </Text>
               ) : (
                 <Text style={styles.memberFaithPoints}>{t('maxRankReached')}</Text>
@@ -5408,7 +5408,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </TouchableOpacity>
                 <View style={styles.headerGreetingBlock}>
                   <Text style={styles.headerGreetingSmall}>{getGreeting()},</Text>
-                  <Text style={styles.headerGreetingName}>{currentUser.firstName || 'Friend'}</Text>
+                  <Text style={styles.headerGreetingName}>{currentUser.firstName || t('greetingFriend')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={handleLogout}
@@ -5416,7 +5416,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   activeOpacity={0.6}
                   data-testid="button-logout"
                 >
-                  <Text style={styles.logoutText}>Logout</Text>
+                  <Text style={styles.logoutText}>{t('logout')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -5428,7 +5428,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {r.nextRank ? (
                     <Text style={styles.xpBarNextLabel}>{r.nextRank.icon} {r.nextRank.title}</Text>
                   ) : (
-                    <Text style={styles.xpBarNextLabel}>👑 Max Level!</Text>
+                    <Text style={styles.xpBarNextLabel}>{t('maxLevel')}</Text>
                   )}
                 </View>
                 <View style={styles.xpBarTrack}>
@@ -5443,7 +5443,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       {/* Sticky Filter Bar - Always visible */}
       <View style={styles.stickyFilterBar}>
         <View style={styles.stickyFilterTopRow}>
-          <Text style={styles.stickyFilterHideLabel}>Hide prayed</Text>
+          <Text style={styles.stickyFilterHideLabel}>{t('hidePrayed')}</Text>
           <TouchableOpacity 
             onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
             style={[styles.toggleSwitchSmall, hideAlreadyPrayed && styles.toggleSwitchSmallActive]}
@@ -5461,7 +5461,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }}
             >
               <Text style={[styles.filterPillSmallText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillSmallTextActive]}>
-                🌍 All
+                {t('filterAll')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -5475,7 +5475,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }}
             >
               <Text style={[styles.filterPillSmallText, showMyRequestsOnly && styles.filterPillSmallTextActive]}>
-                ✍️ Mine
+                {t('filterMine')}
               </Text>
             </TouchableOpacity>
             {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
@@ -5569,31 +5569,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           onPress={() => setShowPointsGuide(prev => !prev)}
           activeOpacity={0.8}
         >
-          <Text style={styles.pointsGuideTriggerText}>💡 How to earn Faith Points</Text>
+          <Text style={styles.pointsGuideTriggerText}>{t('howToEarnPoints')}</Text>
           <Text style={styles.pointsGuideChevron}>{showPointsGuide ? '▲' : '▼'}</Text>
         </TouchableOpacity>
         {showPointsGuide && (
           <View style={styles.pointsGuideCard}>
             <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>🙏 Pray for someone</Text>
+              <Text style={styles.pointsGuideAction}>{t('pointsRow1')}</Text>
               <Text style={styles.pointsGuideValue}>+1 pt</Text>
             </View>
             <View style={styles.pointsGuideDivider} />
             <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>✍️ Post a prayer request</Text>
+              <Text style={styles.pointsGuideAction}>{t('pointsRow2')}</Text>
               <Text style={styles.pointsGuideValue}>+3 pts</Text>
             </View>
             <View style={styles.pointsGuideDivider} />
             <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>📸 Post with a photo</Text>
+              <Text style={styles.pointsGuideAction}>{t('pointsRow3')}</Text>
               <Text style={styles.pointsGuideValue}>+5 pts</Text>
             </View>
             <View style={styles.pointsGuideDivider} />
             <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>🙌 Mark prayer answered</Text>
+              <Text style={styles.pointsGuideAction}>{t('pointsRow4')}</Text>
               <Text style={styles.pointsGuideValue}>+10 pts</Text>
             </View>
-            <Text style={styles.pointsGuideFooter}>Earn more points to rise through the ranks! 🛡️</Text>
+            <Text style={styles.pointsGuideFooter}>{t('earnMorePoints')}</Text>
           </View>
         )}
 
@@ -5608,7 +5608,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           activeOpacity={0.7}
         >
           <Animated.Text style={[styles.sharePrayerButtonIcon, { transform: [{ scale: prayerHandsPulse }] }]}>🙏</Animated.Text>
-          <Text style={styles.sharePrayerButtonText}>Share a Prayer Request</Text>
+          <Text style={styles.sharePrayerButtonText}>{t('sharePrayerRequest')}</Text>
         </TouchableOpacity>
 
         {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}

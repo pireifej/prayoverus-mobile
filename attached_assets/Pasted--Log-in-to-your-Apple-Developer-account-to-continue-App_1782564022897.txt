@@ -1,0 +1,101 @@
+› Log in to your Apple Developer account to continue
+✔ Apple ID: … paul.ireifej@gmail.com
+› The password is only used to authenticate with Apple and never stored on EAS servers
+  Learn more: https://bit.ly/2VtGWhU
+✔ Password (for paul.ireifej@gmail.com): … *****************
+› Saving Apple ID password to the local Keychain
+  Learn more: https://docs.expo.dev/distribution/security#keychain
+✔ Logged in, verify your Apple account to continue
+Two-factor Authentication (6 digit code) is enabled for paul.ireifej@gmail.com. Learn more: https://support.apple.com/en-us/HT204915
+
+✔ How do you want to validate your account? … device / sms
+✔ Please enter the 6 digit code you received at +1 (•••) •••-••86: … 107433
+✔ Valid code
+✔ Logged in and verified
+› Team Paul Ireifej (MC4R3L639K)
+› Provider Paul Ireifej (128110254)
+
+✔ Bundle identifier registered com.pireifej.prayoverus
+✔ Prepared App Store Connect for PrayOverUs com.pireifej.prayoverus
+Looking up credentials configuration for com.pireifej.prayoverus...
+✔ App Store Connect API Key already set up.
+Using Api Key ID: 4ABS55JBSL ([Expo] EAS Submit BVBp8UeSDK)
+
+ASC App ID:                 6751807110
+Project ID:                 91bdb01b-1012-49e1-abb4-fc8fae904ec8
+App Store Connect API Key:  
+    Key Name  :  [Expo] EAS Submit BVBp8UeSDK
+    Key ID    :  4ABS55JBSL
+    Key Source:  EAS servers
+Build:                      
+    Build ID    :  2ce1510e-7e0e-41a5-8fdb-3d7c5b61c092
+    Build Date  :  6/27/2026, 12:24:30 PM
+    App Version :  1.0.27
+    Build number:  55
+
+✔ Scheduled iOS submission
+
+Android submission details: https://expo.dev/accounts/pireifej/projects/pray-over-us/submissions/2a122bf9-3af9-47fd-bff2-04279a276ea7
+iOS submission details: https://expo.dev/accounts/pireifej/projects/pray-over-us/submissions/e8582a4c-e618-491b-91a6-b9664accb3c4
+
+Waiting for submissions to complete. You can press Ctrl+C to exit.
+✖ Some submissions were canceled or failed
+
+🤖 Android submission
+
+Fastlane supply failed
+We couldn't figure out what went wrong. See logs to learn more.
+
+[logs] Start phase: SPIN_UP_SUBMISSION_WORKER
+[logs] Creating new worker instance
+[logs] End phase: SPIN_UP_SUBMISSION_WORKER
+
+[logs] Start phase: SUBMIT_TO_PLAY_STORE
+[logs] Starting the submit process
+[logs] Downloading archive
+[logs] Preparing artifact
+[logs] Submitting Android app to Play Store...
+[logs] Submitting the app with fastlane supply
+[logs] +--------------------------------------------------------------------------------------------------------------------------------------------+
+[logs] |                                                         Summary for supply 2.220.0                                                         |
+[logs] +------------------------------------+-------------------------------------------------------------------------------------------------------+
+[logs] | aab                                | /tmp/submissions/5c33f4fc-18eb-4442-9e75-7d5c7889cbdf/zWrBUIlX66MbyYE13YhOYEjRLL_mJqWnHwaqNnNbsQA.aab |
+[logs] | track                              | internal                                                                                              |
+[logs] | json_key                           | /tmp/submissions/5c33f4fc-18eb-4442-9e75-7d5c7889cbdf/service-account.json                            |
+[logs] | package_name                       | com.pireifej.prayoverus                                                                               |
+[logs] | changes_not_sent_for_review        | false                                                                                                 |
+[logs] | release_status                     | completed                                                                                             |
+[logs] | skip_upload_apk                    | false                                                                                                 |
+[logs] | skip_upload_aab                    | false                                                                                                 |
+[logs] | skip_upload_metadata               | false                                                                                                 |
+[logs] | skip_upload_changelogs             | false                                                                                                 |
+[logs] | skip_upload_images                 | false                                                                                                 |
+[logs] | skip_upload_screenshots            | false                                                                                                 |
+[logs] | sync_image_upload                  | false                                                                                                 |
+[logs] | track_promote_release_status       | completed                                                                                             |
+[logs] | validate_only                      | false                                                                                                 |
+[logs] | check_superseded_tracks            | false                                                                                                 |
+[logs] | timeout                            | 300                                                                                                   |
+[logs] | deactivate_on_promote              | true                                                                                                  |
+[logs] | rescue_changes_not_sent_for_review | true                                                                                                  |
+[logs] | ack_bundle_installation_warning    | false                                                                                                 |
+[logs] +------------------------------------+-------------------------------------------------------------------------------------------------------+
+[logs] 
+[logs] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Retrying...
+[logs] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Retrying...
+[logs] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Retrying...
+[logs] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Retrying...
+[logs] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Retrying...
+[logs] [!] Google Api Error: PERMISSION_DENIED: Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. - Google Play Android Developer API has not been used in project 798628803696 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview?project=798628803696 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+[logs] Fastlane supply failed
+[logs] Failed to submit the app to the store
+[logs] End phase: SUBMIT_TO_PLAY_STORE
+
+🍏 iOS submission
+
+Your binary has been successfully uploaded to App Store Connect!
+- It is now being processed by Apple - you will receive an email when the processing finishes.
+- It usually takes about 5-10 minutes depending on how busy Apple servers are.
+- When it's done, you can see your build here: https://appstoreconnect.apple.com/apps/6751807110/testflight/ios
+
+~/.../expo-app/scripts$ 

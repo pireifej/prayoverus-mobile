@@ -2469,6 +2469,9 @@ function App() {
   };
 
   const closePrayerModal = () => {
+    // Cancel any pending ad callback/retry so it doesn't fire on a different screen
+    pendingAdCallbackRef.current = null;
+    pendingInterstitialShowRef.current = false;
     setExtendedPrayer(null);
     setLoadingExtendedPrayer(false);
     prayerViewCountRef.current += 1;

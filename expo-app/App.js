@@ -857,13 +857,19 @@ function App() {
   const levelUpScaleAnim = useRef(new Animated.Value(0.5)).current;
   const levelUpStarsAnim = useRef(new Animated.Value(1)).current;
 
-  // AdMob interstitial state - counts prayer views, shows ad every 4th view
+  // AdMob interstitial state - counts prayer views, shows ad every 3rd view
   const [prayerViewCount, setPrayerViewCount] = useState(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
   const interstitialLoadedRef = useRef(false);
   const interstitialRef = useRef(null);
   const prayerViewCountRef = useRef(0);
   const pendingInterstitialShowRef = useRef(false);
+  const pendingAdCallbackRef = useRef(null); // callback to run after ad closes
+
+  // Daily post tracking — resets each calendar day
+  const [dailyPostCount, setDailyPostCount] = useState(0);
+  const [dailyPostDate, setDailyPostDate] = useState('');
+  const dailyPostCountRef = useRef(0);
 
   // Rewarded ad state
   const rewardedAdLoadedRef = useRef(false);
@@ -1100,7 +1106,7 @@ function App() {
   }, []);
 
   // Load IAP data on startup
-  useEffect(() => { loadIapData(); }, []);
+  useEffect(() => { loadIapData(); loadDailyPostCount(); }, []);
 
   // Load saved language preference
   useEffect(() => {
@@ -1202,9 +1208,7 @@ function App() {
     
     try {
       console.log('📺 Creating interstitial ad request...');
-      const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID, {
-        requestNonPersonalizedAdsOnly: true,
-      });
+      const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_AD_UNIT_ID);
 
       // Safety timeout — if neither LOADED nor ERROR fires within 15s, retry
       const timeoutId = setTimeout(() => {
@@ -1240,6 +1244,12 @@ function App() {
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         interstitialRef.current = null;
+        // Fire any pending gated action (e.g. post prayer, apply theme)
+        if (pendingAdCallbackRef.current) {
+          const cb = pendingAdCallbackRef.current;
+          pendingAdCallbackRef.current = null;
+          cb();
+        }
         console.log('📺 Loading next interstitial ad...');
         loadInterstitialAd();
       });
@@ -1264,7 +1274,51 @@ function App() {
     }
   };
   
-  // Function to show interstitial ad (call after every 4th prayer view)
+  // Show interstitial ad and run a callback after it closes (or immediately if AdMob unavailable)
+  const showInterstitialAdWithCallback = (callback) => {
+    if (!isAdMobAvailable) { callback(); return; }
+    pendingAdCallbackRef.current = callback;
+    showInterstitialAd();
+  };
+
+  // Load daily post count from storage, reset if it's a new day
+  const loadDailyPostCount = async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const raw = await AsyncStorage.getItem('@daily_post_tracker');
+      if (raw) {
+        const { count, date } = JSON.parse(raw);
+        if (date === today) {
+          setDailyPostCount(count);
+          dailyPostCountRef.current = count;
+          setDailyPostDate(today);
+        } else {
+          // New day — reset
+          setDailyPostCount(0);
+          dailyPostCountRef.current = 0;
+          setDailyPostDate(today);
+          await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: 0, date: today }));
+        }
+      } else {
+        const today2 = new Date().toISOString().slice(0, 10);
+        setDailyPostDate(today2);
+        await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: 0, date: today2 }));
+      }
+    } catch (e) { console.warn('[DailyPost] load error:', e?.message); }
+  };
+
+  const incrementDailyPostCount = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const newCount = dailyPostCountRef.current + 1;
+    dailyPostCountRef.current = newCount;
+    setDailyPostCount(newCount);
+    setDailyPostDate(today);
+    try {
+      await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: newCount, date: today }));
+    } catch (e) { console.warn('[DailyPost] save error:', e?.message); }
+  };
+
+  // Function to show interstitial ad (call after every 3rd prayer view)
   const showInterstitialAd = () => {
     const isLoaded = interstitialLoadedRef.current;
     const hasRef = !!interstitialRef.current;
@@ -2091,72 +2145,68 @@ function App() {
     }
   };
 
+  const doAddPrayer = async () => {
+    // Set loading state
+    setIsPosting(true);
+    await incrementDailyPostCount();
+    const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
+    const prayer = {
+      id: Date.now(),
+      title: prayerTitle,
+      content: newPrayer.content,
+      isPublic: newPrayer.isPublic,
+      author: currentUser?.firstName || 'You',
+      userId: currentUser?.id,
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString(),
+      prayedFor: false
+    };
+    try {
+      await savePrayerToAPI(prayer);
+      await loadUserPrayers();
+      if (newPrayer.isPublic) await loadCommunityPrayers();
+      setPostSuccess(true);
+      setTimeout(() => {
+        setNewPrayer({ title: '', content: '', isPublic: true });
+        setPrayerImage(null);
+        setShowTitleInput(false);
+        setPostSuccess(false);
+      }, 1200);
+    } catch (error) {
+      const isNetworkError = error.message.includes('Network request failed') ||
+                            error.message.includes('Failed to fetch') ||
+                            error.message.includes('timeout');
+      if (isNetworkError) {
+        setPrayers([prayer, ...prayers]);
+        if (newPrayer.isPublic) setCommunityPrayers([prayer, ...communityPrayers]);
+        setNewPrayer({ title: '', content: '', isPublic: true });
+        setPrayerImage(null);
+        setShowTitleInput(false);
+        showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
+      } else {
+        showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
+      }
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
   const addPrayer = async () => {
     if (newPrayer.content.trim()) {
-      // Set loading state
-      setIsPosting(true);
-      
-      // Use default title if not provided
-      const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
-      
-      const prayer = {
-        id: Date.now(),
-        title: prayerTitle,
-        content: newPrayer.content,
-        isPublic: newPrayer.isPublic,
-        author: currentUser?.firstName || 'You',
-        userId: currentUser?.id,
-        timestamp: new Date().toISOString(),
-        date: new Date().toLocaleDateString(),
-        prayedFor: false
-      };
-      
-      // Save to production API first
-      try {
-        await savePrayerToAPI(prayer);
-        
-        // Refresh user prayers from API to get the latest data including request_id
-        await loadUserPrayers();
-        if (newPrayer.isPublic) {
-          await loadCommunityPrayers();
-        }
-        
-        // Show success animation
-        setPostSuccess(true);
-        
-        // Clear form after short delay to show success state
-        setTimeout(() => {
-          setNewPrayer({ title: '', content: '', isPublic: true });
-          setPrayerImage(null); // Clear selected image
-          setShowTitleInput(false);
-          setPostSuccess(false);
-        }, 1200);
-        
-      } catch (error) {
-        // Check if it's a network error or a server validation error
-        const isNetworkError = error.message.includes('Network request failed') || 
-                              error.message.includes('Failed to fetch') ||
-                              error.message.includes('timeout');
-        
-        if (isNetworkError) {
-          // Network error - save locally for offline functionality
-          setPrayers([prayer, ...prayers]);
-          if (newPrayer.isPublic) {
-            setCommunityPrayers([prayer, ...communityPrayers]);
-          }
-          setNewPrayer({ title: '', content: '', isPublic: true });
-          setPrayerImage(null);
-          setShowTitleInput(false);
-          showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
-        } else {
-          // Server error or validation error - show the actual error message
-          showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
-          // Don't clear the form so user can retry
-        }
-      } finally {
-        // Reset loading state
-        setIsPosting(false);
+      // If this is their 2nd+ post today, gate behind an interstitial ad
+      if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
+        showModal({
+          icon: '📺',
+          title: 'Watch a Short Ad',
+          message: 'You\'ve already posted once today. Watch a quick ad to post another prayer request.',
+          buttons: [
+            { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(doAddPrayer) },
+            { label: 'Cancel', style: 'cancel' },
+          ],
+        });
+        return;
       }
+      await doAddPrayer();
     } else {
       showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
     }
@@ -6380,9 +6430,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     key={String(theme.key)}
                     style={[styles.themeOption, premiumBgTheme === theme.key && styles.themeOptionActive]}
                     onPress={() => {
-                      if (theme.key === null || iapThemesUnlocked) {
-                        setPremiumBgTheme(theme.key);
+                      if (theme.key === null) {
+                        setPremiumBgTheme(null);
                         setShowPremiumThemePicker(false);
+                      } else if (iapThemesUnlocked) {
+                        setShowPremiumThemePicker(false);
+                        showInterstitialAdWithCallback(() => setPremiumBgTheme(theme.key));
                       } else {
                         setShowPremiumThemePicker(false);
                         setIapModal({ productId: PRODUCT_PREMIUM_THEMES, title: '🎨 Premium Themes', description: 'Unlock beautiful prayer themes — Golden Sunset, Amethyst, Rose Dawn, Forest, and Midnight — forever.' });

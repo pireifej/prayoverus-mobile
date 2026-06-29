@@ -1220,8 +1220,8 @@ function App() {
       // Safety timeout — if neither LOADED nor ERROR fires within 15s, retry
       const timeoutId = setTimeout(() => {
         if (!interstitialLoadedRef.current) {
-          console.log('📺 ⏱️ No LOADED/ERROR response after 15s — retrying ad load');
-          if (retryCount < 3) {
+          console.log('📺 ⏱️ No LOADED/ERROR response after 8s — retrying ad load');
+          if (retryCount < 2) {
             loadInterstitialAd(retryCount + 1);
           } else {
             // Give up — clear state and tell the user
@@ -1273,15 +1273,16 @@ function App() {
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         interstitialLoadingInProgressRef.current = false;
-        if (retryCount < 3) {
+        if (retryCount < 2) {
           // Retry silently — keep pendingInterstitialShowRef and pendingAdCallbackRef intact
-          console.log(`📺 Retrying ad load in 5s (attempt ${retryCount + 1}/3)...`);
-          setTimeout(() => loadInterstitialAd(retryCount + 1), 5000);
+          console.log(`📺 Retrying ad load in 2s (attempt ${retryCount + 1}/2)...`);
+          setTimeout(() => loadInterstitialAd(retryCount + 1), 2000);
         } else {
           // All retries exhausted — clear state and tell the user
           pendingInterstitialShowRef.current = false;
           pendingAdCallbackRef.current = null;
-          showModal({ icon: '📺', title: 'Ad Unavailable', message: 'We couldn\'t load an ad right now. Please try again in a moment.' });
+          const errCode = error?.code || error?.message || JSON.stringify(error);
+          showModal({ icon: '📺', title: 'Ad Unavailable', message: `Couldn't load an ad. Error: ${errCode}` });
         }
       });
       

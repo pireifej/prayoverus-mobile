@@ -172,7 +172,8 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
 
       const date = devotional.date?.split('T')[0] || new Date().toISOString().split('T')[0];
-      const localUri = `${FileSystem.cacheDirectory}dailybread_${date}.mp3`;
+      const langKey = lang === 'es' ? 'es' : 'en';
+      const localUri = `${FileSystem.cacheDirectory}dailybread_${langKey}_${date}.mp3`;
 
       // Check device cache first — skip network call if already downloaded today
       const cached = await FileSystem.getInfoAsync(localUri);
@@ -186,6 +187,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           },
           body: JSON.stringify({
             date,
+            lang: langKey,
             title: devotional.title || '',
             content: devotional.content || '',
             bibleVerse: devotional.bibleVerse || '',

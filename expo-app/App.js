@@ -6433,19 +6433,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       if (theme.key === null) {
                         setPremiumBgTheme(null);
                         setShowPremiumThemePicker(false);
-                      } else if (iapThemesUnlocked) {
-                        setShowPremiumThemePicker(false);
-                        showInterstitialAdWithCallback(() => setPremiumBgTheme(theme.key));
                       } else {
                         setShowPremiumThemePicker(false);
-                        setIapModal({ productId: PRODUCT_PREMIUM_THEMES, title: '🎨 Premium Themes', description: 'Unlock beautiful prayer themes — Golden Sunset, Amethyst, Rose Dawn, Forest, and Midnight — forever.' });
+                        showInterstitialAdWithCallback(() => setPremiumBgTheme(theme.key));
                       }
                     }}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.themeOptionText}>{theme.label}</Text>
                     {premiumBgTheme === theme.key && <Text style={{ color: '#10b981' }}>✓</Text>}
-                    {theme.key !== null && !iapThemesUnlocked && <Text style={styles.themeWatchAd}>🔒 $1.99 — unlock all</Text>}
                   </TouchableOpacity>
                 ))}
               </View>

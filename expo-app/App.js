@@ -1216,6 +1216,14 @@ function App() {
           console.log('📺 ⏱️ No LOADED/ERROR response after 15s — retrying ad load');
           if (retryCount < 3) {
             loadInterstitialAd(retryCount + 1);
+          } else {
+            // Give up — fire callback so the gated action still completes
+            pendingInterstitialShowRef.current = false;
+            if (pendingAdCallbackRef.current) {
+              const cb = pendingAdCallbackRef.current;
+              pendingAdCallbackRef.current = null;
+              cb();
+            }
           }
         }
       }, 15000);
@@ -1260,6 +1268,12 @@ function App() {
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         pendingInterstitialShowRef.current = false;
+        // Fire pending callback anyway so the gated action still completes
+        if (pendingAdCallbackRef.current) {
+          const cb = pendingAdCallbackRef.current;
+          pendingAdCallbackRef.current = null;
+          cb();
+        }
         // Retry on error (up to 3 times, with delay)
         if (retryCount < 3) {
           console.log(`📺 Retrying ad load in 5s (attempt ${retryCount + 1}/3)...`);

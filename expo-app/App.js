@@ -6480,27 +6480,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
                   {!extendedPrayer ? (
-                    iapExtendedPrayerUnlocked ? (
-                      <TouchableOpacity
-                        style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                        onPress={() => fetchExtendedPrayer(prayerModal.prayer?.id)}
-                        activeOpacity={0.8}
-                        disabled={loadingExtendedPrayer}
-                      >
-                        {loadingExtendedPrayer
-                          ? <ActivityIndicator color="#fbbf24" size="small" />
-                          : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
-                        }
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.unlockExtendedBtn}
-                        onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.unlockExtendedBtnText}>✨ {t('unlockExtended').replace('✨ ', '')}</Text>
-                      </TouchableOpacity>
-                    )
+                    <TouchableOpacity
+                      style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                      onPress={() => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
+                      activeOpacity={0.8}
+                      disabled={loadingExtendedPrayer}
+                    >
+                      {loadingExtendedPrayer
+                        ? <ActivityIndicator color="#fbbf24" size="small" />
+                        : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
+                      }
+                    </TouchableOpacity>
                   ) : null}
                   <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.sanctuaryAmenButtonText}>{t('amen')}</Text>
@@ -6546,27 +6536,17 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {!extendedPrayer ? (
-                    iapExtendedPrayerUnlocked ? (
-                      <TouchableOpacity
-                        style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                        onPress={() => fetchExtendedPrayer(prayerModal.prayer?.id)}
-                        activeOpacity={0.8}
-                        disabled={loadingExtendedPrayer}
-                      >
-                        {loadingExtendedPrayer
-                          ? <ActivityIndicator color="#fbbf24" size="small" />
-                          : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
-                        }
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.unlockExtendedBtn}
-                        onPress={() => setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: '✨ Extended AI Prayer', description: 'Unlock a deeper, personalised extended prayer for every request — forever.' })}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.unlockExtendedBtnText}>✨ {t('unlockExtended').replace('✨ ', '')}</Text>
-                      </TouchableOpacity>
-                    )
+                    <TouchableOpacity
+                      style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
+                      onPress={() => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
+                      activeOpacity={0.8}
+                      disabled={loadingExtendedPrayer}
+                    >
+                      {loadingExtendedPrayer
+                        ? <ActivityIndicator color="#fbbf24" size="small" />
+                        : <Text style={styles.unlockExtendedBtnText}>✨ {t('generateExtended').replace('✨ ', '')}</Text>
+                      }
+                    </TouchableOpacity>
                   ) : null}
                   <TouchableOpacity style={styles.immersiveAmenButton} onPress={markAsPrayed}>
                     <Text style={styles.immersiveAmenButtonText}>Amen</Text>

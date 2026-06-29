@@ -865,6 +865,7 @@ function App() {
   const prayerViewCountRef = useRef(0);
   const pendingInterstitialShowRef = useRef(false);
   const pendingAdCallbackRef = useRef(null); // callback to run after ad closes
+  const interstitialLoadingInProgressRef = useRef(false); // prevents duplicate concurrent loads
 
   // Daily post tracking — resets each calendar day
   const [dailyPostCount, setDailyPostCount] = useState(0);
@@ -1205,6 +1206,12 @@ function App() {
       console.log('📺 SKIP: AdMob not available or missing InterstitialAd class or missing AD_UNIT_ID');
       return;
     }
+    // Don't create a second instance if one is already loading — just let it finish
+    if (interstitialLoadingInProgressRef.current && retryCount === 0) {
+      console.log('📺 SKIP: interstitial already loading — pendingShow will trigger it when ready');
+      return;
+    }
+    interstitialLoadingInProgressRef.current = true;
     
     try {
       console.log('📺 Creating interstitial ad request...');
@@ -1228,6 +1235,7 @@ function App() {
       interstitial.addAdEventListener(AdEventType.LOADED, () => {
         clearTimeout(timeoutId);
         console.log('📺 ✅ Interstitial ad LOADED and ready to show');
+        interstitialLoadingInProgressRef.current = false;
         setInterstitialLoaded(true);
         interstitialLoadedRef.current = true;
         interstitialRef.current = interstitial;
@@ -1264,6 +1272,7 @@ function App() {
         console.log('📺 ❌ Interstitial ad ERROR:', JSON.stringify(error));
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
+        interstitialLoadingInProgressRef.current = false;
         if (retryCount < 3) {
           // Retry silently — keep pendingInterstitialShowRef and pendingAdCallbackRef intact
           console.log(`📺 Retrying ad load in 5s (attempt ${retryCount + 1}/3)...`);
@@ -6450,7 +6459,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     activeOpacity={0.7}
                   >
                     <Text style={styles.themeOptionText}>{theme.label}</Text>
-                    {premiumBgTheme === theme.key && <Text style={{ color: '#10b981' }}>✓</Text>}
+                    {premiumBgTheme === theme.key
+                      ? <Text style={{ color: '#10b981', fontSize: 14 }}>✓</Text>
+                      : theme.key !== null
+                        ? <Text style={{ color: '#fbbf24', fontSize: 12 }}>🔒 Ad</Text>
+                        : null
+                    }
                   </TouchableOpacity>
                 ))}
               </View>

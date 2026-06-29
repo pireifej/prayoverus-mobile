@@ -120,19 +120,28 @@ try {
   console.log('📺 ❌ AdMob require FAILED:', e?.message || String(e));
 }
 
-// AdMob Banner Ad Unit ID - use test ID in development
-const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds 
-  ? (__DEV__ ? TestIds.BANNER : 'ca-app-pub-3440306279423513/4277741998')
+// AdMob Banner Ad Unit ID - platform-specific production IDs, test ID in dev
+const BANNER_AD_UNIT_ID = isAdMobAvailable && TestIds
+  ? (__DEV__ ? TestIds.BANNER
+    : Platform.OS === 'ios'
+      ? 'ca-app-pub-3440306279423513/2302562416'
+      : 'ca-app-pub-3440306279423513/4277741998')
   : null;
 
 // AdMob Interstitial Ad Unit ID
 const INTERSTITIAL_AD_UNIT_ID = isAdMobAvailable && TestIds
-  ? (__DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-3440306279423513/9994022974')
+  ? (__DEV__ ? TestIds.INTERSTITIAL
+    : Platform.OS === 'ios'
+      ? 'ca-app-pub-3440306279423513/8219892050'
+      : 'ca-app-pub-3440306279423513/9994022974')
   : null;
 
 // AdMob Rewarded Ad Unit ID
 const REWARDED_AD_UNIT_ID = isAdMobAvailable && TestIds
-  ? (__DEV__ ? TestIds.REWARDED : 'ca-app-pub-3440306279423513/5604867819')
+  ? (__DEV__ ? TestIds.REWARDED
+    : Platform.OS === 'ios'
+      ? 'ca-app-pub-3440306279423513/4982099014'
+      : 'ca-app-pub-3440306279423513/5604867819')
   : null;
 
 // Use localStorage-like persistence for web and AsyncStorage for mobile  

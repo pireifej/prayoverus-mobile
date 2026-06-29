@@ -1217,13 +1217,10 @@ function App() {
           if (retryCount < 3) {
             loadInterstitialAd(retryCount + 1);
           } else {
-            // Give up — fire callback so the gated action still completes
+            // Give up — clear state and tell the user
             pendingInterstitialShowRef.current = false;
-            if (pendingAdCallbackRef.current) {
-              const cb = pendingAdCallbackRef.current;
-              pendingAdCallbackRef.current = null;
-              cb();
-            }
+            pendingAdCallbackRef.current = null;
+            showModal({ icon: '📺', title: 'Ad Unavailable', message: 'We couldn\'t load an ad right now. Please try again in a moment.' });
           }
         }
       }, 15000);
@@ -1267,17 +1264,15 @@ function App() {
         console.log('📺 ❌ Interstitial ad ERROR:', JSON.stringify(error));
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
-        pendingInterstitialShowRef.current = false;
-        // Fire pending callback anyway so the gated action still completes
-        if (pendingAdCallbackRef.current) {
-          const cb = pendingAdCallbackRef.current;
-          pendingAdCallbackRef.current = null;
-          cb();
-        }
-        // Retry on error (up to 3 times, with delay)
         if (retryCount < 3) {
+          // Retry silently — keep pendingInterstitialShowRef and pendingAdCallbackRef intact
           console.log(`📺 Retrying ad load in 5s (attempt ${retryCount + 1}/3)...`);
           setTimeout(() => loadInterstitialAd(retryCount + 1), 5000);
+        } else {
+          // All retries exhausted — clear state and tell the user
+          pendingInterstitialShowRef.current = false;
+          pendingAdCallbackRef.current = null;
+          showModal({ icon: '📺', title: 'Ad Unavailable', message: 'We couldn\'t load an ad right now. Please try again in a moment.' });
         }
       });
       

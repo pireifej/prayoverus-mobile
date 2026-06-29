@@ -1282,8 +1282,18 @@ function App() {
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         interstitialLoadingInProgressRef.current = false;
-        if (retryCount < 2) {
-          // Retry silently — keep pendingInterstitialShowRef and pendingAdCallbackRef intact
+        const isNoFill = error?.code === 'googleMobileAds/no-fill' || error?.code === 'admob/no-fill';
+        if (isNoFill) {
+          // No ad inventory available — fire the callback so the user isn't blocked
+          console.log('📺 No ad fill — proceeding with action');
+          pendingInterstitialShowRef.current = false;
+          if (pendingAdCallbackRef.current) {
+            const cb = pendingAdCallbackRef.current;
+            pendingAdCallbackRef.current = null;
+            cb();
+          }
+        } else if (retryCount < 2) {
+          // Other error — retry silently
           console.log(`📺 Retrying ad load in 2s (attempt ${retryCount + 1}/2)...`);
           setTimeout(() => loadInterstitialAd(retryCount + 1), 2000);
         } else {
@@ -1291,7 +1301,7 @@ function App() {
           pendingInterstitialShowRef.current = false;
           pendingAdCallbackRef.current = null;
           const errCode = error?.code || error?.message || JSON.stringify(error);
-          showModal({ icon: '📺', title: 'Ad Unavailable', message: `Couldn't load an ad. Error: ${errCode}` });
+          showModal({ icon: '📺', title: 'Ad Unavailable', message: `Couldn't load an ad. Please try again. (${errCode})` });
         }
       });
       

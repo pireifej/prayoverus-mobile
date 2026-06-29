@@ -1820,7 +1820,8 @@ function App() {
       const requestPayload = {
         userId: userId.toString(),
         tz: timezone,
-        filterByChurch: showChurchOnly
+        filterByChurch: showChurchOnly,
+        lang: userLang,
       };
       
       // Clean debug output - endpoint and payload ONLY
@@ -2121,7 +2122,8 @@ function App() {
       const endpoint = 'https://shouldcallpaul.replit.app/getMyRequests';
       const requestPayload = {
         tz: timezone,
-        userId: currentUser.id.toString()
+        userId: currentUser.id.toString(),
+        lang: userLang,
       };
       
       // Clean debug output - endpoint and payload ONLY
@@ -2561,7 +2563,7 @@ function App() {
           'Accept': 'application/json',
           'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
-        body: JSON.stringify({ requestId: requestId }),
+        body: JSON.stringify({ requestId: requestId, lang: userLang }),
       });
 
       // Guard: only update state if this is still the prayer we're viewing
@@ -3391,7 +3393,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           'Accept': 'application/json',
           'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
-        body: JSON.stringify({ userId: currentUser.id.toString() }),
+        body: JSON.stringify({ userId: currentUser.id.toString(), lang: userLang }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -3745,6 +3747,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onClose={closeDetailModal}
         onPray={handlePrayFromDetailScreen}
         onNavigate={handleDetailNavigate}
+        lang={userLang}
       />
     );
   }

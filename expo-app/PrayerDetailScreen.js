@@ -139,7 +139,8 @@ export default function PrayerDetailScreen({
   userId,
   onClose,
   onPray,
-  onNavigate
+  onNavigate,
+  lang = 'en',
 }) {
   const [prayer, setPrayer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -288,7 +289,8 @@ export default function PrayerDetailScreen({
       const payload = {
         requestId: id,
         userId: userId,
-        tz: timezone
+        tz: timezone,
+        lang: lang,
       };
       
       console.log('📍 Fetching prayer by ID:', id);
@@ -414,7 +416,7 @@ export default function PrayerDetailScreen({
         const res = await fetch(`${API_BASE_URL}/getRequestById`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': API_AUTH },
-          body: JSON.stringify({ requestId: id, userId, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York' }),
+          body: JSON.stringify({ requestId: id, userId, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York', lang }),
         });
         if (!res.ok) return;
         const data = await res.json();

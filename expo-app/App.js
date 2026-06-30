@@ -1507,6 +1507,17 @@ function App() {
         return;
       }
 
+      // Check for Prayer Walk deep link (?open=prayerwalk)
+      if (route.includes('open=prayerwalk')) {
+        console.log('📱 Deep link detected: Prayer Walk');
+        if (currentUser) {
+          setCurrentScreen('prayerWalk');
+        } else {
+          setPendingInitialUrl(url);
+        }
+        return;
+      }
+
       // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
       const prayerMatch = route.match(/requestId=(\d+)/);
       if (prayerMatch && prayerMatch[1]) {

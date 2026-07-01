@@ -448,7 +448,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     {
       clientId: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
       scopes: ['openid', 'profile', 'email'],
-      redirectUri: makeRedirectUri({ scheme: 'prayoverus' }),
+      redirectUri: 'https://auth.expo.io/@pireifej/pray-over-us',
     },
     GOOGLE_DISCOVERY
   );

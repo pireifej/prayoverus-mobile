@@ -58,7 +58,7 @@ const buildSpokenText = (prayer, prayerText) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Golden celestial rings animation
+// Blue celestial rings animation
 // ─────────────────────────────────────────────────────────────────
 function CelestialRings({ playing }) {
   const rings = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
@@ -91,7 +91,7 @@ function CelestialRings({ playing }) {
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {rings.map((anim, i) => {
         const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.15, 2.8] });
-        const opacity = anim.interpolate({ inputRange: [0, 0.25, 0.8, 1], outputRange: [0, 0.45, 0.12, 0] });
+        const opacity = anim.interpolate({ inputRange: [0, 0.25, 0.8, 1], outputRange: [0, 0.5, 0.12, 0] });
         return (
           <Animated.View
             key={i}
@@ -101,7 +101,7 @@ function CelestialRings({ playing }) {
               height: BASE_R * 2,
               borderRadius: BASE_R,
               borderWidth: 1.2,
-              borderColor: '#f59e0b',
+              borderColor: '#93c5fd',
               top: CENTER_Y - BASE_R,
               left: SW / 2 - BASE_R,
               transform: [{ scale }],
@@ -115,9 +115,9 @@ function CelestialRings({ playing }) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Floating golden sparks
+// Floating blue light particles
 // ─────────────────────────────────────────────────────────────────
-function GoldenSparks({ playing }) {
+function BlueSparks({ playing }) {
   const SPARK_COUNT = 14;
   const sparks = useRef(
     Array.from({ length: SPARK_COUNT }, (_, i) => ({
@@ -125,7 +125,7 @@ function GoldenSparks({ playing }) {
       opacity: new Animated.Value(0),
       x: (Math.random() - 0.5) * SW * 0.75,
       size: 3 + Math.random() * 4,
-      color: i % 3 === 0 ? '#fef3c7' : i % 3 === 1 ? '#fbbf24' : '#f59e0b',
+      color: i % 3 === 0 ? '#dbeafe' : i % 3 === 1 ? '#93c5fd' : '#60a5fa',
     }))
   ).current;
   const loopsRef = useRef([]);
@@ -187,7 +187,7 @@ function GoldenSparks({ playing }) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Pulsing central glow (stacked circles)
+// Pulsing central blue glow
 // ─────────────────────────────────────────────────────────────────
 function CentralGlow({ playing }) {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -220,32 +220,32 @@ function CentralGlow({ playing }) {
       <View style={{
         position: 'absolute',
         width: SW * 0.95, height: SW * 0.95, borderRadius: SW * 0.475,
-        backgroundColor: '#78350f',
-        opacity: playing ? 0.18 : 0.07,
+        backgroundColor: '#1e3a8a',
+        opacity: playing ? 0.22 : 0.08,
         top: CENTER_Y - SW * 0.475, left: SW * 0.025,
       }} />
       {/* Mid glow */}
       <View style={{
         position: 'absolute',
         width: SW * 0.55, height: SW * 0.55, borderRadius: SW * 0.275,
-        backgroundColor: '#b45309',
-        opacity: playing ? 0.22 : 0.08,
+        backgroundColor: '#2563eb',
+        opacity: playing ? 0.28 : 0.10,
         top: CENTER_Y - SW * 0.275, left: SW * 0.225,
       }} />
       {/* Inner bright glow */}
       <View style={{
         position: 'absolute',
         width: SW * 0.26, height: SW * 0.26, borderRadius: SW * 0.13,
-        backgroundColor: '#f59e0b',
-        opacity: playing ? 0.22 : 0.08,
+        backgroundColor: '#60a5fa',
+        opacity: playing ? 0.28 : 0.10,
         top: CENTER_Y - SW * 0.13, left: SW * 0.37,
       }} />
       {/* Core */}
       <View style={{
         position: 'absolute',
         width: SW * 0.10, height: SW * 0.10, borderRadius: SW * 0.05,
-        backgroundColor: '#fef3c7',
-        opacity: playing ? 0.35 : 0.1,
+        backgroundColor: '#dbeafe',
+        opacity: playing ? 0.40 : 0.12,
         top: CENTER_Y - SW * 0.05, left: SW * 0.45,
       }} />
     </Animated.View>
@@ -278,72 +278,47 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     soundRef.current?.unloadAsync();
   }, []);
 
-  useEffect(() => {
-    if (prayerList[currentIndex] && !isFinished) {
-      playPrayer(prayerList[currentIndex]);
-    }
-  }, [currentIndex, isFinished]);
-
-  const playPrayer = async (prayer) => {
-    if (!prayer || !isActiveRef.current) return;
-
-    // Mark this prayer as the active one — stale callbacks from previous sounds will bail out
-    activePrayerIdRef.current = prayer.id;
-
-    setAudioStatus('loading');
-    try { await soundRef.current?.unloadAsync(); } catch (_) {}
+  const stopAndUnload = async () => {
+    try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
     soundRef.current = null;
+  };
+
+  const playPrayer = useCallback(async (prayer) => {
+    if (!prayer) return;
+    await stopAndUnload();
+    activePrayerIdRef.current = prayer.id;
+    setAudioStatus('loading');
 
     try {
-      const localUri = `${FileSystem.cacheDirectory}prayerWalkGen3_${prayer.id}.mp3`;
-      const cached = await FileSystem.getInfoAsync(localUri);
-
-      if (!cached.exists) {
-        // Get the generated prayer from the DB — never the raw request text
-        const prayerText = await fetchPrayerText(prayer);
-        const spokenText = buildSpokenText(prayer, prayerText);
-
-        const res = await fetch(`${BASE_URL}/getPrayerAudio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
-          body: JSON.stringify({ requestId: prayer.id, text: spokenText }),
-        });
-        if (!res.ok) throw new Error(`getPrayerAudio ${res.status}`);
-
-        const blob = await res.blob();
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const r = reader.result;
-            resolve(r.indexOf(',') >= 0 ? r.split(',')[1] : r);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        await FileSystem.writeAsStringAsync(localUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-      }
-
-      // Bail if a newer prayer has taken over since the async work started
+      const prayerText = await fetchPrayerText(prayer);
       if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
 
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const spoken = buildSpokenText(prayer, prayerText);
+      const ttsUrl = `${BASE_URL}/tts?text=${encodeURIComponent(spoken)}`;
+      const cached = `${FileSystem.cacheDirectory}pw_${prayer.id}.mp3`;
+
+      let uri = cached;
+      const info = await FileSystem.getInfoAsync(cached);
+      if (!info.exists) {
+        const dl = await FileSystem.downloadAsync(ttsUrl, cached, {
+          headers: { 'Authorization': AUTH() },
+        });
+        uri = dl.uri;
+      }
+
+      if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
 
       const { sound } = await Audio.Sound.createAsync(
-        { uri: localUri },
-        { shouldPlay: true },
+        { uri },
+        { shouldPlay: true, volume: 1.0 },
         (status) => {
-          if (!isActiveRef.current) return;
-          // Only advance if THIS prayer is still the active one
-          if (status.isLoaded && status.didJustFinish && activePrayerIdRef.current === prayer.id) {
-            soundRef.current?.unloadAsync();
-            soundRef.current = null;
-            setAudioStatus('idle');
-            advance(prayer.id);
-          }
-          if (status.error && isActiveRef.current && activePrayerIdRef.current === prayer.id) {
-            setAudioStatus('error');
+          if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
+          if (status.isLoaded) {
+            if (status.isPlaying) setAudioStatus('playing');
+            else if (status.isPaused) setAudioStatus('paused');
+            if (status.didJustFinish) {
+              setAudioStatus('idle');
+            }
           }
         }
       );
@@ -352,51 +327,53 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         sound.unloadAsync();
         return;
       }
+
       soundRef.current = sound;
       setAudioStatus('playing');
     } catch (e) {
-      console.log('[PrayerWalk] error:', e.message);
-      if (isActiveRef.current && activePrayerIdRef.current === prayer.id) setAudioStatus('error');
+      console.log('PrayerWalk audio error:', e?.message);
+      if (isActiveRef.current && activePrayerIdRef.current === prayer.id) {
+        setAudioStatus('error');
+      }
     }
-  };
+  }, []);
 
-  const advance = useCallback((prayedId) => {
-    if (prayedId) onPrayForRequest(prayedId);
-    setPrayedThisSession(n => n + 1);
-    setCurrentIndex(prev => {
-      const next = prev + 1;
-      if (next >= prayerList.length) { setIsFinished(true); return prev; }
-      return next;
-    });
-  }, [prayerList.length, onPrayForRequest]);
+  // Auto-play current prayer on mount and index change
+  useEffect(() => {
+    if (current) playPrayer(current);
+  }, [currentIndex]);
 
-  const handlePauseResume = async () => {
-    if (audioStatus === 'playing') {
-      await soundRef.current?.pauseAsync();
-      setAudioStatus('paused');
-    } else if (audioStatus === 'paused') {
-      await soundRef.current?.playAsync();
-      setAudioStatus('playing');
+  const advance = async () => {
+    await stopAndUnload();
+    const next = currentIndex + 1;
+    if (next >= total) {
+      setIsFinished(true);
+    } else {
+      setCurrentIndex(next);
     }
   };
 
   const handleAmen = async () => {
-    activePrayerIdRef.current = null;
-    try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
-    soundRef.current = null;
-    advance(current?.id);
+    if (onPrayForRequest && current?.id) onPrayForRequest(current.id);
+    setPrayedThisSession(n => n + 1);
+    await advance();
   };
 
   const handleSkip = async () => {
-    activePrayerIdRef.current = null;
-    try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
-    soundRef.current = null;
-    setAudioStatus('idle');
-    setCurrentIndex(prev => {
-      const next = prev + 1;
-      if (next >= prayerList.length) { setIsFinished(true); return prev; }
-      return next;
-    });
+    await advance();
+  };
+
+  const handlePauseResume = async () => {
+    if (!soundRef.current) return;
+    try {
+      if (audioStatus === 'playing') {
+        await soundRef.current.pauseAsync();
+        setAudioStatus('paused');
+      } else if (audioStatus === 'paused') {
+        await soundRef.current.playAsync();
+        setAudioStatus('playing');
+      }
+    } catch (_) {}
   };
 
   const handleClose = async () => {
@@ -409,7 +386,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 
   // ── Empty ──
   if (total === 0) return (
-    <LinearGradient colors={['#030810', '#060f22']} style={styles.container}>
+    <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={styles.container}>
       <StatusBar style="light" />
       <TouchableOpacity onPress={handleClose} style={[styles.closeBtn, { top: SAFE_TOP }]}>
         <Text style={styles.closeBtnText}>✕</Text>
@@ -427,10 +404,10 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 
   // ── Finished ──
   if (isFinished) return (
-    <LinearGradient colors={['#030810', '#060f22', '#0a1a0a']} style={styles.container}>
+    <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={styles.container}>
       <StatusBar style="light" />
       <CentralGlow playing />
-      <GoldenSparks playing />
+      <BlueSparks playing />
       <View style={styles.center}>
         <Text style={styles.doneEmoji}>✨</Text>
         <Text style={styles.doneTitle}>Prayer Walk Complete!</Text>
@@ -446,13 +423,13 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 
   // ── Main ──
   return (
-    <LinearGradient colors={['#030810', '#06111f', '#081628']} style={styles.container}>
+    <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Celestial background animations */}
+      {/* Blue celestial background animations */}
       <CentralGlow playing={isPlaying} />
       <CelestialRings playing={isPlaying} />
-      <GoldenSparks playing={isPlaying} />
+      <BlueSparks playing={isPlaying} />
 
       {/* Prayer picture — translucent so the animations show through */}
       {current?.picture ? (
@@ -497,7 +474,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         {/* Status line */}
         <View style={styles.statusRow}>
           {audioStatus === 'loading' && (
-            <><ActivityIndicator color="#f59e0b" size="small" style={{ marginRight: 8 }} />
+            <><ActivityIndicator color="#93c5fd" size="small" style={{ marginRight: 8 }} />
               <Text style={styles.statusText}>Preparing your prayer…</Text></>
           )}
           {audioStatus === 'playing' && (
@@ -542,7 +519,7 @@ const styles = StyleSheet.create({
   // Translucent prayer picture shown as background — animations layer on top
   prayerBgImage: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    opacity: 0.22,
+    opacity: 0.18,
     zIndex: 1,
   },
 
@@ -552,89 +529,90 @@ const styles = StyleSheet.create({
   },
   headerLeft: { gap: 2 },
   headerLabel: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
-  progressLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '500' },
+  progressLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '500' },
 
   closeBtn: {
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 18,
     width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
   closeBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
   progressTrack: {
-    height: 2, backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: 22, borderRadius: 1, marginBottom: 24, zIndex: 10,
+    height: 3, backgroundColor: 'rgba(255,255,255,0.12)',
+    marginHorizontal: 22, borderRadius: 2, marginBottom: 24, zIndex: 10,
   },
-  progressFill: { height: 2, backgroundColor: '#f59e0b', borderRadius: 1 },
+  progressFill: { height: 3, backgroundColor: '#60a5fa', borderRadius: 2 },
 
   cardArea: { flex: 1, paddingHorizontal: 18, zIndex: 10 },
   cardContent: { paddingBottom: 12 },
 
   prayerCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 24, padding: 26,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
     marginBottom: 16,
   },
   prayerCardActive: {
-    backgroundColor: 'rgba(245,158,11,0.07)',
-    borderColor: 'rgba(245,158,11,0.25)',
+    backgroundColor: 'rgba(96,165,250,0.10)',
+    borderColor: 'rgba(96,165,250,0.30)',
   },
   prayerTitle: {
-    color: '#f59e0b', fontSize: 12, fontWeight: '700',
+    color: '#93c5fd', fontSize: 12, fontWeight: '700',
     textTransform: 'uppercase', letterSpacing: 1.3, marginBottom: 14,
   },
   prayerContent: {
     color: '#f1f5f9', fontSize: 18, lineHeight: 30, fontStyle: 'italic',
   },
   prayerAuthor: {
-    color: 'rgba(255,255,255,0.35)', fontSize: 13, marginTop: 20,
+    color: 'rgba(255,255,255,0.38)', fontSize: 13, marginTop: 20,
   },
 
   statusRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     minHeight: 28, paddingHorizontal: 16,
   },
-  statusText: { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' },
+  statusText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, textAlign: 'center' },
   statusPlaying: {
-    color: '#f59e0b', fontSize: 13, textAlign: 'center', fontWeight: '500',
+    color: '#93c5fd', fontSize: 13, textAlign: 'center', fontWeight: '500',
   },
 
   controls: { paddingHorizontal: 18, paddingTop: 8, gap: 12, zIndex: 10 },
 
   pauseBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: 'rgba(245,158,11,0.12)',
+    gap: 8, backgroundColor: 'rgba(96,165,250,0.14)',
     borderRadius: 16, paddingVertical: 12,
-    borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)',
+    borderWidth: 1, borderColor: 'rgba(96,165,250,0.35)',
   },
   pauseIcon: { fontSize: 18 },
-  pauseLabel: { color: '#f59e0b', fontSize: 15, fontWeight: '600' },
+  pauseLabel: { color: '#93c5fd', fontSize: 15, fontWeight: '600' },
 
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   skipBtn: {
     flex: 1, paddingVertical: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16,
-    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 16,
+    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
-  skipText: { color: 'rgba(255,255,255,0.5)', fontSize: 15, fontWeight: '600' },
+  skipText: { color: 'rgba(255,255,255,0.55)', fontSize: 15, fontWeight: '600' },
   amenBtn: {
     flex: 2, paddingVertical: 16,
-    backgroundColor: '#b45309', borderRadius: 16,
+    backgroundColor: '#2563eb', borderRadius: 16,
     alignItems: 'center', elevation: 6,
-    shadowColor: '#f59e0b', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#3b82f6', shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
   },
   amenText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   doneEmoji: { fontSize: 64, marginBottom: 20 },
   doneTitle: { color: '#fff', fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
   doneSub: {
-    color: 'rgba(255,255,255,0.5)', fontSize: 16,
+    color: 'rgba(255,255,255,0.55)', fontSize: 16,
     textAlign: 'center', lineHeight: 26, marginBottom: 36,
   },
   doneBtn: {
-    backgroundColor: '#b45309', borderRadius: 16,
+    backgroundColor: '#2563eb', borderRadius: 16,
     paddingVertical: 16, paddingHorizontal: 40, elevation: 4,
+    shadowColor: '#3b82f6', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 3 },
   },
   doneBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

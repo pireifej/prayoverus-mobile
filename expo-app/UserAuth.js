@@ -425,10 +425,17 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
   );
 }
 
-export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess, onGuestMode }) {
+export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess, onGuestMode, initMode, onInitModeConsumed }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(initMode === 'register');
+
+  useEffect(() => {
+    if (initMode === 'register') {
+      setIsRegistering(true);
+      onInitModeConsumed?.();
+    }
+  }, [initMode]);
   
   // Registration form fields
   const [firstName, setFirstName] = useState('');

@@ -806,6 +806,7 @@ function App() {
   const [expandedPrayers, setExpandedPrayers] = useState({});
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [authInitMode, setAuthInitMode] = useState('login');
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -2011,6 +2012,8 @@ function App() {
   };
 
   // Handle user login and save to storage
+  const goToRegister = () => { setAuthInitMode('register'); setCurrentUser(null); };
+
   const handleGuestMode = () => {
     setCurrentUser({ id: 'guest', isGuest: true, firstName: 'Guest', lastName: '', email: '', avatar_emoji: '🕊️' });
     setCurrentScreen('home');
@@ -2022,7 +2025,7 @@ function App() {
       title: 'Join the Community',
       message: 'Create a free account to pray, post requests, and save your spiritual journey.',
       buttons: [
-        { label: 'Create Account', onPress: () => setCurrentUser(null), style: 'default' },
+        { label: 'Create Account', onPress: goToRegister, style: 'default' },
         { label: 'Keep Browsing', style: 'cancel' },
       ],
     });
@@ -3846,6 +3849,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         appBuild={APP_BUILD}
         resetSuccess={authScreen === 'resetSuccess'}
         onGuestMode={handleGuestMode}
+        initMode={authInitMode}
+        onInitModeConsumed={() => setAuthInitMode('login')}
       />
     );
   }
@@ -4090,7 +4095,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
             Create a free account to pray the Rosary, track your count, and build a daily prayer habit.
           </Text>
-          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={() => setCurrentUser(null)}>
+          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={goToRegister}>
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setCurrentScreen('groups')}>
@@ -4125,7 +4130,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
             Create a free account to pray the Rosary together with others in real time.
           </Text>
-          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={() => setCurrentUser(null)}>
+          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={goToRegister}>
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setCurrentScreen('groups')}>
@@ -4695,7 +4700,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }}
-            onPress={() => setCurrentUser(null)}
+            onPress={goToRegister}
           >
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>
@@ -5641,7 +5646,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }}
-            onPress={() => setCurrentUser(null)}
+            onPress={goToRegister}
           >
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>
@@ -5679,7 +5684,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }}
-            onPress={() => setCurrentUser(null)}
+            onPress={goToRegister}
           >
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>

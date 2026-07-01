@@ -5,6 +5,7 @@ import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding that works in both web and React Native
@@ -429,6 +430,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(initMode === 'register');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (initMode === 'register') {
@@ -436,6 +438,64 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       onInitModeConsumed?.();
     }
   }, [initMode]);
+
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    webClientId: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      handleGoogleResponse(googleResponse.authentication);
+    }
+  }, [googleResponse]);
+
+  const handleGoogleResponse = async (authentication) => {
+    try {
+      setGoogleLoading(true);
+      const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${authentication.accessToken}` },
+      });
+      const userInfo = await userInfoRes.json();
+      if (!userInfo.email) { Alert.alert('Error', 'Could not get email from Google. Please try again.'); return; }
+
+      const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({
+          email: userInfo.email,
+          google_id: userInfo.id,
+          first_name: userInfo.given_name || '',
+          last_name: userInfo.family_name || '',
+          picture: userInfo.picture || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.error === 0 && data.result?.length > 0) {
+        const u = data.result[0];
+        onLogin({
+          id: u.user_id, email: u.email, firstName: u.real_name,
+          userName: u.user_name, title: u.user_title, about: u.user_about,
+          location: u.location, picture: u.picture, active: u.active,
+          timestamp: u.timestamp, churchId: u.church_id, churchName: u.church_name,
+          faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null,
+          prayer_count: parseInt(u.prayer_count, 10) || 0,
+          request_count: parseInt(u.request_count, 10) || 0,
+          auth_provider: 'google',
+        });
+      } else {
+        Alert.alert('Error', data.result || 'Google sign-in failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      Alert.alert('Error', 'Google sign-in failed. Please check your connection.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
   
   // Registration form fields
   const [firstName, setFirstName] = useState('');
@@ -1137,6 +1197,28 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </Text>
       </TouchableOpacity>
       
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerLabel}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
+        onPress={() => googlePromptAsync()}
+        disabled={googleLoading || !googleRequest}
+        activeOpacity={0.85}
+      >
+        {googleLoading ? (
+          <ActivityIndicator size="small" color="#444" />
+        ) : (
+          <>
+            <Text style={styles.googleBtnIcon}>G</Text>
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
       <TouchableOpacity 
         style={styles.switchButton} 
         onPress={() => setIsRegistering(!isRegistering)}
@@ -1289,6 +1371,29 @@ const styles = StyleSheet.create({
   },
   guestBtnText: {
     color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '500',
+  },
+  dividerRow: {
+    flexDirection: 'row', alignItems: 'center', marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  dividerLabel: {
+    color: 'rgba(255,255,255,0.5)', fontSize: 13, marginHorizontal: 12,
+  },
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff', borderRadius: 14, paddingVertical: 13,
+    paddingHorizontal: 20, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 4, elevation: 3,
+  },
+  googleBtnIcon: {
+    fontSize: 18, fontWeight: '900', color: '#4285F4',
+    marginRight: 10, fontStyle: 'italic',
+  },
+  googleBtnText: {
+    fontSize: 15, fontWeight: '600', color: '#333',
   },
   buttonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.3)',

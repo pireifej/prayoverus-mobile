@@ -1820,7 +1820,7 @@ function App() {
       }
       
       // Use the actual logged in user's ID from production API
-      const userId = currentUser?.id;
+      const userId = currentUser?.isGuest ? '0' : currentUser?.id;
       
       if (!userId) {
         console.log('⚠️ No user ID available, skipping community load');
@@ -1833,7 +1833,7 @@ function App() {
       const requestPayload = {
         userId: userId.toString(),
         tz: timezone,
-        filterByChurch: showChurchOnly,
+        filterByChurch: currentUser?.isGuest ? false : showChurchOnly,
         lang: userLang,
       };
       
@@ -4633,20 +4633,29 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   if (currentScreen === 'profile') {
     if (currentUser?.isGuest) {
       return (
-        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+        <LinearGradient colors={['#0f172a', '#1e3a5f', '#1e40af']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
           <StatusBar style="light" />
-          <Text style={{ fontSize: 56, marginBottom: 20 }}>🙏</Text>
-          <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Join PrayOverUs</Text>
-          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 52, left: 20, padding: 10 }}
+            onPress={() => setCurrentScreen('home')}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 64, marginBottom: 20 }}>🙏</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Join PrayOverUs</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
             Create a free account to build your faith profile, earn faith ranks, and connect with your prayer community.
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: '#3b82f6', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 16 }}
+            style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }}
             onPress={() => setCurrentUser(null)}
           >
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
           </TouchableOpacity>
-        </View>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Continue Browsing</Text>
+          </TouchableOpacity>
+        </LinearGradient>
       );
     }
     const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
@@ -5579,6 +5588,33 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'dailyBread') {
+    if (currentUser?.isGuest) {
+      return (
+        <LinearGradient colors={['#0f172a', '#1e3a5f', '#1e40af']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <StatusBar style="light" />
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 52, left: 20, padding: 10 }}
+            onPress={() => setCurrentScreen('home')}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 64, marginBottom: 20 }}>📖</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Daily Bread</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
+            Create a free account to read daily devotionals, receive morning notifications, and grow in your faith every day.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }}
+            onPress={() => setCurrentUser(null)}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Continue Browsing</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      );
+    }
     return (
       <DailyBreadScreen
         devotional={selectedDevotional}

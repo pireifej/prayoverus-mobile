@@ -1281,8 +1281,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         <View style={styles.dividerLine} />
       </View>
 
-      {/* Google — re-enable after native build */}
-      {false && (
+      {/* Google Sign-In */}
+      {!!googleRequest && (
         <TouchableOpacity
           style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
           onPress={() => googlePromptAsync()}

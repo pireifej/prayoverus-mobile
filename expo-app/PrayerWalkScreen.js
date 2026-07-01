@@ -283,42 +283,70 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     soundRef.current = null;
   };
 
+  const advance = useCallback((prayedId) => {
+    if (prayedId && onPrayForRequest) onPrayForRequest(prayedId);
+    setPrayedThisSession(n => n + 1);
+    setCurrentIndex(prev => {
+      const next = prev + 1;
+      if (next >= prayerList.length) { setIsFinished(true); return prev; }
+      return next;
+    });
+  }, [prayerList.length, onPrayForRequest]);
+
   const playPrayer = useCallback(async (prayer) => {
-    if (!prayer) return;
-    await stopAndUnload();
+    if (!prayer || !isActiveRef.current) return;
     activePrayerIdRef.current = prayer.id;
     setAudioStatus('loading');
+    try { await soundRef.current?.unloadAsync(); } catch (_) {}
+    soundRef.current = null;
 
     try {
-      const prayerText = await fetchPrayerText(prayer);
-      if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
+      const localUri = `${FileSystem.cacheDirectory}prayerWalkGen3_${prayer.id}.mp3`;
+      const cached = await FileSystem.getInfoAsync(localUri);
 
-      const spoken = buildSpokenText(prayer, prayerText);
-      const ttsUrl = `${BASE_URL}/tts?text=${encodeURIComponent(spoken)}`;
-      const cached = `${FileSystem.cacheDirectory}pw_${prayer.id}.mp3`;
+      if (!cached.exists) {
+        const prayerText = await fetchPrayerText(prayer);
+        const spokenText = buildSpokenText(prayer, prayerText);
 
-      let uri = cached;
-      const info = await FileSystem.getInfoAsync(cached);
-      if (!info.exists) {
-        const dl = await FileSystem.downloadAsync(ttsUrl, cached, {
-          headers: { 'Authorization': AUTH() },
+        const res = await fetch(`${BASE_URL}/getPrayerAudio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
+          body: JSON.stringify({ requestId: prayer.id, text: spokenText }),
         });
-        uri = dl.uri;
+        if (!res.ok) throw new Error(`getPrayerAudio ${res.status}`);
+
+        const blob = await res.blob();
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const r = reader.result;
+            resolve(r.indexOf(',') >= 0 ? r.split(',')[1] : r);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        await FileSystem.writeAsStringAsync(localUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
       }
 
       if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
 
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+
       const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true, volume: 1.0 },
+        { uri: localUri },
+        { shouldPlay: true },
         (status) => {
-          if (!isActiveRef.current || activePrayerIdRef.current !== prayer.id) return;
-          if (status.isLoaded) {
-            if (status.isPlaying) setAudioStatus('playing');
-            else if (status.isPaused) setAudioStatus('paused');
-            if (status.didJustFinish) {
-              setAudioStatus('idle');
-            }
+          if (!isActiveRef.current) return;
+          if (status.isLoaded && status.didJustFinish && activePrayerIdRef.current === prayer.id) {
+            soundRef.current?.unloadAsync();
+            soundRef.current = null;
+            setAudioStatus('idle');
+            advance(prayer.id);
+          }
+          if (status.error && isActiveRef.current && activePrayerIdRef.current === prayer.id) {
+            setAudioStatus('error');
           }
         }
       );
@@ -327,53 +355,46 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         sound.unloadAsync();
         return;
       }
-
       soundRef.current = sound;
       setAudioStatus('playing');
     } catch (e) {
-      console.log('PrayerWalk audio error:', e?.message);
-      if (isActiveRef.current && activePrayerIdRef.current === prayer.id) {
-        setAudioStatus('error');
-      }
+      console.log('[PrayerWalk] error:', e?.message);
+      if (isActiveRef.current && activePrayerIdRef.current === prayer.id) setAudioStatus('error');
     }
-  }, []);
+  }, [advance]);
 
   // Auto-play current prayer on mount and index change
   useEffect(() => {
-    if (current) playPrayer(current);
-  }, [currentIndex]);
-
-  const advance = async () => {
-    await stopAndUnload();
-    const next = currentIndex + 1;
-    if (next >= total) {
-      setIsFinished(true);
-    } else {
-      setCurrentIndex(next);
-    }
-  };
+    if (prayerList[currentIndex] && !isFinished) playPrayer(prayerList[currentIndex]);
+  }, [currentIndex, isFinished]);
 
   const handleAmen = async () => {
-    if (onPrayForRequest && current?.id) onPrayForRequest(current.id);
-    setPrayedThisSession(n => n + 1);
-    await advance();
+    activePrayerIdRef.current = null;
+    try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
+    soundRef.current = null;
+    advance(current?.id);
   };
 
   const handleSkip = async () => {
-    await advance();
+    activePrayerIdRef.current = null;
+    try { await soundRef.current?.stopAsync(); await soundRef.current?.unloadAsync(); } catch (_) {}
+    soundRef.current = null;
+    setAudioStatus('idle');
+    setCurrentIndex(prev => {
+      const next = prev + 1;
+      if (next >= prayerList.length) { setIsFinished(true); return prev; }
+      return next;
+    });
   };
 
   const handlePauseResume = async () => {
-    if (!soundRef.current) return;
-    try {
-      if (audioStatus === 'playing') {
-        await soundRef.current.pauseAsync();
-        setAudioStatus('paused');
-      } else if (audioStatus === 'paused') {
-        await soundRef.current.playAsync();
-        setAudioStatus('playing');
-      }
-    } catch (_) {}
+    if (audioStatus === 'playing') {
+      await soundRef.current?.pauseAsync();
+      setAudioStatus('paused');
+    } else if (audioStatus === 'paused') {
+      await soundRef.current?.playAsync();
+      setAudioStatus('playing');
+    }
   };
 
   const handleClose = async () => {

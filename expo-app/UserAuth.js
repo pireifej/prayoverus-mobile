@@ -444,11 +444,22 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
   };
 
+  // iOS native client — reverse client ID scheme registered in app.json infoPlist
+  const IOS_CLIENT_ID = '798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg.apps.googleusercontent.com';
+  // Android native client — fill in once created in Google Cloud Console
+  const ANDROID_CLIENT_ID = ''; // TODO: add after creating Android OAuth client
+
+  const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : ANDROID_CLIENT_ID;
+  const googleRedirectUri = Platform.OS === 'ios'
+    ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
+    : makeRedirectUri({ scheme: 'prayoverus' });
+
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {
-      clientId: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
+      clientId: nativeClientId,
       scopes: ['openid', 'profile', 'email'],
-      redirectUri: 'https://auth.expo.io/@pireifej/pray-over-us',
+      redirectUri: googleRedirectUri,
+      usePKCE: true,
     },
     GOOGLE_DISCOVERY
   );

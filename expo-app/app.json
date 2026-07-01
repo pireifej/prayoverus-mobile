@@ -24,7 +24,14 @@
         "applinks:www.prayoverus.com"
       ],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg"
+            ]
+          }
+        ]
       }
     },
     "notification": {

@@ -3775,6 +3775,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // Show Prayer Detail Screen (full-screen, replaces modal)
   if (showDetailScreen && detailScreenProps.requestId) {
+    if (currentUser?.isGuest) {
+      setShowDetailScreen(false);
+      showGuestPrompt();
+      return null;
+    }
     return (
       <PrayerDetailScreen
         requestId={detailScreenProps.requestId}

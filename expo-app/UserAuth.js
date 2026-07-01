@@ -446,8 +446,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   // iOS native client — reverse client ID scheme registered in app.json infoPlist
   const IOS_CLIENT_ID = '798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg.apps.googleusercontent.com';
-  // Android native client — fill in once created in Google Cloud Console
-  const ANDROID_CLIENT_ID = ''; // TODO: add after creating Android OAuth client
+  // Android native client
+  const ANDROID_CLIENT_ID = '798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt.apps.googleusercontent.com';
 
   const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : ANDROID_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'

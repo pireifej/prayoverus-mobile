@@ -1207,27 +1207,31 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </Text>
       </TouchableOpacity>
       
-      <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerLabel}>or</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      <TouchableOpacity
-        style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
-        onPress={() => googlePromptAsync()}
-        disabled={googleLoading || !googleRequest}
-        activeOpacity={0.85}
-      >
-        {googleLoading ? (
-          <ActivityIndicator size="small" color="#444" />
-        ) : (
-          <>
-            <Text style={styles.googleBtnIcon}>G</Text>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      {/* Google Sign-In — re-enable after native iOS/Android build */}
+      {false && (
+        <View>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerLabel}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+          <TouchableOpacity
+            style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
+            onPress={() => googlePromptAsync()}
+            disabled={googleLoading || !googleRequest}
+            activeOpacity={0.85}
+          >
+            {googleLoading ? (
+              <ActivityIndicator size="small" color="#444" />
+            ) : (
+              <>
+                <Text style={styles.googleBtnIcon}>G</Text>
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <TouchableOpacity 
         style={styles.switchButton} 

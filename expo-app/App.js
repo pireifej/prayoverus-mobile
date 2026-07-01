@@ -16,6 +16,7 @@ import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
+import OnboardingCarousel from './OnboardingCarousel';
 import t, { lang as userLang, setLang, translateRank } from './i18n';
 import { showToast, showModal } from './AppModals';
 
@@ -804,6 +805,7 @@ function App() {
   });
   const [expandedPrayers, setExpandedPrayers] = useState({});
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -1980,6 +1982,10 @@ function App() {
     } catch (error) {
       console.log('Error checking stored auth:', error.message);
     } finally {
+      try {
+        const onboardingDone = await AsyncStorage.getItem('@onboarding_done');
+        if (!onboardingDone) setShowOnboarding(true);
+      } catch (_) {}
       setIsCheckingAuth(false);
     }
   };
@@ -2005,6 +2011,23 @@ function App() {
   };
 
   // Handle user login and save to storage
+  const handleGuestMode = () => {
+    setCurrentUser({ id: 'guest', isGuest: true, firstName: 'Guest', lastName: '', email: '' });
+    setCurrentScreen('home');
+  };
+
+  const showGuestPrompt = () => {
+    showModal({
+      icon: '🙏',
+      title: 'Join the Community',
+      message: 'Create a free account to pray, post requests, and save your spiritual journey.',
+      buttons: [
+        { label: 'Create Account', onPress: () => setCurrentUser(null), style: 'default' },
+        { label: 'Keep Browsing', style: 'cancel' },
+      ],
+    });
+  };
+
   const handleLogin = async (userData) => {
     setCurrentUser(userData);
     await saveUserToStorage(userData);
@@ -2243,6 +2266,7 @@ function App() {
   };
 
   const addPrayer = async () => {
+    if (currentUser?.isGuest) { showGuestPrompt(); return; }
     if (newPrayer.content.trim()) {
       // If this is their 2nd+ post today, gate behind an interstitial ad
       if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
@@ -2372,6 +2396,7 @@ function App() {
   };
 
   const generatePrayer = async (prayerRequest) => {
+    if (currentUser?.isGuest) { showGuestPrompt(); return; }
     try {
       setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length));
       setPrayerModal({
@@ -3094,6 +3119,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // Standalone pray-for-request (used by Prayer Walk — no modal, no animation)
   const prayForRequest = async (prayerId) => {
+    if (currentUser?.isGuest) { showGuestPrompt(); return; }
     try {
       const res = await fetch('https://shouldcallpaul.replit.app/prayFor', {
         method: 'POST',
@@ -3785,6 +3811,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  // Show onboarding carousel for first-time visitors
+  if (showOnboarding && !currentUser) {
+    return (
+      <OnboardingCarousel onDone={async () => {
+        try { await AsyncStorage.setItem('@onboarding_done', '1'); } catch (_) {}
+        setShowOnboarding(false);
+      }} />
+    );
+  }
+
   // Show auth screens if no current user
   if (!currentUser) {
     console.log('📱 No user - showing login screen. Current authScreen:', authScreen);
@@ -3804,6 +3840,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onForgotPassword={() => setAuthScreen('forgot')}
         appBuild={APP_BUILD}
         resetSuccess={authScreen === 'resetSuccess'}
+        onGuestMode={handleGuestMode}
       />
     );
   }
@@ -4594,6 +4631,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'profile') {
+    if (currentUser?.isGuest) {
+      return (
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+          <StatusBar style="light" />
+          <Text style={{ fontSize: 56, marginBottom: 20 }}>🙏</Text>
+          <Text style={{ color: '#fff', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Join PrayOverUs</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32 }}>
+            Create a free account to build your faith profile, earn faith ranks, and connect with your prayer community.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#3b82f6', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 16 }}
+            onPress={() => setCurrentUser(null)}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
     const myProfilePicUri = currentUser.picture
       ? (currentUser.picture.startsWith('http') ? currentUser.picture : `https://shouldcallpaul.replit.app/${currentUser.picture}`)

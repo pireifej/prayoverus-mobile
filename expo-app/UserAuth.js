@@ -425,7 +425,7 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
   );
 }
 
-export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess }) {
+export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess, onGuestMode }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -1140,6 +1140,12 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess 
             : 'Need an account? Sign Up'}
         </Text>
       </TouchableOpacity>
+
+      {onGuestMode && !isRegistering && (
+        <TouchableOpacity style={styles.guestBtn} onPress={onGuestMode} activeOpacity={0.7}>
+          <Text style={styles.guestBtnText}>🔍  Explore as Guest</Text>
+        </TouchableOpacity>
+      )}
       
       <Text style={styles.versionText}>
         {appBuild || `v${Constants.expoConfig?.version || '1.0.0'}`}
@@ -1268,6 +1274,14 @@ const styles = StyleSheet.create({
   switchText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
+  },
+  guestBtn: {
+    marginTop: 14, alignItems: 'center', paddingVertical: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 14, borderStyle: 'dashed',
+  },
+  guestBtnText: {
+    color: 'rgba(255,255,255,0.55)', fontSize: 14, fontWeight: '500',
   },
   buttonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.3)',

@@ -255,7 +255,7 @@ function CentralGlow({ playing }) {
 // ─────────────────────────────────────────────────────────────────
 // Main screen
 // ─────────────────────────────────────────────────────────────────
-const AMBIENT_TRACK = require('./assets/morning-star.mp3');
+const MUSIC_URI = 'https://shouldcallpaul.replit.app/audio/canon.mp3';
 const MUSIC_VOLUME = 0.18;
 
 export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
@@ -285,7 +285,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
       try {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync(
-          AMBIENT_TRACK,
+          { uri: MUSIC_URI },
           { shouldPlay: true, isLooping: true, volume: MUSIC_VOLUME }
         );
         if (!mounted) { sound.unloadAsync(); return; }

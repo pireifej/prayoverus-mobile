@@ -6290,6 +6290,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             if (showMyRequestsOnly) {
               return <Text style={styles.emptyText}>{t('emptyMyPrayers')}</Text>;
             }
+            if (hideAlreadyPrayed && communityPrayers.length > 0) {
+              return <Text style={styles.emptyText}>{t('emptyHidePrayed')}</Text>;
+            }
             if (showChurchOnly) {
               return <Text style={styles.emptyText}>{t('emptyChurchPrayers')}</Text>;
             }

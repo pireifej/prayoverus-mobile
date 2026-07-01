@@ -2012,7 +2012,7 @@ function App() {
 
   // Handle user login and save to storage
   const handleGuestMode = () => {
-    setCurrentUser({ id: 'guest', isGuest: true, firstName: 'Guest', lastName: '', email: '' });
+    setCurrentUser({ id: 'guest', isGuest: true, firstName: 'Guest', lastName: '', email: '', avatar_emoji: '🕊️' });
     setCurrentScreen('home');
   };
 

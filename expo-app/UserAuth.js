@@ -5,7 +5,6 @@ import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding that works in both web and React Native
@@ -439,9 +438,20 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     }
   }, [initMode]);
 
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    webClientId: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
-  });
+  const GOOGLE_DISCOVERY = {
+    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenEndpoint: 'https://oauth2.googleapis.com/token',
+    revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+  };
+
+  const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
+    {
+      clientId: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
+      scopes: ['openid', 'profile', 'email'],
+      redirectUri: makeRedirectUri({ scheme: 'prayoverus' }),
+    },
+    GOOGLE_DISCOVERY
+  );
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {

@@ -255,6 +255,9 @@ function CentralGlow({ playing }) {
 // ─────────────────────────────────────────────────────────────────
 // Main screen
 // ─────────────────────────────────────────────────────────────────
+const AMBIENT_TRACK = require('./assets/morning-star.mp3');
+const MUSIC_VOLUME = 0.18;
+
 export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
   // Keep the screen on for the whole Prayer Walk session
   useKeepAwake();
@@ -265,13 +268,50 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
   const [audioStatus, setAudioStatus] = useState('idle');
   const [isFinished, setIsFinished] = useState(false);
   const [prayedThisSession, setPrayedThisSession] = useState(0);
+  const [musicMuted, setMusicMuted] = useState(false);
   const soundRef = useRef(null);
+  const musicSoundRef = useRef(null);
   const isActiveRef = useRef(true);
   // Track which prayer is currently playing — prevents stale didJustFinish from advancing
   const activePrayerIdRef = useRef(null);
 
   const total = prayerList.length;
   const current = prayerList[currentIndex];
+
+  // Start ambient background music on mount, stop on unmount
+  useEffect(() => {
+    let mounted = true;
+    const startMusic = async () => {
+      try {
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const { sound } = await Audio.Sound.createAsync(
+          AMBIENT_TRACK,
+          { shouldPlay: true, isLooping: true, volume: MUSIC_VOLUME }
+        );
+        if (!mounted) { sound.unloadAsync(); return; }
+        musicSoundRef.current = sound;
+      } catch (e) {
+        console.log('[PrayerWalk] music error:', e?.message);
+      }
+    };
+    startMusic();
+    return () => {
+      mounted = false;
+      musicSoundRef.current?.stopAsync().catch(() => {});
+      musicSoundRef.current?.unloadAsync().catch(() => {});
+      musicSoundRef.current = null;
+    };
+  }, []);
+
+  // Toggle music mute/unmute
+  const toggleMusic = async () => {
+    try {
+      if (!musicSoundRef.current) return;
+      const next = !musicMuted;
+      await musicSoundRef.current.setVolumeAsync(next ? 0 : MUSIC_VOLUME);
+      setMusicMuted(next);
+    } catch (_) {}
+  };
 
   useEffect(() => () => {
     isActiveRef.current = false;
@@ -468,9 +508,14 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
           <Text style={styles.headerLabel}>🕊  Prayer Walk</Text>
           <Text style={styles.progressLabel}>{currentIndex + 1} of {total}</Text>
         </View>
-        <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-          <Text style={styles.closeBtnText}>✕</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={toggleMusic} style={[styles.musicBtn, musicMuted && styles.musicBtnMuted]} activeOpacity={0.7}>
+            <Text style={styles.musicBtnText}>{musicMuted ? '🔇' : '🎵'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Progress bar */}
@@ -549,8 +594,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22, paddingBottom: 14, zIndex: 10,
   },
   headerLeft: { gap: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerLabel: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
   progressLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '500' },
+
+  musicBtn: {
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 18,
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(96,165,250,0.35)',
+  },
+  musicBtnMuted: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  musicBtnText: { fontSize: 16 },
 
   closeBtn: {
     backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 18,

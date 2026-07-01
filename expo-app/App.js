@@ -4078,6 +4078,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'soloRosary') {
+    if (currentUser?.isGuest) {
+      return (
+        <LinearGradient colors={['#0f172a', '#1e3a5f', '#1e40af']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <StatusBar style="light" />
+          <TouchableOpacity style={{ position: 'absolute', top: 52, left: 20, padding: 10 }} onPress={() => setCurrentScreen('groups')}>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 64, marginBottom: 20 }}>📿</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Solo Rosary</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
+            Create a free account to pray the Rosary, track your count, and build a daily prayer habit.
+          </Text>
+          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={() => setCurrentUser(null)}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentScreen('groups')}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Continue Browsing</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      );
+    }
     return (
       <RosaryScreen
         onExit={() => setCurrentScreen('groups')}
@@ -4092,6 +4113,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   }
 
   if (currentScreen === 'groupRosary') {
+    if (currentUser?.isGuest) {
+      return (
+        <LinearGradient colors={['#0f172a', '#1e3a5f', '#1e40af']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <StatusBar style="light" />
+          <TouchableOpacity style={{ position: 'absolute', top: 52, left: 20, padding: 10 }} onPress={() => setCurrentScreen('groups')}>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 64, marginBottom: 20 }}>🕊️</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Group Rosary</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
+            Create a free account to pray the Rosary together with others in real time.
+          </Text>
+          <TouchableOpacity style={{ backgroundColor: '#3b82f6', paddingVertical: 15, paddingHorizontal: 48, borderRadius: 18, marginBottom: 16 }} onPress={() => setCurrentUser(null)}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Create Free Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentScreen('groups')}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Continue Browsing</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      );
+    }
     return (
       <GroupRosaryScreen
         onExit={() => setCurrentScreen('groups')}

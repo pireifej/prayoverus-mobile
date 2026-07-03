@@ -64,8 +64,12 @@ const storage = new SimpleStorage();
 export function ForgotPasswordScreen({ onBack, onEmailSent }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [sentToEmail, setSentToEmail] = useState('');
   const floatAnim = useRef(new Animated.Value(0)).current;
   const glowAnim  = useRef(new Animated.Value(0.3)).current;
+  const successScale = useRef(new Animated.Value(0.7)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -115,7 +119,12 @@ export function ForgotPasswordScreen({ onBack, onEmailSent }) {
       
       // Check if error === 0 (success)
       if (data.error === 0) {
-        Alert.alert('Success', data.result);
+        setSentToEmail(email.trim());
+        setEmailSent(true);
+        Animated.parallel([
+          Animated.spring(successScale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 8 }),
+          Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        ]).start();
         if (onEmailSent) onEmailSent(email.trim());
         setEmail('');
       } else {
@@ -132,17 +141,17 @@ export function ForgotPasswordScreen({ onBack, onEmailSent }) {
   };
 
   return (
-    <LinearGradient 
+    <LinearGradient
       colors={['#0f172a', '#1e3a5f', '#1e40af', '#3b82f6']}
       style={styles.gradientBackground}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
@@ -154,45 +163,109 @@ export function ForgotPasswordScreen({ onBack, onEmailSent }) {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.welcomeText}>Welcome to</Text>
-        <Text style={styles.appName}>Pray Over Us</Text>
-        <Text style={styles.subtitle}>Forgot Password?</Text>
-        <Text style={styles.helpText}>
-          Enter your email address and we'll send you a link to reset your password.
-        </Text>
 
-        <Text style={styles.inputLabel}>Email Address</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          editable={!loading}
-          data-testid="input-forgot-email"
-        />
-
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleSendResetLink}
-          disabled={loading}
-          data-testid="button-send-reset"
-        >
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color="#1e40af" />
-              <Text style={styles.buttonText}>Sending...</Text>
+        {emailSent ? (
+          /* ── Success State ── */
+          <Animated.View style={{
+            width: '100%',
+            alignItems: 'center',
+            opacity: successOpacity,
+            transform: [{ scale: successScale }],
+          }}>
+            {/* Icon bubble */}
+            <View style={{
+              width: 80, height: 80, borderRadius: 40,
+              backgroundColor: 'rgba(34,197,94,0.18)',
+              borderWidth: 2, borderColor: 'rgba(34,197,94,0.45)',
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <Text style={{ fontSize: 38 }}>✉️</Text>
             </View>
-          ) : (
-            <Text style={styles.buttonText}>Send Reset Link</Text>
-          )}
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.switchButton} onPress={onBack}>
-          <Text style={styles.switchText}>← Back to Sign In</Text>
-        </TouchableOpacity>
+            <Text style={[styles.appName, { marginBottom: 8 }]}>Check Your Inbox</Text>
+            <Text style={[styles.helpText, { marginBottom: 6 }]}>
+              If an account exists for
+            </Text>
+            <Text style={{
+              color: '#93c5fd', fontSize: 15, fontWeight: '700',
+              marginBottom: 16, textAlign: 'center',
+            }}>
+              {sentToEmail}
+            </Text>
+            <Text style={[styles.helpText, { marginBottom: 32 }]}>
+              you'll receive a password reset link shortly. Check your spam folder if you don't see it.
+            </Text>
+
+            {/* Divider */}
+            <View style={{
+              width: '100%', height: 1,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              marginBottom: 28,
+            }} />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={onBack}
+            >
+              <Text style={styles.buttonText}>Back to Sign In</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.switchButton, { marginTop: 16 }]}
+              onPress={() => {
+                setEmailSent(false);
+                successScale.setValue(0.7);
+                successOpacity.setValue(0);
+              }}
+            >
+              <Text style={styles.switchText}>Try a different email</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : (
+          /* ── Form State ── */
+          <>
+            <Text style={styles.welcomeText}>Welcome to</Text>
+            <Text style={styles.appName}>Pray Over Us</Text>
+            <Text style={styles.subtitle}>Forgot Password?</Text>
+            <Text style={styles.helpText}>
+              Enter your email address and we'll send you a link to reset your password.
+            </Text>
+
+            <Text style={styles.inputLabel}>Email Address</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+              data-testid="input-forgot-email"
+            />
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSendResetLink}
+              disabled={loading}
+              data-testid="button-send-reset"
+            >
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#1e40af" />
+                  <Text style={styles.buttonText}>Sending...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Send Reset Link</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.switchButton} onPress={onBack}>
+              <Text style={styles.switchText}>← Back to Sign In</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
     </LinearGradient>

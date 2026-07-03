@@ -1,0 +1,51 @@
+✔ What do you want to do? › Add a new API Key For EAS Submit
+✔ Generate a new App Store Connect API Key? … no
+An App Store Connect Api key is required to upload your app to the Apple App Store Connect
+If you're not sure what this is or how to create one, Learn more: https://expo.fyi/creating-asc-api-key
+✔ Path to App Store Connect API Key: … /home/runner/workspace/attached_assets/AuthKey_LB69DG6Z4L_1783117523651.p8
+✔ Key ID: … LB69DG6Z4L
+✔ Fetched App Store Connect API Key (ID: LB69DG6Z4L).
+Detected Issuer ID: bd0a1c09-ea05-4a1e-aa75-001705abdbdb
+✔ Fetched App Store Connect API Key (ID: LB69DG6Z4L).
+✔ Do you want pray-over-us to use the new API Key? … yes
+✔ App Store Connect API Key assigned to pray-over-us: com.pireifej.prayoverus for EAS Submit.
+Press any key to continue...
+
+
+iOS Credentials            
+Project                    @pireifej/pray-over-us
+Bundle Identifier          com.pireifej.prayoverus
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+                           
+Push Key                   
+Developer Portal ID        G49NSL8CBS
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    7 months ago
+                           
+App Store Connect API Key  
+Developer Portal ID        LB69DG6Z4L
+Issuer ID                  bd0a1c09-ea05-4a1e-aa75-001705abdbdb
+Updated                    3 seconds ago
+                           
+                           
+App Store Configuration    
+                           
+Distribution Certificate   
+Serial Number              6787EF60B1D5A191EECEBE7C06E0ED1B
+Expiration Date            Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    10 months ago
+                           
+Provisioning Profile       
+Developer Portal ID        S4639SU4A9
+Status                     active
+Expiration                 Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    2 days ago
+                           
+? What do you want to do? › - Use arrow-keys. Return to submit.
+❯   Set up your project to use an API Key for EAS Submit
+    Use an existing API Key for EAS Submit
+    Add a new API Key For EAS Submit
+    Delete an API Key
+    Go back

@@ -5,8 +5,7 @@ import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
-// expo-apple-authentication re-enabled for 1.0.30 native build only — not for OTA
-// import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding that works in both web and React Native
@@ -507,10 +506,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
-    // Apple authentication disabled for OTA — re-enabled in 1.0.30 native build
-    setAppleAvailable(false);
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
   }, []);
 
   useEffect(() => {
@@ -606,8 +605,55 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   };
 
   const handleAppleSignIn = async () => {
-    // Apple Sign-In available in next update (1.0.30)
-    Alert.alert('Coming Soon', 'Apple Sign-In will be available in the next update.');
+    if (!appleAvailable) return;
+    try {
+      setAppleLoading(true);
+      setLoginError('');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const res = await fetch('https://shouldcallpaul.replit.app/appleLogin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({
+          apple_id: credential.user,
+          email: credential.email || '',
+          first_name: credential.fullName?.givenName || '',
+          last_name: credential.fullName?.familyName || '',
+          identity_token: credential.identityToken || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.error === 0 && data.result?.length > 0) {
+        const u = data.result[0];
+        onLogin({
+          id: u.user_id, email: u.email, firstName: u.real_name,
+          userName: u.user_name, title: u.user_title, about: u.user_about,
+          location: u.location, picture: u.picture, active: u.active,
+          timestamp: u.timestamp, churchId: u.church_id, churchName: u.church_name,
+          faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null,
+          prayer_count: parseInt(u.prayer_count, 10) || 0,
+          request_count: parseInt(u.request_count, 10) || 0,
+          auth_provider: 'apple',
+        });
+      } else {
+        setLoginError(data.result || 'Apple Sign-In failed. Please try again.');
+      }
+    } catch (error) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        setLoginError('Apple Sign-In failed. Please check your connection.');
+      }
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   // Registration form fields
@@ -987,10 +1033,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setLoginError('Please fill in all fields');
       return;
     }
 
+    setLoginError('');
     setLoading(true);
     
     try {
@@ -1055,26 +1102,15 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           // No popup needed - user sees the app loaded successfully!
           
         } else {
-          // Show actual error message from API
           const errorMessage = data.result || data.message || 'Invalid email or password';
-          Alert.alert('Error', errorMessage);
+          setLoginError(errorMessage);
         }
       } else {
-        Alert.alert('Error', 'Login service unavailable');
+        setLoginError('Login service unavailable. Please try again.');
       }
       
     } catch (error) {
-      
-      // Fallback for testing - only if you want to test without valid credentials
-      const mockUser = {
-        id: 353, // Use your test user ID
-        email: email,
-        firstName: email.split('@')[0],
-        lastName: '',
-      };
-      
-      onLogin(mockUser);
-      Alert.alert('Info', 'Using test login (production API unavailable)');
+      setLoginError('Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -1300,6 +1336,14 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </View>
       )}
 
+      {/* Inline login error */}
+      {!!loginError && (
+        <View style={styles.loginErrorBox}>
+          <Text style={styles.loginErrorIcon}>⚠️</Text>
+          <Text style={styles.loginErrorText}>{loginError}</Text>
+        </View>
+      )}
+
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
         onPress={handleAuth}
@@ -1309,8 +1353,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           {loading ? 'Please wait...' : (isRegistering ? 'Create Account' : 'Sign In')}
         </Text>
       </TouchableOpacity>
-      
-      {/* Social Sign-In — enabled after native build */}
+
+      {/* Social Sign-In */}
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerLabel}>or</Text>
@@ -1321,7 +1365,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       {!!googleRequest && (
         <TouchableOpacity
           style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
-          onPress={() => googlePromptAsync()}
+          onPress={() => { setLoginError(''); googlePromptAsync(); }}
           disabled={googleLoading || !googleRequest}
           activeOpacity={0.85}
         >
@@ -1336,7 +1380,24 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </TouchableOpacity>
       )}
 
-      {/* Apple Sign-In — temporarily disabled, re-enable after provisioning fix */}
+      {/* Apple Sign-In — native only, auto-hidden on Android */}
+      {appleAvailable && (
+        <TouchableOpacity
+          style={[styles.appleBtn, appleLoading && { opacity: 0.6 }]}
+          onPress={handleAppleSignIn}
+          disabled={appleLoading}
+          activeOpacity={0.85}
+        >
+          {appleLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.appleBtnIcon}></Text>
+              <Text style={styles.appleBtnText}>Continue with Apple</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity 
         style={styles.switchButton} 
@@ -1515,7 +1576,31 @@ const styles = StyleSheet.create({
     fontSize: 15, fontWeight: '600', color: '#333',
   },
   appleBtn: {
-    width: '100%', height: 50, marginBottom: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#000', borderRadius: 14, paddingVertical: 13,
+    paddingHorizontal: 20, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25, shadowRadius: 4, elevation: 3,
+  },
+  appleBtnIcon: {
+    fontSize: 18, color: '#fff', marginRight: 10,
+  },
+  appleBtnText: {
+    fontSize: 15, fontWeight: '600', color: '#fff',
+  },
+  loginErrorBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(239,68,68,0.18)',
+    borderColor: 'rgba(239,68,68,0.45)',
+    borderWidth: 1, borderRadius: 12,
+    paddingVertical: 11, paddingHorizontal: 14,
+    marginBottom: 12, width: '100%', gap: 8,
+  },
+  loginErrorIcon: {
+    fontSize: 16,
+  },
+  loginErrorText: {
+    color: '#fca5a5', fontSize: 14, fontWeight: '600', flex: 1,
   },
   buttonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.3)',

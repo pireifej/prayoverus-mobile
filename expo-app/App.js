@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -144,10 +145,6 @@ const REWARDED_AD_UNIT_ID = isAdMobAvailable && TestIds
       ? 'ca-app-pub-3440306279423513/4982099014'
       : 'ca-app-pub-3440306279423513/5604867819')
   : null;
-
-// Use localStorage-like persistence for web and AsyncStorage for mobile  
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Safe-area constants without useSafeAreaInsets (avoids white-screen crash)
 const STATUS_BAR_HEIGHT = Constants.statusBarHeight ?? (Platform.OS === 'android' ? 24 : 44);

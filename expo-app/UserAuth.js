@@ -278,8 +278,12 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetDone, setResetDone] = useState(false);
   const floatAnim = useRef(new Animated.Value(0)).current;
   const glowAnim  = useRef(new Animated.Value(0.3)).current;
+  const successScale = useRef(new Animated.Value(0.7)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -297,22 +301,20 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
   }, []);
 
   const handleResetPassword = async () => {
-    // Validation
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setResetError('Please fill in all fields');
       return;
     }
-
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setResetError('Password must be at least 6 characters');
       return;
     }
-
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      setResetError('Passwords do not match');
       return;
     }
 
+    setResetError('');
     setLoading(true);
 
     try {
@@ -376,24 +378,22 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
             }
           }
           // Fallback: no email available or auto-login failed — show banner on login screen
-          Alert.alert(
-            '✅ Password Changed!',
-            'Your password has been updated successfully.\n\nTap OK and log in with your new password.',
-            [{ text: 'OK', onPress: onSuccess }]
-          );
+          setResetDone(true);
+          Animated.parallel([
+            Animated.spring(successScale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 8 }),
+            Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          ]).start();
         } else {
-          Alert.alert(
-            'Link Expired or Invalid',
+          setResetError(
             (data.result || 'This reset link has already been used or has expired.') +
-            '\n\nPlease go back to "Forgot Password" and request a new link.',
-            [{ text: 'OK' }]
+            ' Please go back to Forgot Password and request a new link.'
           );
         }
       } else {
-        Alert.alert('Error', 'Service unavailable. Please try again later.');
+        setResetError('Service unavailable. Please try again later.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error. Please check your connection.');
+      setResetError('Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -422,77 +422,104 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.welcomeText}>Welcome to</Text>
-        <Text style={styles.appName}>Pray Over Us</Text>
-        <Text style={styles.subtitle}>Reset Password</Text>
-        <Text style={styles.helpText}>
-          Enter your new password below.
-        </Text>
-
-        <Text style={styles.inputLabel}>New Password</Text>
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="New Password"
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry={!showPassword}
-            editable={!loading}
-            autoCorrect={false}
-            autoCapitalize="none"
-            autoComplete="password"
-            textContentType="password"
-          />
-          <TouchableOpacity 
-            style={styles.eyeButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.inputLabel}>Confirm Password</Text>
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Confirm Password"
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showConfirmPassword}
-            editable={!loading}
-            autoCorrect={false}
-            autoCapitalize="none"
-            autoComplete="password"
-            textContentType="password"
-          />
-          <TouchableOpacity 
-            style={styles.eyeButton}
-            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.passwordHint}>
-          Password must be at least 6 characters
-        </Text>
-
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleResetPassword}
-          disabled={loading}
-        >
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color="#1e40af" />
-              <Text style={styles.buttonText}>Resetting...</Text>
+        {resetDone ? (
+          /* ── Success State ── */
+          <Animated.View style={{
+            width: '100%', alignItems: 'center',
+            opacity: successOpacity,
+            transform: [{ scale: successScale }],
+          }}>
+            <View style={{
+              width: 80, height: 80, borderRadius: 40,
+              backgroundColor: 'rgba(34,197,94,0.18)',
+              borderColor: 'rgba(34,197,94,0.45)',
+              borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+              marginBottom: 20,
+            }}>
+              <Text style={{ fontSize: 38 }}>🔐</Text>
             </View>
-          ) : (
-            <Text style={styles.buttonText}>Reset Password</Text>
-          )}
-        </TouchableOpacity>
+            <Text style={[styles.appName, { marginBottom: 8 }]}>Password Updated!</Text>
+            <Text style={[styles.helpText, { marginBottom: 32 }]}>
+              Your password has been changed successfully. You can now sign in with your new password.
+            </Text>
+            <View style={{ width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 28 }} />
+            <TouchableOpacity style={styles.button} onPress={onSuccess}>
+              <Text style={styles.buttonText}>Sign In</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : (
+          /* ── Form State ── */
+          <>
+            <Text style={styles.welcomeText}>Welcome to</Text>
+            <Text style={styles.appName}>Pray Over Us</Text>
+            <Text style={styles.subtitle}>Reset Password</Text>
+            <Text style={styles.helpText}>Enter your new password below.</Text>
+
+            <Text style={styles.inputLabel}>New Password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="New Password"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={newPassword}
+                onChangeText={(t) => { setNewPassword(t); setResetError(''); }}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+                autoCorrect={false}
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="password"
+              />
+              <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Confirm Password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm Password"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={confirmPassword}
+                onChangeText={(t) => { setConfirmPassword(t); setResetError(''); }}
+                secureTextEntry={!showConfirmPassword}
+                editable={!loading}
+                autoCorrect={false}
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="password"
+              />
+              <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.passwordHint}>Password must be at least 6 characters</Text>
+
+            {!!resetError && (
+              <View style={styles.loginErrorBox}>
+                <Text style={styles.loginErrorIcon}>⚠️</Text>
+                <Text style={styles.loginErrorText}>{resetError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleResetPassword}
+              disabled={loading}
+            >
+              {loading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#1e40af" />
+                  <Text style={styles.buttonText}>Resetting...</Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Reset Password</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
     </LinearGradient>

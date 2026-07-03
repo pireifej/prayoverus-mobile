@@ -62,7 +62,7 @@ const FAITH_RANKS = [
 const getFaithRank = (pointsOrRankObj, backendRank) => {
   if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
     const nr = backendRank.next_rank || backendRank.nextRank || null;
-    const actualPoints = backendRank.points || (typeof pointsOrRankObj === 'number' ? pointsOrRankObj : 0) || 0;
+    const actualPoints = (typeof pointsOrRankObj === 'number' && pointsOrRankObj > 0) ? pointsOrRankObj : (backendRank.points || 0);
     const currentMin = backendRank.min_points || 0;
     const nextMin = nr ? (nr.min_points || nr.minPoints || 0) : 0;
     let progress;
@@ -4873,7 +4873,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
               <View style={styles.memberStatsRow}>
                 <View style={styles.memberStatBox}>
-                  <Text style={styles.memberStatNumber}>{currentUser.request_count || prayers.length || 0}</Text>
+                  <Text style={styles.memberStatNumber}>{currentUser.request_count ?? '—'}</Text>
                   <Text style={styles.memberStatLabel}>{t('statRequests')}</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
@@ -6314,14 +6314,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             return <Text style={styles.emptyText}>{t('emptyFeed')}</Text>;
           }
 
-          // Pending prayers nudge — all unanswered requests (active or archived can still be marked answered)
+          // Pending prayers nudge — all unanswered requests
           const pendingOldPrayers = showMyRequestsOnly
-            ? filteredPrayers.filter(p => {
-                if (p.is_answered) return false;
-                if (!p.timestamp) return false;
-                const days = (Date.now() - new Date(p.timestamp).getTime()) / 86400000;
-                return days >= 7;
-              })
+            ? filteredPrayers.filter(p => !p.is_answered)
             : [];
 
           return (<>

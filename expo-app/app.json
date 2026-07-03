@@ -19,6 +19,7 @@
       "supportsTablet": true,
       "buildNumber": "58",
       "bundleIdentifier": "com.pireifej.prayoverus",
+      "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:prayoverus.com",
         "applinks:www.prayoverus.com"
@@ -100,7 +101,8 @@
         }
       ],
       "react-native-edge-to-edge",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

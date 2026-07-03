@@ -5,7 +5,8 @@ import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
-import * as AppleAuthentication from 'expo-apple-authentication';
+// expo-apple-authentication re-enabled for 1.0.30 native build only — not for OTA
+// import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding that works in both web and React Native
@@ -435,7 +436,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [appleAvailable, setAppleAvailable] = useState(false);
 
   useEffect(() => {
-    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    // Apple authentication disabled for OTA — re-enabled in 1.0.30 native build
+    setAppleAvailable(false);
   }, []);
 
   useEffect(() => {
@@ -530,62 +532,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   };
 
   const handleAppleSignIn = async () => {
-    try {
-      setAppleLoading(true);
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      const { identityToken, email, fullName, user: appleUserId } = credential;
-      if (!identityToken) {
-        Alert.alert('Error', 'Apple sign-in failed. No identity token received.');
-        return;
-      }
-
-      const firstName = fullName?.givenName || '';
-      const lastName = fullName?.familyName || '';
-
-      const res = await fetch('https://shouldcallpaul.replit.app/appleLogin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          identity_token: identityToken,
-          apple_user_id: appleUserId,
-          email: email || '',
-          first_name: firstName,
-          last_name: lastName,
-        }),
-      });
-      const data = await res.json();
-      if (data.error === 0 && data.result?.length > 0) {
-        const u = data.result[0];
-        onLogin({
-          id: u.user_id, email: u.email, firstName: u.real_name,
-          userName: u.user_name, title: u.user_title, about: u.user_about,
-          location: u.location, picture: u.picture, active: u.active,
-          timestamp: u.timestamp, churchId: u.church_id, churchName: u.church_name,
-          faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null,
-          prayer_count: parseInt(u.prayer_count, 10) || 0,
-          request_count: parseInt(u.request_count, 10) || 0,
-          auth_provider: 'apple',
-        });
-      } else {
-        Alert.alert('Error', data.result || 'Apple sign-in failed. Please try again.');
-      }
-    } catch (e) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Error', 'Apple sign-in failed. Please check your connection.');
-      }
-    } finally {
-      setAppleLoading(false);
-    }
+    // Apple Sign-In available in next update (1.0.30)
+    Alert.alert('Coming Soon', 'Apple Sign-In will be available in the next update.');
   };
 
   // Registration form fields

@@ -487,39 +487,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     try {
       setGoogleLoading(true);
       if (!authentication) { Alert.alert('Error', 'Google sign-in failed. Please try again.'); return; }
-
-      let userEmail, userId, givenName, familyName, picture;
-
-      if (authentication.accessToken) {
-        // Use access token to fetch full user info
-        const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-          headers: { Authorization: `Bearer ${authentication.accessToken}` },
-        });
-        const userInfo = await userInfoRes.json();
-        userEmail = userInfo.email;
-        userId = userInfo.id;
-        givenName = userInfo.given_name || '';
-        familyName = userInfo.family_name || '';
-        picture = userInfo.picture || '';
-      } else if (authentication.idToken) {
-        // Fallback: decode the ID token JWT (native iOS client often returns idToken only)
-        try {
-          const payload = JSON.parse(Buffer.from(authentication.idToken.split('.')[1], 'base64').toString('utf-8'));
-          userEmail = payload.email;
-          userId = payload.sub;
-          givenName = payload.given_name || '';
-          familyName = payload.family_name || '';
-          picture = payload.picture || '';
-        } catch (e) {
-          Alert.alert('Error', 'Could not read Google profile. Please try again.');
-          return;
-        }
-      } else {
-        Alert.alert('Error', 'Could not get info from Google. Please try again.');
-        return;
-      }
-
-      if (!userEmail) { Alert.alert('Error', 'Could not get email from Google. Please try again.'); return; }
+      const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${authentication.accessToken}` },
+      });
+      const userInfo = await userInfoRes.json();
+      if (!userInfo.email) { Alert.alert('Error', 'Could not get email from Google. Please try again.'); return; }
 
       const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',
@@ -529,11 +501,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({
-          email: userEmail,
-          google_id: userId,
-          first_name: givenName,
-          last_name: familyName,
-          picture: picture,
+          email: userInfo.email,
+          google_id: userInfo.id,
+          first_name: userInfo.given_name || '',
+          last_name: userInfo.family_name || '',
+          picture: userInfo.picture || '',
         }),
       });
       const data = await res.json();

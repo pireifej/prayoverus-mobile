@@ -467,8 +467,13 @@ const translations = {
   },
 };
 
-const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en';
-const deviceLang = locale.startsWith('es') ? 'es' : 'en';
+let deviceLang = 'en';
+try {
+  const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en';
+  deviceLang = locale.startsWith('es') ? 'es' : 'en';
+} catch (_) {
+  deviceLang = 'en';
+}
 
 export let lang = deviceLang;
 let strings = translations[lang] || translations.en;

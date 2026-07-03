@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as StoreReview from 'expo-store-review';
 import { StatusBar } from 'expo-status-bar';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -1128,9 +1129,48 @@ function App() {
     });
   }, []);
 
+  // ── In-App Review helper ──────────────────────────────────────────────────
+  // Triggers the native "Rate this app" sheet. Respects OS throttling (Apple
+  // caps at ~3 per year). We add our own guard: max 3 prompts ever, min 30
+  // days between prompts. Silent fail — never crashes the app.
+  const maybeRequestReview = async () => {
+    try {
+      const isAvailable = await StoreReview.isAvailableAsync();
+      if (!isAvailable) return;
+      const raw = await AsyncStorage.getItem('@review_state');
+      const state = raw ? JSON.parse(raw) : { promptCount: 0, lastPromptDate: null };
+      if (state.promptCount >= 3) return;
+      if (state.lastPromptDate) {
+        const daysSince = (Date.now() - new Date(state.lastPromptDate).getTime()) / 86400000;
+        if (daysSince < 30) return;
+      }
+      await StoreReview.requestReview();
+      await AsyncStorage.setItem('@review_state', JSON.stringify({
+        promptCount: (state.promptCount || 0) + 1,
+        lastPromptDate: new Date().toISOString(),
+      }));
+    } catch (_) {}
+  };
+
+  // Track unique open dates — trigger review on 3rd distinct calendar day
+  const trackOpenAndMaybeReview = async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const raw = await AsyncStorage.getItem('@open_dates');
+      const dates = raw ? JSON.parse(raw) : [];
+      if (!dates.includes(today)) {
+        dates.push(today);
+        await AsyncStorage.setItem('@open_dates', JSON.stringify(dates));
+      }
+      if (dates.length === 3) await maybeRequestReview();
+    } catch (_) {}
+  };
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Check for stored user session on app start
   useEffect(() => {
     checkStoredAuth();
+    trackOpenAndMaybeReview();
     
     // Log execution environment for debugging
     console.log('📺 Execution env:', Constants.executionEnvironment, '| isAdMobAvailable:', isAdMobAvailable);
@@ -2244,6 +2284,7 @@ function App() {
       await loadUserPrayers();
       if (newPrayer.isPublic) await loadCommunityPrayers();
       setPostSuccess(true);
+      maybeRequestReview();
       setTimeout(() => {
         setNewPrayer({ title: '', content: '', isPublic: true });
         setPrayerImage(null);
@@ -3158,6 +3199,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     if (currentUser) {
       setCurrentUser(u => ({ ...u, faith_points: (u.faith_points || 0) + 1 }));
     }
+    // Trigger review every 5th prayer action
+    try {
+      const raw = await AsyncStorage.getItem('@pray_action_count');
+      const count = (raw ? parseInt(raw, 10) : 0) + 1;
+      await AsyncStorage.setItem('@pray_action_count', String(count));
+      if (count % 5 === 0) maybeRequestReview();
+    } catch (_) {}
   };
 
   const markAsPrayed = async () => {
@@ -3497,6 +3545,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
         setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
         playHeavenlyChime();
+        setTimeout(() => maybeRequestReview(), 3000);
         if (data.new_badge) showBadgeCelebration(data.new_badge);
         const peopleWord = notified === 1 ? 'person' : 'people';
         const verbWord = notified === 1 ? 'has' : 'have';

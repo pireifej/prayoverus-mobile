@@ -2205,6 +2205,7 @@ function App() {
             allow_comments: request.allow_comments,
             use_alias: request.use_alias,
             is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
+            active: request.active ?? 1,
           }));
           
           console.log('📱 Parsed prayers:', userPrayers.length, 'items');
@@ -6308,6 +6309,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           const pendingOldPrayers = showMyRequestsOnly
             ? filteredPrayers.filter(p => {
                 if (p.is_answered) return false;
+                if (p.active === 0) return false; // archived — already expired, not "pending"
                 if (!p.timestamp) return false;
                 const days = (Date.now() - new Date(p.timestamp).getTime()) / 86400000;
                 return days >= 7;
@@ -6344,11 +6346,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               )}
 
               <TouchableOpacity 
-                style={[styles.communityPrayerCard, prayer.is_answered && { backgroundColor: '#f0fdf4', borderLeftWidth: 4, borderLeftColor: '#16a34a' }]}
+                style={[
+                  styles.communityPrayerCard,
+                  prayer.is_answered && { backgroundColor: '#f0fdf4', borderLeftWidth: 4, borderLeftColor: '#16a34a' },
+                  prayer.active === 0 && { opacity: 0.6, backgroundColor: '#f8f8f8', borderLeftWidth: 4, borderLeftColor: '#9ca3af' },
+                ]}
                 onPress={() => openDetailModal(prayer)}
                 activeOpacity={0.9}
                 data-testid={`card-prayer-${prayer.id}`}
               >
+                {/* Archived badge */}
+                {prayer.active === 0 && (
+                  <View style={{ alignSelf: 'flex-start', backgroundColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, color: '#6b7280', fontWeight: '700', letterSpacing: 0.5 }}>🗂 ARCHIVED</Text>
+                  </View>
+                )}
                 {/* Options Menu - Three dots for share/edit/delete */}
                 <PrayerOptionsMenu 
                   prayer={prayer}

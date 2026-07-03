@@ -558,12 +558,19 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const handleGoogleResponse = async (authentication) => {
     try {
       setGoogleLoading(true);
-      if (!authentication) { Alert.alert('Error', 'Google sign-in failed. Please try again.'); return; }
+      setLoginError('');
+      if (!authentication) {
+        setLoginError('Google sign-in failed. Please try again.');
+        return;
+      }
       const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
         headers: { Authorization: `Bearer ${authentication.accessToken}` },
       });
       const userInfo = await userInfoRes.json();
-      if (!userInfo.email) { Alert.alert('Error', 'Could not get email from Google. Please try again.'); return; }
+      if (!userInfo.email) {
+        setLoginError('Could not get email from Google. Please try again.');
+        return;
+      }
 
       const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',
@@ -594,11 +601,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           auth_provider: 'google',
         });
       } else {
-        Alert.alert('Error', data.result || 'Google sign-in failed. Please try again.');
+        setLoginError(data.result || 'Google sign-in failed. Please try again.');
       }
     } catch (error) {
       console.error('Google login error:', error);
-      Alert.alert('Error', 'Google sign-in failed. Please check your connection.');
+      setLoginError('Google sign-in failed. Please check your connection.');
     } finally {
       setGoogleLoading(false);
     }

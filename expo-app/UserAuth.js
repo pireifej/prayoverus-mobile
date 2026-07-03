@@ -456,13 +456,14 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   // Android native client
   const ANDROID_CLIENT_ID = '798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt.apps.googleusercontent.com';
 
-  // iOS uses native client + reverse scheme; Android uses web client + Expo proxy (PKCE, no secret needed)
+  // Both iOS and Android use their native client IDs with reverse scheme redirect URIs
+  // This avoids the Expo proxy which is incompatible with standalone/production apps
   const nativeClientId = Platform.OS === 'ios'
     ? IOS_CLIENT_ID
-    : '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com';
+    : ANDROID_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'
     ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
-    : 'https://auth.expo.io/@pireifej/pray-over-us';
+    : 'com.googleusercontent.apps.798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt:/';
 
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {

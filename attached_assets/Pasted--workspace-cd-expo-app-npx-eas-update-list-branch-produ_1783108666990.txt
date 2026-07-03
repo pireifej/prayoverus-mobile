@@ -1,0 +1,72 @@
+~/workspace$ cd expo-app && npx eas update:list --branch production
+★ eas-cli@20.5.1 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+
+Branch:
+Name  production
+ID    019bbf57-cd52-7356-95a0-3c47d5189eb5
+
+Recent update groups:
+
+Platforms                 android, ios
+Runtime Version           1.0.29
+Message                   "Fix crash - move Platform and AsyncStorage to top-level imports" (1 hour ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  d3f7d8bd-71dd-491a-85b1-473a5c3ed65c
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.29
+Message                   "Fix crash - move Platform and AsyncStorage to top-level imports" (1 hour ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  fe02061f-32c3-49f3-8970-64a46ed157ef
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.29
+Message                   "Fix startup crash - safe Intl detection in i18n" (1 hour ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  b8f18cb9-450c-4d24-8f3b-4379ce4705b4
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.29
+Message                   "Rollback - stable OTA for 1.0.29" (1 hour ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ed2951d0-aac1-4512-9a51-9ff4c39127ca
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.29
+Message                   "Fix Google Sign-In iOS - add idToken fallback" (1 hour ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  51e59959-674e-48ec-9da8-1796a131e5ae
+
+———
+
+Platforms                 android, ios
+Runtime Version           1.0.27
+Message                   "Fix crash on reopen - remove Apple auth" (2 hours ago by pireifej)
+Code Signing Key          N/A
+Is Roll Back to Embedded  No
+Rollout Percentage        N/A
+Group ID                  ca1e30cf-56da-4ed8-8e2e-dc2ae4e67baa
+
+———

@@ -2123,7 +2123,7 @@ function App() {
         if (userArray.length > 0) {
           const user = userArray[0];
           
-          // Update current user with fresh data from API
+          // Update current user with fresh data from API (preserve counts if backend doesn't return them)
           const updatedUser = {
             ...currentUser,
             firstName: user.real_name,
@@ -2133,8 +2133,11 @@ function App() {
             title: user.user_title,
             about: user.user_about,
             picture: user.picture || user.profile_picture_url,
-            faith_points: user.faith_points || 0,
-            faith_rank: user.faith_rank || null
+            faith_points: user.faith_points || currentUser.faith_points || 0,
+            faith_rank: user.faith_rank || currentUser.faith_rank || null,
+            prayer_count: parseInt(user.prayer_count, 10) || currentUser.prayer_count || 0,
+            request_count: parseInt(user.request_count, 10) || currentUser.request_count || 0,
+            rosary_count: parseInt(user.rosary_count, 10) || currentUser.rosary_count || 0,
           };
           
           console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
@@ -4873,7 +4876,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
               <View style={styles.memberStatsRow}>
                 <View style={styles.memberStatBox}>
-                  <Text style={styles.memberStatNumber}>{currentUser.request_count ?? currentUser.requestCount ?? '—'}</Text>
+                  <Text style={styles.memberStatNumber}>{currentUser.request_count || prayers.length || 0}</Text>
                   <Text style={styles.memberStatLabel}>{t('statRequests')}</Text>
                 </View>
                 <View style={styles.memberStatDivider} />
@@ -6314,11 +6317,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             return <Text style={styles.emptyText}>{t('emptyFeed')}</Text>;
           }
 
-          // Pending prayers nudge — unanswered prayers older than 7 days
+          // Pending prayers nudge — all unanswered requests (active or archived can still be marked answered)
           const pendingOldPrayers = showMyRequestsOnly
             ? filteredPrayers.filter(p => {
                 if (p.is_answered) return false;
-                if (p.active === 0) return false; // archived — already expired, not "pending"
                 if (!p.timestamp) return false;
                 const days = (Date.now() - new Date(p.timestamp).getTime()) / 86400000;
                 return days >= 7;

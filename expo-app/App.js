@@ -2682,6 +2682,15 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
   }, [communityPrayers, hideAlreadyPrayed]);
 
+  // Navigate to "Mine" tab when user taps any push notification
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      setCurrentScreen('home');
+      setShowMyRequestsOnly(true);
+    });
+    return () => sub.remove();
+  }, []);
+
   // Touch tracking state for swipe gestures
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);

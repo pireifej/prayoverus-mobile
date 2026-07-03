@@ -1,0 +1,3 @@
+- [Apple Sign-In entitlement crash](apple-signin-crash.md) — usesAppleSignIn in app.json + expo-apple-authentication in OTA bundle causes instant crash if native binary lacks entitlement
+- [OTA breaks native-only features](ota-native-mismatch.md) — OTA updates that import native-only modules crash users on older App Store binaries; fix via counter-OTA targeting that runtime version
+- [Play App Signing SHA-1](play-app-signing.md) — Android OAuth must use Play App Signing SHA-1 (not upload key); found at Protected with Play → Play Store protection → Manage Play app signing

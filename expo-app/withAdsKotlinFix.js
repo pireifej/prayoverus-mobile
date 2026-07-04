@@ -19,10 +19,10 @@ function withGradleVersionPin(config) {
         const before = contents.match(/distributionUrl=.+/)?.[0] || '(not found)';
         contents = contents.replace(
           /distributionUrl=.+/,
-          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.13-bin.zip'
+          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip'
         );
         fs.writeFileSync(propsPath, contents);
-        console.log('[withGradleVersionPin] Replaced', before, '→ gradle-8.13');
+        console.log('[withGradleVersionPin] Replaced', before, '→ gradle-8.10.2');
       } else {
         console.warn('[withGradleVersionPin] gradle-wrapper.properties not found at', propsPath);
       }
@@ -36,12 +36,19 @@ function withKotlinJvmDefault(config) {
   return withGradleProperties(config, (config) => {
     const props = config.modResults;
 
-    const key = 'kotlin.jvm.default';
-    const existing = props.find((p) => p.type === 'property' && p.key === key);
-    if (existing) {
-      existing.value = 'all';
-    } else {
-      props.push({ type: 'property', key, value: 'all' });
+    const entries = [
+      { key: 'kotlin.jvm.default',                value: 'all' },
+      { key: 'android.suppressUnsupportedCompileSdk', value: '35' },
+      { key: 'android.overrideVersionCheck',       value: 'true' },
+    ];
+
+    for (const { key, value } of entries) {
+      const existing = props.find((p) => p.type === 'property' && p.key === key);
+      if (existing) {
+        existing.value = value;
+      } else {
+        props.push({ type: 'property', key, value });
+      }
     }
 
     return config;

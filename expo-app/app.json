@@ -40,7 +40,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 79,
+      "versionCode": 80,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -102,7 +102,10 @@
             "minSdkVersion": 24,
             "kotlinVersion": "2.2.20",
             "extraGradleProperties": [
-              { "key": "kotlin.jvm.default", "value": "all" }
+              {
+                "key": "kotlin.jvm.default",
+                "value": "all"
+              }
             ]
           }
         }

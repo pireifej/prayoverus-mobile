@@ -1,0 +1,215 @@
+Task :expo-modules-core:generateReleaseResValues
+> Task :expo-manifests:packageReleaseResources
+> Task :expo-structured-headers:preReleaseBuild UP-TO-DATE
+> Task :expo-modules-core:generateReleaseResources
+> Task :expo-structured-headers:generateReleaseResValues
+> Task :expo-json-utils:packageReleaseResources
+> Task :expo-updates:preReleaseBuild UP-TO-DATE
+> Task :expo-modules-core:packageReleaseResources
+> Task :expo-updates-interface:preReleaseBuild UP-TO-DATE
+> Task :expo-updates:generateReleaseResValues
+> Task :expo-structured-headers:generateReleaseResources
+> Task :expo-updates-interface:generateReleaseResValues
+> Task :expo-updates:generateReleaseResources
+> Task :expo-updates-interface:generateReleaseResources
+> Task :expo-updates-interface:packageReleaseResources
+> Task :expo-updates:packageReleaseResources
+> Task :react-native-async-storage_async-storage:preReleaseBuild
+> Task :react-native-edge-to-edge:preReleaseBuild
+> Task :expo-structured-headers:packageReleaseResources
+> Task :react-native-google-mobile-ads:preReleaseBuild
+> Task :react-native-edge-to-edge:generateReleaseResValues
+> Task :react-native-google-mobile-ads:generateReleaseResValues
+> Task :react-native-async-storage_async-storage:generateReleaseResValues
+> Task :react-native-edge-to-edge:generateReleaseResources
+> Task :react-native-async-storage_async-storage:generateReleaseResources
+> Task :react-native-google-mobile-ads:generateReleaseResources
+> Task :react-native-async-storage_async-storage:packageReleaseResources
+> Task :react-native-purchases:preReleaseBuild UP-TO-DATE
+> Task :react-native-purchases:generateReleaseResValues
+> Task :react-native-google-mobile-ads:packageReleaseResources
+> Task :react-native-safe-area-context:preReleaseBuild
+> Task :react-native-safe-area-context:generateReleaseResValues
+> Task :react-native-purchases:generateReleaseResources
+> Task :react-native-safe-area-context:generateReleaseResources
+> Task :react-native-edge-to-edge:packageReleaseResources
+> Task :react-native-purchases:packageReleaseResources
+> Task :react-native-safe-area-context:packageReleaseResources
+> Task :expo:extractDeepLinksRelease
+> Task :expo-constants:extractDeepLinksRelease
+> Task :expo-dev-client:extractDeepLinksRelease
+> Task :expo:processReleaseManifest
+> Task :expo-dev-client:processReleaseManifest
+> Task :expo-constants:processReleaseManifest
+> Task :expo-dev-launcher:extractDeepLinksRelease
+> Task :expo-dev-menu:extractDeepLinksRelease
+> Task :expo-dev-menu-interface:extractDeepLinksRelease
+> Task :expo-dev-menu-interface:processReleaseManifest
+> Task :expo-dev-menu:processReleaseManifest
+> Task :expo-dev-launcher:processReleaseManifest
+> Task :expo-eas-client:extractDeepLinksRelease
+> Task :expo-manifests:extractDeepLinksRelease
+> Task :expo-json-utils:extractDeepLinksRelease
+> Task :expo-eas-client:processReleaseManifest
+> Task :expo-modules-core:extractDeepLinksRelease
+> Task :expo-json-utils:processReleaseManifest
+> Task :expo-manifests:processReleaseManifest
+> Task :expo-updates:extractDeepLinksRelease
+> Task :expo-structured-headers:extractDeepLinksRelease
+> Task :expo-structured-headers:processReleaseManifest
+> Task :expo-modules-core:processReleaseManifest
+/home/expo/workingdir/build/expo-app/node_modules/expo-modules-core/android/src/main/AndroidManifest.xml:8:9-11:45 Warning:
+	meta-data#com.facebook.soloader.enabled@android:value was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+> Task :expo-updates:processReleaseManifest
+> Task :expo-updates-interface:extractDeepLinksRelease
+> Task :react-native-edge-to-edge:extractDeepLinksRelease
+> Task :react-native-async-storage_async-storage:extractDeepLinksRelease
+> Task :expo-updates-interface:processReleaseManifest
+> Task :react-native-edge-to-edge:processReleaseManifest
+> Task :react-native-async-storage_async-storage:processReleaseManifest
+package="com.reactnativecommunity.asyncstorage" found in source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/@react-native-async-storage/async-storage/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.reactnativecommunity.asyncstorage" from the source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/@react-native-async-storage/async-storage/android/src/main/AndroidManifest.xml.
+> Task :react-native-google-mobile-ads:extractDeepLinksRelease
+> Task :react-native-safe-area-context:extractDeepLinksRelease
+> Task :react-native-purchases:extractDeepLinksRelease
+> Task :react-native-purchases:processReleaseManifest
+package="com.revenuecat.purchases.react" found in source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-purchases/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.revenuecat.purchases.react" from the source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-purchases/android/src/main/AndroidManifest.xml.
+> Task :react-native-safe-area-context:processReleaseManifest
+package="com.th3rdwave.safeareacontext" found in source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.th3rdwave.safeareacontext" from the source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-safe-area-context/android/src/main/AndroidManifest.xml.
+> Task :react-native-google-mobile-ads:processReleaseManifest
+package="io.invertase.googlemobileads" found in source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="io.invertase.googlemobileads" from the source AndroidManifest.xml: /home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/AndroidManifest.xml.
+> Task :expo-dev-client:writeReleaseAarMetadata
+> Task :expo:writeReleaseAarMetadata
+> Task :expo-constants:writeReleaseAarMetadata
+> Task :expo-dev-menu:writeReleaseAarMetadata
+> Task :expo-dev-launcher:writeReleaseAarMetadata
+> Task :expo-dev-menu-interface:writeReleaseAarMetadata
+> Task :expo-eas-client:writeReleaseAarMetadata
+> Task :expo-json-utils:writeReleaseAarMetadata
+> Task :expo-modules-core:writeReleaseAarMetadata
+> Task :expo-manifests:writeReleaseAarMetadata
+> Task :expo-structured-headers:writeReleaseAarMetadata
+> Task :expo-updates:writeReleaseAarMetadata
+> Task :expo-updates-interface:writeReleaseAarMetadata
+> Task :react-native-async-storage_async-storage:writeReleaseAarMetadata
+> Task :react-native-edge-to-edge:writeReleaseAarMetadata
+> Task :react-native-google-mobile-ads:writeReleaseAarMetadata
+> Task :react-native-safe-area-context:writeReleaseAarMetadata
+> Task :react-native-purchases:writeReleaseAarMetadata
+> Task :expo:compileReleaseLibraryResources
+> Task :expo-constants:compileReleaseLibraryResources
+> Task :expo-dev-client:compileReleaseLibraryResources
+> Task :app:createBundleReleaseJsAndAssets
+Starting Metro Bundler
+> Task :expo-constants:parseReleaseLocalResources
+> Task :expo:parseReleaseLocalResources
+> Task :expo-dev-client:parseReleaseLocalResources
+> Task :expo-dev-client:generateReleaseRFile
+> Task :expo:generateReleaseRFile
+> Task :expo-constants:generateReleaseRFile
+> Task :expo-dev-menu-interface:compileReleaseLibraryResources
+> Task :expo-dev-launcher:parseReleaseLocalResources
+> Task :expo-dev-launcher:compileReleaseLibraryResources
+> Task :expo-dev-menu:compileReleaseLibraryResources
+> Task :expo-dev-menu:parseReleaseLocalResources
+> Task :expo-dev-launcher:generateReleaseRFile
+> Task :expo-eas-client:compileReleaseLibraryResources
+> Task :expo-dev-menu-interface:parseReleaseLocalResources
+> Task :expo-dev-menu:generateReleaseRFile
+> Task :expo-eas-client:parseReleaseLocalResources
+> Task :expo-json-utils:compileReleaseLibraryResources
+> Task :expo-dev-menu-interface:generateReleaseRFile
+> Task :expo-json-utils:parseReleaseLocalResources
+> Task :expo-eas-client:generateReleaseRFile
+> Task :expo-manifests:compileReleaseLibraryResources
+> Task :expo-modules-core:compileReleaseLibraryResources
+> Task :expo-modules-core:parseReleaseLocalResources
+> Task :expo-json-utils:generateReleaseRFile
+> Task :expo-manifests:parseReleaseLocalResources
+> Task :expo-structured-headers:compileReleaseLibraryResources
+> Task :expo-manifests:generateReleaseRFile
+> Task :expo-modules-core:generateReleaseRFile
+> Task :expo-updates-interface:compileReleaseLibraryResources
+> Task :expo-updates:compileReleaseLibraryResources
+> Task :expo-structured-headers:parseReleaseLocalResources
+> Task :expo-updates-interface:parseReleaseLocalResources
+> Task :expo-updates:parseReleaseLocalResources
+> Task :expo-updates-interface:generateReleaseRFile
+> Task :expo-structured-headers:generateReleaseRFile
+> Task :expo-updates:generateReleaseRFile
+> Task :react-native-edge-to-edge:compileReleaseLibraryResources
+> Task :react-native-async-storage_async-storage:compileReleaseLibraryResources
+> Task :react-native-google-mobile-ads:compileReleaseLibraryResources
+> Task :react-native-async-storage_async-storage:parseReleaseLocalResources
+> Task :react-native-google-mobile-ads:parseReleaseLocalResources
+> Task :react-native-async-storage_async-storage:generateReleaseRFile
+> Task :react-native-google-mobile-ads:generateReleaseRFile
+> Task :react-native-safe-area-context:compileReleaseLibraryResources
+> Task :react-native-purchases:compileReleaseLibraryResources
+> Task :react-native-edge-to-edge:parseReleaseLocalResources
+> Task :react-native-safe-area-context:parseReleaseLocalResources
+> Task :react-native-purchases:parseReleaseLocalResources
+> Task :react-native-safe-area-context:generateReleaseRFile
+> Task :react-native-purchases:generateReleaseRFile
+> Task :react-native-edge-to-edge:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-google-mobile-ads:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-edge-to-edge:generateReleaseRFile
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :react-native-edge-to-edge:generateReleaseBuildConfig
+> Task :react-native-safe-area-context:generateReleaseBuildConfig
+> Task :react-native-google-mobile-ads:generateReleaseBuildConfig
+> Task :app:createBundleReleaseJsAndAssets
+Android Bundled 1657ms index.js (976 modules)
+Writing bundle output to: /home/expo/workingdir/build/expo-app/android/app/build/generated/assets/createBundleReleaseJsAndAssets/index.android.bundle
+Writing sourcemap output to: /home/expo/workingdir/build/expo-app/android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map
+Copying 21 asset files
+Done writing bundle output
+Done writing sourcemap output
+> Task :react-native-edge-to-edge:compileReleaseKotlin
+> Task :react-native-edge-to-edge:javaPreCompileRelease
+> Task :react-native-safe-area-context:compileReleaseKotlin
+w: file:///home/expo/workingdir/build/expo-app/node_modules/react-native-safe-area-context/android/src/main/java/com/th3rdwave/safeareacontext/SafeAreaView.kt:59:23 'val uiImplementation: UIImplementation!' is deprecated. Deprecated in Java.
+> Task :react-native-google-mobile-ads:javaPreCompileRelease
+> Task :react-native-safe-area-context:javaPreCompileRelease
+> Task :react-native-google-mobile-ads:compileReleaseKotlin
+e: file:///home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/java/io/invertase/googlemobileads/ReactNativeGoogleMobileAdsFullScreenAdModule.kt:72:20 Unresolved reference: currentActivity
+e: file:///home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/java/io/invertase/googlemobileads/ReactNativeGoogleMobileAdsFullScreenAdModule.kt:108:20 Unresolved reference: currentActivity
+> Task :app:generateAutolinkingNewArchitectureFiles
+> Task :app:generateAutolinkingPackageList
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+> Task :app:generateReactNativeEntryPoint
+> Task :app:preBuild
+> Task :app:preReleaseBuild
+> Task :app:generateReleaseResValues
+> Task :app:processReleaseGoogleServices
+> Task :react-native-google-mobile-ads:compileReleaseKotlin FAILED
+> Task :react-native-safe-area-context:compileReleaseJavaWithJavac
+> Task :react-native-edge-to-edge:compileReleaseJavaWithJavac
+> Task :app:mapReleaseSourceSetPaths
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/expo-app/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+222 actionable tasks: 222 executed
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':react-native-google-mobile-ads:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 2m 39s
+See the profiling report at: file:///home/expo/workingdir/build/expo-app/android/build/reports/profile/profile-2026-07-04-15-05-49.html
+A fine-grained performance profile is available: use the --scan option.
+Error: Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.

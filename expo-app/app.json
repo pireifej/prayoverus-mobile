@@ -40,7 +40,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 86,
+      "versionCode": 87,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -120,9 +120,7 @@
       }
     },
     "owner": "pireifej",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.30",
     "updates": {
       "url": "https://u.expo.dev/91bdb01b-1012-49e1-abb4-fc8fae904ec8"
     }

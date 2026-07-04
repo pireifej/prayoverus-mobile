@@ -71,7 +71,7 @@ function withKspVersionPin(config) {
       if (kspPattern.test(contents)) {
         contents = contents.replace(
           kspPattern,
-          'id "com.google.devtools.ksp" version "1.9.24-1.0.20"'
+          'id "com.google.devtools.ksp" version "2.0.21-1.0.25"'
         );
         fs.writeFileSync(buildGradlePath, contents);
         console.log('[withKspVersionPin] Pinned KSP to 1.9.24-1.0.20');

@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "66",
+      "buildNumber": "67",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -86,6 +86,7 @@
       ]
     },
     "plugins": [
+      "./withAdsKotlinFix",
       "react-native-edge-to-edge",
       "expo-notifications",
       [
@@ -99,8 +100,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "minSdkVersion": 24,
-            "kotlinVersion": "2.2.20",
-            "gradleVersion": "8.10.2"
+            "kotlinVersion": "2.2.20"
           }
         }
       ],

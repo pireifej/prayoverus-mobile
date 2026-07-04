@@ -2570,8 +2570,8 @@ function App() {
     prayerViewCountRef.current += 1;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
-    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 3 === 0) {
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 5, 10, 15...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
+    if (newViewCount % 5 === 0) {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
@@ -2926,8 +2926,8 @@ Through Christ our Lord. Amen.`;
     prayerViewCountRef.current += 1;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
-    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 4, 8, 12...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 3 === 0) {
+    console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 5, 10, 15...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
+    if (newViewCount % 5 === 0) {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {

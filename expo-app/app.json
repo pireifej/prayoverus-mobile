@@ -49,8 +49,6 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "NOTIFICATIONS",
         "com.google.android.gms.permission.AD_ID"
       ],
@@ -88,7 +86,6 @@
       ]
     },
     "plugins": [
-      "./withAdIdPermission",
       "react-native-edge-to-edge",
       "expo-notifications",
       [

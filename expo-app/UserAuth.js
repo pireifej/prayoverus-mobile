@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest, ResponseType } from 'expo-auth-session';
+import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -569,7 +569,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {
       clientId: nativeClientId,
-      responseType: ResponseType.Token,
+      responseType: 'token',
       scopes: ['openid', 'profile', 'email'],
       redirectUri: googleRedirectUri,
       usePKCE: false,

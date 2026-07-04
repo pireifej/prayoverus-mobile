@@ -6,10 +6,11 @@ description: Why OTAs crashed on 1.0.29 and what to watch for before pushing fut
 ## Rule
 Before pushing any OTA, audit ALL module-level code across every JS file in expo-app/ for code that runs at import time (outside functions/components).
 
-**Why:** Three separate issues caused silent native crashes on OTA load for 1.0.29 — all were module-level code added after the binary was built:
+**Why:** Four separate issues have caused silent native crashes on OTA load — all were changes that affect runtime execution:
 1. `Intl.DateTimeFormat()` call at the top of i18n.js (Hermes may not support Intl in all contexts)
-2. `Platform` and `AsyncStorage` imported mid-file in App.js (lines 149-150), AFTER module-level code that used `Platform` — Babel may not hoist properly in all Expo SDK 54 configurations
+2. `Platform` and `AsyncStorage` imported mid-file in App.js, AFTER module-level code that used `Platform` — Babel may not hoist properly in all Expo SDK 54 configurations
 3. Possibly Hermes bytecode version mismatch when SDK dependencies change between native build and OTA
+4. `ResponseType` imported from `expo-auth-session` — it exists internally but is NOT a public export, so it resolves to `undefined`; using `ResponseType.Token` crashes at render time. Always use the string `'token'` directly instead.
 
 **How to apply:**
 - Run: `grep -n "^[A-Za-z]" *.js | grep -v "import\|export\|const \|let \|var \|function \|class \|//"` to find suspicious module-level calls

@@ -1,25 +1,32 @@
-const { withProjectBuildGradle } = require('@expo/config-plugins');
+const { withDangerousMod } = require('@expo/config-plugins');
+const path = require('path');
+const fs = require('fs');
 
-module.exports = function withAdsKotlinFix(config) {
-  return withProjectBuildGradle(config, (config) => {
-    const contents = config.modResults.contents;
-    const patch = `
-subprojects { sub ->
-  sub.plugins.withId('kotlin-android') {
-    if (sub.name == 'react-native-google-mobile-ads') {
-      sub.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-          languageVersion = "1.9"
-          apiVersion = "1.9"
-        }
+module.exports = function withGradleVersionPin(config) {
+  return withDangerousMod(config, [
+    'android',
+    (config) => {
+      const wrapperDir = path.join(
+        config.modResults.projectRoot,
+        'android',
+        'gradle',
+        'wrapper'
+      );
+      const propsPath = path.join(wrapperDir, 'gradle-wrapper.properties');
+
+      if (fs.existsSync(propsPath)) {
+        let contents = fs.readFileSync(propsPath, 'utf8');
+        contents = contents.replace(
+          /distributionUrl=.+/,
+          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip'
+        );
+        fs.writeFileSync(propsPath, contents);
+        console.log('[withGradleVersionPin] Pinned Gradle to 8.10.2');
+      } else {
+        console.warn('[withGradleVersionPin] gradle-wrapper.properties not found at', propsPath);
       }
-    }
-  }
-}
-`;
-    if (!contents.includes('withAdsKotlinFix')) {
-      config.modResults.contents = contents + '\n// withAdsKotlinFix\n' + patch;
-    }
-    return config;
-  });
+
+      return config;
+    },
+  ]);
 };

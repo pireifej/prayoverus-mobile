@@ -7,7 +7,8 @@
     "start:tunnel": "expo start --tunnel",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/cli": "^54.0.0",
@@ -30,10 +31,11 @@
     "expo-tracking-transparency": "~6.0.8",
     "expo-updates": "~29.0.16",
     "expo-web-browser": "~15.0.10",
+    "patch-package": "^8.0.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-edge-to-edge": "^1.7.0",
-    "react-native-google-mobile-ads": "16.2.3",
+    "react-native-google-mobile-ads": "16.0.3",
     "react-native-purchases": "^10.4.0",
     "react-native-safe-area-context": "~5.6.0"
   },

@@ -1,8 +1,8 @@
-const { withDangerousMod } = require('@expo/config-plugins');
+const { withDangerousMod, withGradleProperties } = require('@expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
-module.exports = function withGradleVersionPin(config) {
+function withGradleVersionPin(config) {
   return withDangerousMod(config, [
     'android',
     (config) => {
@@ -30,4 +30,26 @@ module.exports = function withGradleVersionPin(config) {
       return config;
     },
   ]);
+}
+
+function withKotlinJvmDefault(config) {
+  return withGradleProperties(config, (config) => {
+    const props = config.modResults;
+
+    const key = 'kotlin.jvm.default';
+    const existing = props.find((p) => p.type === 'property' && p.key === key);
+    if (existing) {
+      existing.value = 'all';
+    } else {
+      props.push({ type: 'property', key, value: 'all' });
+    }
+
+    return config;
+  });
+}
+
+module.exports = function withAndroidBuildFixes(config) {
+  config = withGradleVersionPin(config);
+  config = withKotlinJvmDefault(config);
+  return config;
 };

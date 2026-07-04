@@ -655,6 +655,18 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     }
   };
 
+  // Apple only shares email on the very first sign-in. On repeat sign-ins
+  // credential.email is null, but the email is always inside the identityToken JWT.
+  const decodeAppleEmail = (identityToken) => {
+    try {
+      const payload = identityToken.split('.')[1];
+      const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+      return decoded.email || '';
+    } catch (_) {
+      return '';
+    }
+  };
+
   const handleAppleSignIn = async () => {
     if (!appleAvailable) return;
     try {
@@ -667,6 +679,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         ],
       });
 
+      // Email from credential is only available on first-ever sign-in.
+      // Fall back to decoding it from the identity token JWT for returning users.
+      const email = credential.email || decodeAppleEmail(credential.identityToken || '') || '';
+
       const res = await fetch('https://shouldcallpaul.replit.app/appleLogin', {
         method: 'POST',
         headers: {
@@ -676,7 +692,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         },
         body: JSON.stringify({
           apple_user_id: credential.user,
-          email: credential.email || '',
+          email,
           first_name: credential.fullName?.givenName || '',
           last_name: credential.fullName?.familyName || '',
           identity_token: credential.identityToken || '',

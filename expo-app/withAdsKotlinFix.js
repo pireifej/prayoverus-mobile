@@ -4,10 +4,15 @@ module.exports = function withAdsKotlinFix(config) {
   return withProjectBuildGradle(config, (config) => {
     const contents = config.modResults.contents;
     const patch = `
-allprojects {
-  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-      freeCompilerArgs += ["-Xskip-metadata-version-check"]
+subprojects { sub ->
+  sub.plugins.withId('kotlin-android') {
+    if (sub.name == 'react-native-google-mobile-ads') {
+      sub.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+          languageVersion = "1.9"
+          apiVersion = "1.9"
+        }
+      }
     }
   }
 }

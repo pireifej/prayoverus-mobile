@@ -37,7 +37,6 @@ function withKotlinJvmDefault(config) {
     const props = config.modResults;
 
     const entries = [
-      { key: 'kotlin.jvm.default',                    value: 'all' },
       { key: 'android.suppressUnsupportedCompileSdk',  value: '35' },
       { key: 'android.overrideVersionCheck',           value: 'true' },
     ];
@@ -53,6 +52,36 @@ function withKotlinJvmDefault(config) {
 
     return config;
   });
+}
+
+function withKspVersionPin(config) {
+  return withDangerousMod(config, [
+    'android',
+    (config) => {
+      const buildGradlePath = path.join(__dirname, 'android', 'build.gradle');
+
+      if (!fs.existsSync(buildGradlePath)) {
+        console.warn('[withKspVersionPin] android/build.gradle not found');
+        return config;
+      }
+
+      let contents = fs.readFileSync(buildGradlePath, 'utf8');
+
+      const kspPattern = /id\s+["']com\.google\.devtools\.ksp["']\s+version\s+["'][^"']+["']/;
+      if (kspPattern.test(contents)) {
+        contents = contents.replace(
+          kspPattern,
+          'id "com.google.devtools.ksp" version "1.9.24-1.0.20"'
+        );
+        fs.writeFileSync(buildGradlePath, contents);
+        console.log('[withKspVersionPin] Pinned KSP to 1.9.24-1.0.20');
+      } else {
+        console.log('[withKspVersionPin] KSP plugin declaration not found, skipping');
+      }
+
+      return config;
+    },
+  ]);
 }
 
 function withCurrentActivityPatch(config) {
@@ -99,6 +128,7 @@ function withCurrentActivityPatch(config) {
 module.exports = function withAndroidBuildFixes(config) {
   config = withGradleVersionPin(config);
   config = withKotlinJvmDefault(config);
+  config = withKspVersionPin(config);
   config = withCurrentActivityPatch(config);
   return config;
 };

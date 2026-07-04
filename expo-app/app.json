@@ -100,13 +100,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "minSdkVersion": 24,
-            "kotlinVersion": "2.2.20",
-            "extraGradleProperties": [
-              {
-                "key": "kotlin.jvm.default",
-                "value": "all"
-              }
-            ]
+            "kotlinVersion": "1.9.24"
           }
         }
       ],

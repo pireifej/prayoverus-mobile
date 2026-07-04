@@ -19,10 +19,10 @@ function withGradleVersionPin(config) {
         const before = contents.match(/distributionUrl=.+/)?.[0] || '(not found)';
         contents = contents.replace(
           /distributionUrl=.+/,
-          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip'
+          'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-bin.zip'
         );
         fs.writeFileSync(propsPath, contents);
-        console.log('[withGradleVersionPin] Replaced', before, '→ gradle-8.10.2');
+        console.log('[withGradleVersionPin] Replaced', before, '→ gradle-8.11.1');
       } else {
         console.warn('[withGradleVersionPin] gradle-wrapper.properties not found at', propsPath);
       }

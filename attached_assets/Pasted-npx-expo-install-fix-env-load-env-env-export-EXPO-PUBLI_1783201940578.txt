@@ -1,0 +1,66 @@
+npx expo install --fix
+env: load .env
+env: export EXPO_PUBLIC_OPENAI_API_KEY
+The following packages should be updated for best compatibility with the installed expo version:
+  expo@54.0.33 - expected version: ~54.0.35
+  expo-auth-session@7.0.10 - expected version: ~7.0.11
+  expo-crypto@15.0.8 - expected version: ~15.0.9
+  expo-dev-client@6.0.20 - expected version: ~6.0.21
+  expo-image-picker@17.0.10 - expected version: ~17.0.11
+  expo-linking@8.0.11 - expected version: ~8.0.12
+  expo-notifications@0.32.16 - expected version: ~0.32.17
+  expo-updates@29.0.16 - expected version: ~29.0.18
+  expo-web-browser@15.0.10 - expected version: ~15.0.11
+Your project may not work correctly until you install the expected versions of the packages.
+› Installing 9 SDK 54.0.0 compatible native modules using npm
+> npm install
+
+added 5 packages, removed 1 package, changed 119 packages, and audited 742 packages in 17s
+
+87 packages are looking for funding
+  run `npm fund` for details
+
+33 vulnerabilities (1 low, 23 moderate, 8 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+› Running npx expo install under the updated expo version
+> expo install --fix
+The following packages should be updated for best compatibility with the installed expo version:
+  expo-auth-session@7.0.10 - expected version: ~7.0.11
+  expo-crypto@15.0.8 - expected version: ~15.0.9
+  expo-dev-client@6.0.20 - expected version: ~6.0.21
+  expo-image-picker@17.0.10 - expected version: ~17.0.11
+  expo-linking@8.0.11 - expected version: ~8.0.12
+  expo-notifications@0.32.16 - expected version: ~0.32.17
+  expo-updates@29.0.16 - expected version: ~29.0.18
+  expo-web-browser@15.0.10 - expected version: ~15.0.11
+Your project may not work correctly until you install the expected versions of the packages.
+› Installing 8 SDK 54.0.0 compatible native modules using npm
+> npm install
+
+added 1 package, changed 13 packages, and audited 743 packages in 4s
+
+88 packages are looking for funding
+  run `npm fund` for details
+
+33 vulnerabilities (1 low, 23 moderate, 8 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.

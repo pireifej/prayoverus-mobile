@@ -40,7 +40,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 59,
+      "versionCode": 60,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -112,7 +112,6 @@
           "iosAppId": "ca-app-pub-3440306279423513~1181052436"
         }
       ],
-      "react-native-edge-to-edge",
       "expo-web-browser",
       "expo-apple-authentication"
     ],

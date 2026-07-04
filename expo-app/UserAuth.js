@@ -569,30 +569,46 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {
       clientId: nativeClientId,
-      responseType: 'token',
       scopes: ['openid', 'profile', 'email'],
       redirectUri: googleRedirectUri,
-      usePKCE: false,
+      usePKCE: true,
     },
     GOOGLE_DISCOVERY
   );
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      handleGoogleResponse(googleResponse.authentication);
+      handleGoogleResponse(googleResponse.params?.code, googleRequest?.codeVerifier);
     }
   }, [googleResponse]);
 
-  const handleGoogleResponse = async (authentication) => {
+  const handleGoogleResponse = async (code, codeVerifier) => {
     try {
       setGoogleLoading(true);
       setLoginError('');
-      if (!authentication) {
+      if (!code) {
+        setLoginError('Google sign-in failed. Please try again.');
+        return;
+      }
+      // Manually exchange the authorization code for an access token using PKCE
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: [
+          `code=${encodeURIComponent(code)}`,
+          `client_id=${encodeURIComponent(nativeClientId)}`,
+          `redirect_uri=${encodeURIComponent(googleRedirectUri)}`,
+          `code_verifier=${encodeURIComponent(codeVerifier || '')}`,
+          'grant_type=authorization_code',
+        ].join('&'),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenData.access_token) {
         setLoginError('Google sign-in failed. Please try again.');
         return;
       }
       const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${authentication.accessToken}` },
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
       const userInfo = await userInfoRes.json();
       if (!userInfo.email) {

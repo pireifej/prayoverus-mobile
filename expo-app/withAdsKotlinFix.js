@@ -37,9 +37,9 @@ function withKotlinJvmDefault(config) {
     const props = config.modResults;
 
     const entries = [
-      { key: 'kotlin.jvm.default',                value: 'all' },
-      { key: 'android.suppressUnsupportedCompileSdk', value: '35' },
-      { key: 'android.overrideVersionCheck',       value: 'true' },
+      { key: 'kotlin.jvm.default',                    value: 'all' },
+      { key: 'android.suppressUnsupportedCompileSdk',  value: '35' },
+      { key: 'android.overrideVersionCheck',           value: 'true' },
     ];
 
     for (const { key, value } of entries) {
@@ -55,8 +55,50 @@ function withKotlinJvmDefault(config) {
   });
 }
 
+function withCurrentActivityPatch(config) {
+  return withDangerousMod(config, [
+    'android',
+    (config) => {
+      const ktFile = path.join(
+        __dirname,
+        'node_modules',
+        'react-native-google-mobile-ads',
+        'android',
+        'src',
+        'main',
+        'java',
+        'io',
+        'invertase',
+        'googlemobileads',
+        'ReactNativeGoogleMobileAdsFullScreenAdModule.kt'
+      );
+
+      if (!fs.existsSync(ktFile)) {
+        console.warn('[withCurrentActivityPatch] Kotlin file not found:', ktFile);
+        return config;
+      }
+
+      let src = fs.readFileSync(ktFile, 'utf8');
+
+      if (src.includes('val activity = currentActivity')) {
+        src = src.replaceAll(
+          'val activity = currentActivity',
+          'val activity = reactApplicationContext.currentActivity'
+        );
+        fs.writeFileSync(ktFile, src, 'utf8');
+        console.log('[withCurrentActivityPatch] Patched currentActivity → reactApplicationContext.currentActivity');
+      } else {
+        console.log('[withCurrentActivityPatch] No patch needed (already fixed or different source)');
+      }
+
+      return config;
+    },
+  ]);
+}
+
 module.exports = function withAndroidBuildFixes(config) {
   config = withGradleVersionPin(config);
   config = withKotlinJvmDefault(config);
+  config = withCurrentActivityPatch(config);
   return config;
 };

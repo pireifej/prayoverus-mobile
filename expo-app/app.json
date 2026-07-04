@@ -40,7 +40,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 70,
+      "versionCode": 71,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"
@@ -100,7 +100,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "minSdkVersion": 24,
-            "kotlinVersion": "2.0.21"
+            "kotlinVersion": "2.2.20"
           }
         }
       ],

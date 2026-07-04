@@ -1,0 +1,28 @@
+> Task :app:preReleaseBuild
+> Task :app:generateReleaseResValues
+> Task :app:processReleaseGoogleServices
+> Task :react-native-google-mobile-ads:compileReleaseKotlin FAILED
+e: file:///home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/java/io/invertase/googlemobileads/ReactNativeGoogleMobileAdsFullScreenAdModule.kt:72:20 Unresolved reference: currentActivity
+e: file:///home/expo/workingdir/build/expo-app/node_modules/react-native-google-mobile-ads/android/src/main/java/io/invertase/googlemobileads/ReactNativeGoogleMobileAdsFullScreenAdModule.kt:108:20 Unresolved reference: currentActivity
+> Task :react-native-edge-to-edge:compileReleaseJavaWithJavac
+> Task :react-native-safe-area-context:compileReleaseJavaWithJavac
+> Task :app:mapReleaseSourceSetPaths
+[Incubating] Problems report is available at: file:///home/expo/workingdir/build/expo-app/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+222 actionable tasks: 222 executed
+See the profiling report at: file:///home/expo/workingdir/build/expo-app/android/build/reports/profile/profile-2026-07-04-14-42-13.html
+A fine-grained performance profile is available: use the --scan option.
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':react-native-google-mobile-ads:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 2m 56s
+Error: Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.

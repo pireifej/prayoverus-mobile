@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrayOverUs",
     "slug": "pray-over-us",
-    "version": "1.0.30",
+    "version": "1.0.31",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -120,7 +120,7 @@
       }
     },
     "owner": "pireifej",
-    "runtimeVersion": "1.0.30",
+    "runtimeVersion": "1.0.31",
     "updates": {
       "url": "https://u.expo.dev/91bdb01b-1012-49e1-abb4-fc8fae904ec8"
     }

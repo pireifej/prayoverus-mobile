@@ -256,7 +256,7 @@ function CentralGlow({ playing }) {
 // Main screen
 // ─────────────────────────────────────────────────────────────────
 const MUSIC_URI = 'https://shouldcallpaul.replit.app/audio/canon.mp3';
-const MUSIC_VOLUME = 0.18;
+const MUSIC_VOLUME = 0.10;
 
 export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
   // Keep the screen on for the whole Prayer Walk session

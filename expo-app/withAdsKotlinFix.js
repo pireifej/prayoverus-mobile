@@ -37,8 +37,7 @@ function withKotlinJvmDefault(config) {
     const props = config.modResults;
 
     const entries = [
-      { key: 'android.suppressUnsupportedCompileSdk',  value: '35' },
-      { key: 'android.overrideVersionCheck',           value: 'true' },
+      { key: 'android.suppressUnsupportedCompileSdk', value: '35' },
     ];
 
     for (const { key, value } of entries) {

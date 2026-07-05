@@ -1015,7 +1015,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   };
 
   const handleCreateAccount = async () => {
-    if (!email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
+    if (!email.trim() || !password.trim() || !firstName.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -1232,33 +1232,16 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       
       {isRegistering && (
         <>
-          
-          <View style={styles.nameRow}>
-            <View style={styles.halfInputContainer}>
-              <Text style={styles.inputLabel}>First Name</Text>
-              <TextInput
-                style={[styles.input, styles.halfInput]}
-                placeholder="First Name"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-                data-testid="input-firstname"
-              />
-            </View>
-            <View style={styles.halfInputContainer}>
-              <Text style={styles.inputLabel}>Last Name</Text>
-              <TextInput
-                style={[styles.input, styles.halfInput]}
-                placeholder="Last Name"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-                data-testid="input-lastname"
-              />
-            </View>
-          </View>
+          <Text style={styles.inputLabel}>First Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="First Name"
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+            data-testid="input-firstname"
+          />
 
           
           <View style={{ display: 'none' }}>
@@ -1345,63 +1328,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </View>
       )}
       
-      {isRegistering && (
-        <View style={styles.churchContainer}>
-          <Text style={styles.churchLabel}>
-            Your Church <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '400' }}>(optional)</Text>
-          </Text>
-
-          {/* None / No Church — default */}
-          <TouchableOpacity
-            style={[styles.churchOption, !selectedChurch && !showCustomChurch && styles.churchOptionSelected]}
-            onPress={() => { setSelectedChurch(null); setShowCustomChurch(false); setCustomChurch(''); }}
-          >
-            <Text style={[styles.churchOptionText, !selectedChurch && !showCustomChurch && styles.churchOptionTextSelected]}>
-              🏠 None / No Church
-            </Text>
-            {!selectedChurch && !showCustomChurch && <Text style={styles.checkmark}>✓</Text>}
-          </TouchableOpacity>
-
-          {/* Church list from server */}
-          <ScrollView style={[styles.churchDropdown, { maxHeight: 160 }]} nestedScrollEnabled={true}>
-            {churches.map((church) => (
-              <TouchableOpacity
-                key={church.church_id}
-                style={[styles.churchOption, selectedChurch?.church_id === church.church_id && styles.churchOptionSelected]}
-                onPress={() => { setSelectedChurch(church); setShowCustomChurch(false); setCustomChurch(''); }}
-                data-testid={`church-option-${church.church_id}`}
-              >
-                <Text style={[styles.churchOptionText, selectedChurch?.church_id === church.church_id && styles.churchOptionTextSelected]}>
-                  {church.church_name}{church.church_addr ? ` (${church.church_addr})` : ''}
-                </Text>
-                {selectedChurch?.church_id === church.church_id && <Text style={styles.checkmark}>✓</Text>}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Free-text option */}
-          <TouchableOpacity
-            style={[styles.churchOption, showCustomChurch && styles.churchOptionSelected]}
-            onPress={() => { setShowCustomChurch(!showCustomChurch); setSelectedChurch(null); }}
-          >
-            <Text style={[styles.churchOptionText, showCustomChurch && styles.churchOptionTextSelected]}>
-              ✏️ My church isn't listed...
-            </Text>
-            {showCustomChurch && <Text style={styles.checkmark}>✓</Text>}
-          </TouchableOpacity>
-
-          {showCustomChurch && (
-            <TextInput
-              style={[styles.input, { marginTop: 6 }]}
-              placeholder="Enter your church name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={customChurch}
-              onChangeText={setCustomChurch}
-              autoCapitalize="words"
-            />
-          )}
-        </View>
-      )}
 
       {/* Inline login error */}
       {!!loginError && (

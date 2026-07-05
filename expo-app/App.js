@@ -6365,7 +6365,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
           // Pending prayers nudge — all unanswered requests
           const pendingOldPrayers = showMyRequestsOnly
-            ? filteredPrayers.filter(p => !p.is_answered)
+            ? filteredPrayers.filter(p => !p.is_answered && p.active !== 0)
             : [];
 
           return (<>

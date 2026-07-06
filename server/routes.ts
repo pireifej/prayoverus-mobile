@@ -32,6 +32,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect(`prayoverus://auth?${params.toString()}`);
   });
 
+  // Google OAuth token exchange proxy — keeps client_secret off the device.
+  // Body: { code, codeVerifier, redirectUri }
+  // Returns: { access_token, email, id, given_name, family_name, picture }
+  app.post('/auth/google/token', async (req, res) => {
+    try {
+      const { code, codeVerifier, redirectUri } = req.body;
+      if (!code || !redirectUri) {
+        return res.status(400).json({ error: 'code and redirectUri are required' });
+      }
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      if (!clientSecret) {
+        return res.status(500).json({ error: 'Server not configured for Google OAuth' });
+      }
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com',
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+          ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
+        }).toString(),
+      });
+      const tokenData = await tokenRes.json() as any;
+      if (!tokenData.access_token) {
+        return res.status(400).json({ error: tokenData.error, error_description: tokenData.error_description });
+      }
+      const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const userInfo = await userInfoRes.json() as any;
+      res.json({ access_token: tokenData.access_token, ...userInfo });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Daily Bread TTS — Step 1: POST to generate and cache audio
   // Body: { date, title, content, bibleVerse, verseReference, prayer }
   // Returns { ok: true } once audio is cached server-side

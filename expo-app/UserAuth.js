@@ -567,15 +567,14 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   // iOS native client — reverse client ID scheme registered in app.json infoPlist
   const IOS_CLIENT_ID = '798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg.apps.googleusercontent.com';
-  // Android native client — no client_secret needed; Google verifies via SHA-1 fingerprint.
-  // The reverse-scheme intent filter is already registered in the binary (app.json intentFilters).
-  const ANDROID_CLIENT_ID = '798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt.apps.googleusercontent.com';
+  // Web client — used for Android. Token exchange is proxied through the relay server
+  // so the client_secret never lives in the app bundle.
+  const WEB_CLIENT_ID = '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com';
 
-  // Both iOS and Android use their native reverse-scheme redirect URIs — no relay needed.
-  const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : ANDROID_CLIENT_ID;
+  const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : WEB_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'
     ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
-    : 'com.googleusercontent.apps.798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt:/';
+    : 'https://shouldcallpaul.replit.app/auth/google/callback';
 
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {
@@ -604,34 +603,26 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       }
       setLoginError(`[Step 1 OK] Code received. Verifier: ${codeVerifier ? 'present' : 'MISSING'}`);
       await new Promise(r => setTimeout(r, 2000));
-      // Manually exchange the authorization code for an access token using PKCE
-      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      // Exchange code via server-side proxy so client_secret stays off the device
+      const tokenRes = await fetch('https://shouldcallpaul.replit.app/auth/google/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: [
-          `code=${encodeURIComponent(code)}`,
-          `client_id=${encodeURIComponent(nativeClientId)}`,
-          `redirect_uri=${encodeURIComponent(googleRedirectUri)}`,
-          `code_verifier=${encodeURIComponent(codeVerifier || '')}`,
-          'grant_type=authorization_code',
-        ].join('&'),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          codeVerifier: codeVerifier || undefined,
+          redirectUri: googleRedirectUri,
+        }),
       });
-      const tokenData = await tokenRes.json();
-      if (!tokenData.access_token) {
-        setLoginError(`[Step 2 FAIL] Token exchange failed: ${tokenData.error} — ${tokenData.error_description}`);
+      const userInfo = await tokenRes.json();
+      if (!tokenRes.ok || userInfo.error) {
+        setLoginError(`[Step 2 FAIL] Token exchange failed: ${userInfo.error} — ${userInfo.error_description}`);
         return;
       }
-      setLoginError('[Step 2 OK] Token received. Fetching user info...');
-      await new Promise(r => setTimeout(r, 2000));
-      const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      });
-      const userInfo = await userInfoRes.json();
       if (!userInfo.email) {
-        setLoginError(`[Step 3 FAIL] No email from Google. Response: ${JSON.stringify(userInfo)}`);
+        setLoginError(`[Step 2 FAIL] No email from Google. Response: ${JSON.stringify(userInfo)}`);
         return;
       }
-      setLoginError(`[Step 3 OK] Got email: ${userInfo.email}. Logging into backend...`);
+      setLoginError(`[Step 2 OK] Got email: ${userInfo.email}. Logging into backend...`);
       await new Promise(r => setTimeout(r, 2000));
       const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',

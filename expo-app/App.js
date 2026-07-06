@@ -835,12 +835,13 @@ function App() {
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
+  const [isAmenTransitioning, setIsAmenTransitioning] = useState(false);
 
   const postLoadingFloat = useRef(new Animated.Value(0)).current;
   const postLoadingGlow  = useRef(new Animated.Value(0.4)).current;
   const postLoadingScale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (isPosting) {
+    if (isPosting || isAmenTransitioning) {
       Animated.loop(Animated.sequence([
         Animated.timing(postLoadingFloat, { toValue: -16, duration: 1900, useNativeDriver: true }),
         Animated.timing(postLoadingFloat, { toValue: 0,   duration: 1900, useNativeDriver: true }),
@@ -858,7 +859,7 @@ function App() {
       postLoadingGlow.stopAnimation();  postLoadingGlow.setValue(0.4);
       postLoadingScale.stopAnimation(); postLoadingScale.setValue(1);
     }
-  }, [isPosting]);
+  }, [isPosting, isAmenTransitioning]);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset', 'resetSuccess'
   const [resetToken, setResetToken] = useState(null);
   const [pendingGoogleAuthCode, setPendingGoogleAuthCode] = useState(null);
@@ -3366,9 +3367,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     
     // Close the modal after animation completes and handle auto-advance
     setTimeout(() => {
+      setIsAmenTransitioning(true);
       closePrayerModal();
       // Show +1pt popup on the feed (after modal closes so it's visible)
       showFloatingPoints('+1 pt 🙏');
+      setTimeout(() => setIsAmenTransitioning(false), 900);
       
       // Get the detail screen context for auto-advance
       const context = detailScreenContextRef.current;
@@ -7184,8 +7187,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
       </Modal>
 
-      {/* Full-screen posting overlay */}
-      <Modal visible={isPosting} transparent animationType="fade" statusBarTranslucent>
+      {/* Full-screen posting / amen transition overlay */}
+      <Modal visible={isPosting || isAmenTransitioning} transparent animationType="fade" statusBarTranslucent>
         <LinearGradient
           colors={['#0f1b35', '#0a1628', '#071020']}
           style={styles.postingOverlayContainer}
@@ -7201,8 +7204,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             }]}
             resizeMode="contain"
           />
-          <Text style={styles.postingOverlayTitle}>{t('posting')}</Text>
-          <Text style={styles.postingOverlaySubtitle}>Lifting your prayer up…</Text>
+          <Text style={styles.postingOverlayTitle}>
+            {isAmenTransitioning ? 'Amen 🙏' : t('posting')}
+          </Text>
+          <Text style={styles.postingOverlaySubtitle}>
+            {isAmenTransitioning ? 'Your prayer has been sent' : 'Lifting your prayer up…'}
+          </Text>
         </LinearGradient>
       </Modal>
 

@@ -2067,6 +2067,7 @@ function App() {
                   request_count: parseInt(user.request_count, 10) || 0,
                   rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
                   auth_provider: user.auth_provider || parsedUserData.auth_provider || 'email',
+                  has_password: user.has_password ?? parsedUserData.has_password ?? true,
                 };
                 console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
                 setCurrentUser(refreshedUser);
@@ -5412,7 +5413,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         
         <ScrollView style={styles.screenContent}>
           {/* Account Section — email/password users only */}
-          {currentUser?.auth_provider === 'email' ? (
+          {currentUser?.has_password === true ? (
             <View style={styles.settingsSection}>
               <Text style={styles.settingsSectionTitle}>Account</Text>
               <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changeEmail'); }}>

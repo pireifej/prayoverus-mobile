@@ -681,6 +681,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           prayer_count: parseInt(u.prayer_count, 10) || 0,
           request_count: parseInt(u.request_count, 10) || 0,
           auth_provider: 'google',
+          has_password: u.has_password ?? false,
         });
       } else {
         setLoginError(data.result || 'Google sign-in failed. Please try again.');
@@ -747,6 +748,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           prayer_count: parseInt(u.prayer_count, 10) || 0,
           request_count: parseInt(u.request_count, 10) || 0,
           auth_provider: 'apple',
+          has_password: u.has_password ?? false,
         });
       } else {
         setLoginError(data.result || 'Apple Sign-In failed. Please try again.');
@@ -972,6 +974,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             prayer_count: parseInt(user.prayer_count, 10) || 0,
             request_count: parseInt(user.request_count, 10) || 0,
             auth_provider: user.auth_provider || 'facebook',
+            has_password: user.has_password ?? false,
           };
           
           console.log('Facebook login successful for user:', userDataFormatted.firstName);
@@ -1188,6 +1191,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             prayer_count: parseInt(user.prayer_count, 10) || 0,
             request_count: parseInt(user.request_count, 10) || 0,
             auth_provider: user.auth_provider || 'email',
+            has_password: user.has_password ?? true,
           };
           
           console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name, 'Faith:', user.faith_points);

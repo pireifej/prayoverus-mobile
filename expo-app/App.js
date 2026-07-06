@@ -792,6 +792,9 @@ function App() {
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
   const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
   const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+  const [amenReady, setAmenReady] = useState(false);
+  const amenTimerRef = useRef(null);
+  const recentPrayerTimesRef = useRef([]);
 
   const prayerLoadingFloat = useRef(new Animated.Value(0)).current;
   const prayerLoadingGlow  = useRef(new Animated.Value(0.4)).current;
@@ -2515,6 +2518,9 @@ function App() {
         generatedPrayer: '',
         loading: true
       });
+      setAmenReady(false);
+      clearTimeout(amenTimerRef.current);
+      amenTimerRef.current = setTimeout(() => setAmenReady(true), 5000);
       
       // Beautiful slide-up animation!
       Animated.parallel([
@@ -2668,6 +2674,8 @@ function App() {
       }),
     ]).start(() => {
       setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      setAmenReady(false);
+      clearTimeout(amenTimerRef.current);
       
       // Return to detail view if we came from there
       if (prayerIdToReturn) {
@@ -3277,6 +3285,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     const prayer = prayerModal.prayer;
     if (!prayer) return;
 
+    // Silent faith point cap: track recent prayer times, suppress points if > 10 in 10 min
+    const now = Date.now();
+    recentPrayerTimesRef.current = recentPrayerTimesRef.current.filter(t => now - t < 10 * 60 * 1000);
+    const withinCap = recentPrayerTimesRef.current.length < 10;
+    recentPrayerTimesRef.current.push(now);
+
     // Optimistic local state update immediately
     setCommunityPrayers(prevPrayers =>
       prevPrayers.map(p =>
@@ -3307,8 +3321,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (data?.new_badge) showBadgeCelebration(data.new_badge);
     }).catch(e => console.log('prayFor error:', e.message));
 
-    // Refresh faith points in background after a delay
-    if (currentUser) {
+    // Refresh faith points in background after a delay (skip if over rapid-prayer cap)
+    if (currentUser && withinCap) {
       const oldPoints = currentUser.faith_points || 0;
       const oldRank = getFaithRank(oldPoints, currentUser.faith_rank);
       setTimeout(async () => {
@@ -6933,8 +6947,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       }
                     </TouchableOpacity>
                   ) : null}
-                  <TouchableOpacity style={styles.sanctuaryAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.sanctuaryAmenButtonText}>{t('amen')}</Text>
+                  <TouchableOpacity style={[styles.sanctuaryAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
+                    <Text style={styles.sanctuaryAmenButtonText}>{amenReady ? t('amen') : '🙏 Praying...'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -6953,8 +6967,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
                 </ScrollView>
                 <View style={styles.galleryFooter}>
-                  <TouchableOpacity style={styles.galleryAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.galleryAmenButtonText}>Amen</Text>
+                  <TouchableOpacity style={[styles.galleryAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
+                    <Text style={styles.galleryAmenButtonText}>{amenReady ? 'Amen' : '🙏 Praying...'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -6989,8 +7003,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       }
                     </TouchableOpacity>
                   ) : null}
-                  <TouchableOpacity style={styles.immersiveAmenButton} onPress={markAsPrayed}>
-                    <Text style={styles.immersiveAmenButtonText}>Amen</Text>
+                  <TouchableOpacity style={[styles.immersiveAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
+                    <Text style={styles.immersiveAmenButtonText}>{amenReady ? 'Amen' : '🙏 Praying...'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

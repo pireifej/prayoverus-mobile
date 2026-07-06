@@ -782,6 +782,30 @@ function App() {
       ])
     ).start();
   }, []);
+
+  const prayerLoadingFloat = useRef(new Animated.Value(0)).current;
+  const prayerLoadingGlow  = useRef(new Animated.Value(0.4)).current;
+  const prayerLoadingScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (prayerModal.loading) {
+      Animated.loop(Animated.sequence([
+        Animated.timing(prayerLoadingFloat, { toValue: -16, duration: 1900, useNativeDriver: true }),
+        Animated.timing(prayerLoadingFloat, { toValue: 0,   duration: 1900, useNativeDriver: true }),
+      ])).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(prayerLoadingGlow, { toValue: 1,   duration: 1500, useNativeDriver: true }),
+        Animated.timing(prayerLoadingGlow, { toValue: 0.3, duration: 1500, useNativeDriver: true }),
+      ])).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(prayerLoadingScale, { toValue: 1.1, duration: 1900, useNativeDriver: true }),
+        Animated.timing(prayerLoadingScale, { toValue: 1.0, duration: 1900, useNativeDriver: true }),
+      ])).start();
+    } else {
+      prayerLoadingFloat.stopAnimation(); prayerLoadingFloat.setValue(0);
+      prayerLoadingGlow.stopAnimation();  prayerLoadingGlow.setValue(0.4);
+      prayerLoadingScale.stopAnimation(); prayerLoadingScale.setValue(1);
+    }
+  }, [prayerModal.loading]);
   const [prayers, setPrayers] = useState([]);
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const PRAYERS_PAGE_SIZE = 12;
@@ -6777,10 +6801,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
             {prayerModal.loading ? (
               <View style={styles.fullScreenLoadingContainer}>
-                <View style={styles.loadingPulse}>
-                  <Text style={styles.loadingPrayerHands}>🙏</Text>
-                </View>
-                <Text style={styles.fullScreenLoadingText}>{t('preparingPrayer')}</Text>
+                <Animated.View style={[styles.prayerLoadingGlowRing, {
+                  opacity: prayerLoadingGlow,
+                  transform: [{ scale: prayerLoadingScale }],
+                }]} />
+                <Animated.Image
+                  source={require('./assets/cross-hands.png')}
+                  style={[styles.prayerLoadingIcon, {
+                    transform: [{ translateY: prayerLoadingFloat }, { scale: prayerLoadingScale }],
+                  }]}
+                  resizeMode="contain"
+                />
+                <Text style={styles.prayerLoadingTitle}>{t('preparingPrayer')}</Text>
+                <Text style={styles.prayerLoadingSubtitle}>Please wait a moment</Text>
               </View>
             ) : prayerLayout === 'sanctuary' ? (
               /* ===== OPTION 1: SANCTUARY LAYOUT ===== */
@@ -7827,19 +7860,40 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  loadingPulse: {
-    marginBottom: 30,
+  prayerLoadingGlowRing: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 2,
+    borderColor: 'rgba(147, 197, 253, 0.5)',
+    shadowColor: '#60a5fa',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 40,
+    elevation: 20,
   },
-  loadingPrayerHands: {
-    fontSize: 80,
+  prayerLoadingIcon: {
+    width: 130,
+    height: 130,
+    marginBottom: 36,
+    tintColor: '#e0f2fe',
   },
-  fullScreenLoadingText: {
-    fontSize: 18,
-    color: '#8B7D6B',
-    fontWeight: '300',
-    fontStyle: 'italic',
-    letterSpacing: 1,
+  prayerLoadingTitle: {
+    color: '#e0f2fe',
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  prayerLoadingSubtitle: {
+    color: 'rgba(186, 230, 253, 0.65)',
+    fontSize: 14,
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   sanctuaryLayout: {
     flex: 1,

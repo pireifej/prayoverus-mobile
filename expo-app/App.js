@@ -2083,6 +2083,7 @@ function App() {
   const handleLogin = async (userData) => {
     setCurrentUser(userData);
     await saveUserToStorage(userData);
+    setShowMyRequestsOnly(false); // Always land on All tab so feed loads immediately
     setCurrentScreen('home'); // Explicitly navigate to home after login
     
     // Set up push notifications for the logged-in user

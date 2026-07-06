@@ -598,11 +598,9 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       setGoogleLoading(true);
       setLoginError('');
       if (!code) {
-        setLoginError('[Step 1 FAIL] No auth code received from Google.');
+        setLoginError('Google sign-in failed. Please try again.');
         return;
       }
-      setLoginError(`[Step 1 OK] Code received. Verifier: ${codeVerifier ? 'present' : 'MISSING'}`);
-      await new Promise(r => setTimeout(r, 2000));
       // Exchange code via server-side proxy so client_secret stays off the device
       const tokenRes = await fetch('https://shouldcallpaul.replit.app/auth/google/token', {
         method: 'POST',
@@ -615,15 +613,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       });
       const userInfo = await tokenRes.json();
       if (!tokenRes.ok || userInfo.error) {
-        setLoginError(`[Step 2 FAIL] Token exchange failed: ${userInfo.error} — ${userInfo.error_description}`);
+        setLoginError('Google sign-in failed. Please try again.');
         return;
       }
       if (!userInfo.email) {
-        setLoginError(`[Step 2 FAIL] No email from Google. Response: ${JSON.stringify(userInfo)}`);
+        setLoginError('Could not get email from Google. Please try again.');
         return;
       }
-      setLoginError(`[Step 2 OK] Got email: ${userInfo.email}. Logging into backend...`);
-      await new Promise(r => setTimeout(r, 2000));
       const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',
         headers: {
@@ -653,10 +649,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           auth_provider: 'google',
         });
       } else {
-        setLoginError(`[Step 4 FAIL] Backend error: ${JSON.stringify(data)}`);
+        setLoginError(data.result || 'Google sign-in failed. Please try again.');
       }
     } catch (error) {
-      setLoginError(`[EXCEPTION] ${error?.message || String(error)}`);
+      setLoginError('Google sign-in failed. Please check your connection.');
     } finally {
       setGoogleLoading(false);
     }

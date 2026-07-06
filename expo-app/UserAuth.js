@@ -567,15 +567,15 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   // iOS native client — reverse client ID scheme registered in app.json infoPlist
   const IOS_CLIENT_ID = '798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg.apps.googleusercontent.com';
-  // Web client — used for Android browser-based OAuth flow via Expo proxy
-  const WEB_CLIENT_ID = '798628803696-b9b82e0mer9c3cm7rpngmpr9eet2hilj.apps.googleusercontent.com';
+  // Android native client — no client_secret needed; Google verifies via SHA-1 fingerprint.
+  // The reverse-scheme intent filter is already registered in the binary (app.json intentFilters).
+  const ANDROID_CLIENT_ID = '798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt.apps.googleusercontent.com';
 
-  // iOS uses native reverse-scheme redirect; Android uses the Expo proxy URI
-  // (registered in the Web OAuth client's authorized redirect URIs)
-  const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : WEB_CLIENT_ID;
+  // Both iOS and Android use their native reverse-scheme redirect URIs — no relay needed.
+  const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : ANDROID_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'
     ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
-    : 'https://shouldcallpaul.replit.app/auth/google/callback';
+    : 'com.googleusercontent.apps.798628803696-u3oc9tra2qou9j581u716nr9fst1m8mt:/';
 
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {

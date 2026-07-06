@@ -59,6 +59,10 @@ class SimpleStorage {
 
 const storage = new SimpleStorage();
 
+// Module-level store for the PKCE code verifier so it survives component
+// remounts that happen when Android brings the app back from the browser.
+let _googleCodeVerifier = null;
+
 // Forgot Password Screen
 export function ForgotPasswordScreen({ onBack, onEmailSent }) {
   const [email, setEmail] = useState('');
@@ -548,9 +552,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   // Handle Google OAuth code arriving via deep link relay (prayoverus://auth?code=...)
   useEffect(() => {
-    if (pendingGoogleAuthCode && googleRequest?.codeVerifier) {
+    if (pendingGoogleAuthCode) {
+      const verifier = googleRequest?.codeVerifier || _googleCodeVerifier;
       onGoogleAuthCodeConsumed?.();
-      handleGoogleResponse(pendingGoogleAuthCode, googleRequest.codeVerifier);
+      handleGoogleResponse(pendingGoogleAuthCode, verifier);
     }
   }, [pendingGoogleAuthCode]);
 
@@ -584,7 +589,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      handleGoogleResponse(googleResponse.params?.code, googleRequest?.codeVerifier);
+      const verifier = googleRequest?.codeVerifier || _googleCodeVerifier;
+      handleGoogleResponse(googleResponse.params?.code, verifier);
     }
   }, [googleResponse]);
 
@@ -1364,7 +1370,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       {!!googleRequest && (
         <TouchableOpacity
           style={[styles.googleBtn, (googleLoading || !googleRequest) && { opacity: 0.6 }]}
-          onPress={() => { setLoginError(''); googlePromptAsync(); }}
+          onPress={() => { setLoginError(''); _googleCodeVerifier = googleRequest?.codeVerifier || null; googlePromptAsync(); }}
           disabled={googleLoading || !googleRequest}
           activeOpacity={0.85}
         >

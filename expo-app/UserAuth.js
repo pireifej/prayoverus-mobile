@@ -599,9 +599,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       setGoogleLoading(true);
       setLoginError('');
       if (!code) {
-        setLoginError('Google sign-in failed. Please try again.');
+        setLoginError('[Step 1 FAIL] No auth code received from Google.');
         return;
       }
+      setLoginError(`[Step 1 OK] Code received. Verifier: ${codeVerifier ? 'present' : 'MISSING'}`);
+      await new Promise(r => setTimeout(r, 2000));
       // Manually exchange the authorization code for an access token using PKCE
       const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -616,18 +618,21 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       });
       const tokenData = await tokenRes.json();
       if (!tokenData.access_token) {
-        setLoginError('Google sign-in failed. Please try again.');
+        setLoginError(`[Step 2 FAIL] Token exchange failed: ${tokenData.error} — ${tokenData.error_description}`);
         return;
       }
+      setLoginError('[Step 2 OK] Token received. Fetching user info...');
+      await new Promise(r => setTimeout(r, 2000));
       const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
       const userInfo = await userInfoRes.json();
       if (!userInfo.email) {
-        setLoginError('Could not get email from Google. Please try again.');
+        setLoginError(`[Step 3 FAIL] No email from Google. Response: ${JSON.stringify(userInfo)}`);
         return;
       }
-
+      setLoginError(`[Step 3 OK] Got email: ${userInfo.email}. Logging into backend...`);
+      await new Promise(r => setTimeout(r, 2000));
       const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',
         headers: {
@@ -657,11 +662,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           auth_provider: 'google',
         });
       } else {
-        setLoginError(data.result || 'Google sign-in failed. Please try again.');
+        setLoginError(`[Step 4 FAIL] Backend error: ${JSON.stringify(data)}`);
       }
     } catch (error) {
-      console.error('Google login error:', error);
-      setLoginError('Google sign-in failed. Please check your connection.');
+      setLoginError(`[EXCEPTION] ${error?.message || String(error)}`);
     } finally {
       setGoogleLoading(false);
     }

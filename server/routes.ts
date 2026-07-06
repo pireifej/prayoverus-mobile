@@ -25,6 +25,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ version: CURRENT_APP_VERSION });
   });
 
+  // Google OAuth relay for Android — catches Google's callback and bounces it
+  // back into the app via the custom URI scheme so expo-auth-session can complete.
+  app.get('/auth/google/callback', (req, res) => {
+    const params = new URLSearchParams(req.query as Record<string, string>);
+    res.redirect(`prayoverus://auth?${params.toString()}`);
+  });
+
   // Daily Bread TTS — Step 1: POST to generate and cache audio
   // Body: { date, title, content, bibleVerse, verseReference, prayer }
   // Returns { ok: true } once audio is cached server-side

@@ -562,7 +562,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : WEB_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'
     ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
-    : 'https://auth.expo.io/@pireifej/pray-over-us';
+    : 'https://shouldcallpaul.replit.app/auth/google/callback';
 
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
@@ -538,6 +538,40 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  const loadingFloatAnim = useRef(new Animated.Value(0)).current;
+  const loadingGlowAnim  = useRef(new Animated.Value(0.4)).current;
+  const loadingScaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (googleLoading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingFloatAnim, { toValue: -16, duration: 1900, useNativeDriver: true }),
+          Animated.timing(loadingFloatAnim, { toValue: 0,   duration: 1900, useNativeDriver: true }),
+        ])
+      ).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingGlowAnim, { toValue: 1,   duration: 1500, useNativeDriver: true }),
+          Animated.timing(loadingGlowAnim, { toValue: 0.3, duration: 1500, useNativeDriver: true }),
+        ])
+      ).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(loadingScaleAnim, { toValue: 1.1, duration: 1900, useNativeDriver: true }),
+          Animated.timing(loadingScaleAnim, { toValue: 1.0, duration: 1900, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      loadingFloatAnim.stopAnimation();
+      loadingGlowAnim.stopAnimation();
+      loadingScaleAnim.stopAnimation();
+      loadingFloatAnim.setValue(0);
+      loadingGlowAnim.setValue(0.4);
+      loadingScaleAnim.setValue(1);
+    }
+  }, [googleLoading]);
 
   useEffect(() => {
     AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
@@ -1365,20 +1399,37 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           disabled={googleLoading || !googleRequest}
           activeOpacity={0.85}
         >
-          {googleLoading ? (
-            <ActivityIndicator size="small" color="#444" />
-          ) : (
-            <>
-              <Image
-                source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
-                style={styles.googleBtnLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.googleBtnText}>Sign in with Google</Text>
-            </>
-          )}
+          <Image
+            source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+            style={styles.googleBtnLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.googleBtnText}>Sign in with Google</Text>
         </TouchableOpacity>
       )}
+
+      {/* Full-screen loading overlay — shown while Google sign-in is processing */}
+      <Modal visible={googleLoading} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.loadingOverlay}>
+          <LinearGradient
+            colors={['#020818', '#0a1628', '#0f2547', '#1a3a6b']}
+            style={StyleSheet.absoluteFill}
+          />
+          <Animated.View style={[
+            styles.loadingGlowRing,
+            { opacity: loadingGlowAnim, transform: [{ scale: loadingScaleAnim }] },
+          ]} />
+          <Animated.Image
+            source={require('./assets/cross-hands.png')}
+            style={[styles.loadingIcon, {
+              transform: [{ translateY: loadingFloatAnim }, { scale: loadingScaleAnim }],
+            }]}
+            resizeMode="contain"
+          />
+          <Text style={styles.loadingTitle}>Signing you in...</Text>
+          <Text style={styles.loadingSubtitle}>Please wait a moment</Text>
+        </View>
+      </Modal>
 
       {/* Apple Sign-In — native only, auto-hidden on Android */}
       {appleAvailable && (
@@ -1418,6 +1469,43 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 }
 
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingGlowRing: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'rgba(147, 197, 253, 0.5)',
+    shadowColor: '#60a5fa',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 40,
+    elevation: 20,
+  },
+  loadingIcon: {
+    width: 130,
+    height: 130,
+    marginBottom: 40,
+    tintColor: '#e0f2fe',
+  },
+  loadingTitle: {
+    color: '#e0f2fe',
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginBottom: 10,
+  },
+  loadingSubtitle: {
+    color: 'rgba(186, 230, 253, 0.65)',
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
   gradientBackground: {
     flex: 1,
   },

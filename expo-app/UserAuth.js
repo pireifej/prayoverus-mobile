@@ -1564,12 +1564,6 @@ const styles = StyleSheet.create({
   googleBtnText: {
     fontSize: 15, fontWeight: '600', color: '#3c4043', letterSpacing: 0.25,
   },
-  appleBtnIcon: {
-    fontSize: 18, color: '#fff', marginRight: 10,
-  },
-  appleBtnText: {
-    fontSize: 15, fontWeight: '600', color: '#fff',
-  },
   loginErrorBox: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(239,68,68,0.18)',

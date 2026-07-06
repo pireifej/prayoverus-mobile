@@ -526,7 +526,7 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
   );
 }
 
-export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess, onGuestMode, initMode, onInitModeConsumed }) {
+export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess, onGuestMode, initMode, onInitModeConsumed, pendingGoogleAuthCode, onGoogleAuthCodeConsumed }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(initMode === 'register');
@@ -545,6 +545,14 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       onInitModeConsumed?.();
     }
   }, [initMode]);
+
+  // Handle Google OAuth code arriving via deep link relay (prayoverus://auth?code=...)
+  useEffect(() => {
+    if (pendingGoogleAuthCode && googleRequest?.codeVerifier) {
+      onGoogleAuthCodeConsumed?.();
+      handleGoogleResponse(pendingGoogleAuthCode, googleRequest.codeVerifier);
+    }
+  }, [pendingGoogleAuthCode]);
 
   const GOOGLE_DISCOVERY = {
     authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',

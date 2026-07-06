@@ -811,6 +811,7 @@ function App() {
   const [postSuccess, setPostSuccess] = useState(false);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset', 'resetSuccess'
   const [resetToken, setResetToken] = useState(null);
+  const [pendingGoogleAuthCode, setPendingGoogleAuthCode] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
   const [dailyDevotional, setDailyDevotional] = useState(null);
   const [selectedDevotional, setSelectedDevotional] = useState(null);
@@ -1526,6 +1527,17 @@ function App() {
     const handleDeepLink = ({ url }, isInitialUrl = false) => {
       const route = url.replace(/.*?:\/\//g, '');
       
+      // Check for Google OAuth callback relay (prayoverus://auth?code=...&state=...)
+      if (route.startsWith('auth?')) {
+        const params = new URLSearchParams(route.slice('auth?'.length));
+        const code = params.get('code');
+        if (code) {
+          console.log('📱 Deep link detected: Google OAuth callback');
+          setPendingGoogleAuthCode(code);
+        }
+        return;
+      }
+
       // Check for password reset link (can be processed immediately)
       const resetMatch = route.match(/reset-password(?:\.html)?\?token=([^&]+)/);
       if (resetMatch && resetMatch[1]) {
@@ -3910,6 +3922,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onGuestMode={handleGuestMode}
         initMode={authInitMode}
         onInitModeConsumed={() => setAuthInitMode('login')}
+        pendingGoogleAuthCode={pendingGoogleAuthCode}
+        onGoogleAuthCodeConsumed={() => setPendingGoogleAuthCode(null)}
       />
     );
   }

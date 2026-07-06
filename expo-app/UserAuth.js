@@ -970,7 +970,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             faith_points: user.faith_points || 0,
             faith_rank: user.faith_rank || null,
             prayer_count: parseInt(user.prayer_count, 10) || 0,
-            request_count: parseInt(user.request_count, 10) || 0
+            request_count: parseInt(user.request_count, 10) || 0,
+            auth_provider: user.auth_provider || 'facebook',
           };
           
           console.log('Facebook login successful for user:', userDataFormatted.firstName);
@@ -1185,7 +1186,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             faith_points: user.faith_points || 0,
             faith_rank: user.faith_rank || null,
             prayer_count: parseInt(user.prayer_count, 10) || 0,
-            request_count: parseInt(user.request_count, 10) || 0
+            request_count: parseInt(user.request_count, 10) || 0,
+            auth_provider: user.auth_provider || 'email',
           };
           
           console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name, 'Faith:', user.faith_points);

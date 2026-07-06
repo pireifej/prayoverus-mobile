@@ -2066,6 +2066,7 @@ function App() {
                   prayer_count: parseInt(user.prayer_count, 10) || 0,
                   request_count: parseInt(user.request_count, 10) || 0,
                   rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
+                  auth_provider: user.auth_provider || parsedUserData.auth_provider || 'email',
                 };
                 console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
                 setCurrentUser(refreshedUser);
@@ -4482,6 +4483,121 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  if (currentScreen === 'changeEmail') {
+    const [ceNew, setCeNew] = React.useState('');
+    const [ceConfirm, setCeConfirm] = React.useState('');
+    const [ceLoading, setCeLoading] = React.useState(false);
+    const [ceDone, setCeDone] = React.useState(false);
+    const [ceError, setCeError] = React.useState('');
+
+    const doChangeEmail = async () => {
+      setCeError('');
+      if (!ceNew.includes('@') || !ceNew.includes('.')) { setCeError('Please enter a valid email address.'); return; }
+      if (ceNew !== ceConfirm) { setCeError('Email addresses do not match.'); return; }
+      if (ceNew === currentUser.email) { setCeError('This is already your current email address.'); return; }
+      setCeLoading(true);
+      try {
+        const res = await fetch('https://shouldcallpaul.replit.app/updateEmail', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+          },
+          body: JSON.stringify({ userId: currentUser.id, newEmail: ceNew }),
+        });
+        const data = await res.json();
+        if (data.error === 0) {
+          setCurrentUser(prev => ({ ...prev, email: ceNew }));
+          await saveUserToStorage({ ...currentUser, email: ceNew });
+          setCeDone(true);
+        } else {
+          setCeError(data.result || 'Unable to update email. Please try again.');
+        }
+      } catch {
+        setCeError('Network error. Please check your connection.');
+      } finally {
+        setCeLoading(false);
+      }
+    };
+
+    const inputStyle = {
+      backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1,
+      borderColor: '#e2e8f0', padding: 14, fontSize: 16, color: '#0f172a', marginBottom: 16,
+    };
+    const labelStyle = {
+      fontSize: 12, fontWeight: '600', color: '#64748b',
+      letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase',
+    };
+
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <LinearGradient
+          colors={['#0f172a', '#1e3a5f', '#2563eb']}
+          style={styles.communityHeader}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={{ padding: 10, minWidth: 60 }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={{ fontSize: 22, color: '#fff' }}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.communityHeaderTitle}>Update Email</Text>
+          <View style={{ minWidth: 60 }} />
+        </LinearGradient>
+
+        <ScrollView style={{ flex: 1, backgroundColor: '#f1f5f9' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+          {ceDone ? (
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 28, alignItems: 'center', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 }}>
+              <Text style={{ fontSize: 48, marginBottom: 14 }}>✉️</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 10, textAlign: 'center' }}>Email Updated!</Text>
+              <Text style={{ fontSize: 15, color: '#64748b', lineHeight: 22, textAlign: 'center' }}>Your email address has been updated to {ceNew}.</Text>
+              <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={{ marginTop: 24, paddingVertical: 12, paddingHorizontal: 28, backgroundColor: '#2563eb', borderRadius: 12 }}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>← My Profile</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 }}>
+              <Text style={{ fontSize: 30, marginBottom: 8 }}>✉️</Text>
+              <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 20 }}>
+                Your current email is <Text style={{ fontWeight: '700', color: '#0f172a' }}>{currentUser?.email}</Text>
+              </Text>
+
+              <Text style={labelStyle}>New Email Address</Text>
+              <TextInput
+                style={inputStyle} placeholder="Enter new email" placeholderTextColor="#94a3b8"
+                keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+                value={ceNew} onChangeText={v => { setCeNew(v); setCeError(''); }}
+              />
+
+              <Text style={labelStyle}>Confirm New Email</Text>
+              <TextInput
+                style={[inputStyle, { marginBottom: ceError ? 8 : 24 }]}
+                placeholder="Re-enter new email" placeholderTextColor="#94a3b8"
+                keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
+                value={ceConfirm} onChangeText={v => { setCeConfirm(v); setCeError(''); }}
+              />
+
+              {ceError ? (
+                <View style={{ backgroundColor: '#fef2f2', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#fecaca' }}>
+                  <Text style={{ color: '#dc2626', fontSize: 14, fontWeight: '600' }}>⚠️ {ceError}</Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity onPress={doChangeEmail} disabled={ceLoading || !ceNew || !ceConfirm} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={(ceLoading || !ceNew || !ceConfirm) ? ['#94a3b8', '#94a3b8'] : ['#2563eb', '#1e40af']}
+                  style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                >
+                  {ceLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>Update Email</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
   if (currentScreen === 'badges') {
     const earned = allBadges.filter(b => b.earned);
     const locked = allBadges.filter(b => !b.earned);
@@ -5295,33 +5411,28 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
         
         <ScrollView style={styles.screenContent}>
-          {/* Hidden sections - to be implemented later */}
-          <View style={{ display: 'none' }}>
-            {/* General Section */}
+          {/* Account Section — email/password users only */}
+          {currentUser?.auth_provider === 'email' ? (
             <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>General</Text>
-              <TextInput style={styles.input} placeholder="First Name" />
-              <TextInput style={styles.input} placeholder="Last Name" />
-              <TextInput style={styles.input} placeholder="Email" />
-              <TextInput style={styles.input} placeholder="Username" />
-              <TextInput style={styles.input} placeholder="Title" />
-              <TextInput style={[styles.input, styles.textArea]} placeholder="About" multiline />
-            </View>
-
-            {/* Security Section */}
-            <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>Security</Text>
+              <Text style={styles.settingsSectionTitle}>Account</Text>
+              <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changeEmail'); }}>
+                <Text style={styles.settingsButtonText}>✉️ Update Email Address</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changePassword'); }}>
-                <Text style={styles.settingsButtonText}>Change Password</Text>
+                <Text style={styles.settingsButtonText}>🔑 {t('changePassword')}</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Privacy Section */}
+          ) : currentUser && !currentUser.isGuest ? (
             <View style={styles.settingsSection}>
-              <Text style={styles.settingsSectionTitle}>Privacy</Text>
-              <Text style={styles.settingsDescription}>Privacy settings will be available soon.</Text>
+              <Text style={styles.settingsSectionTitle}>Account</Text>
+              <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 14 }}>
+                <Text style={{ fontSize: 13, color: '#64748b', lineHeight: 20 }}>
+                  {currentUser.auth_provider === 'google' ? '🔵 Signed in with Google' : currentUser.auth_provider === 'apple' ? '⚫ Signed in with Apple' : '🔗 Signed in via social account'}
+                  {'\n'}Email and password are managed by your sign-in provider and cannot be changed here.
+                </Text>
+              </View>
             </View>
-          </View>
+          ) : null}
 
           {/* Language Section - VISIBLE */}
           <View style={styles.settingsSection}>
@@ -5342,13 +5453,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           </View>
 
-          {/* Security Section - VISIBLE */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>{t('security')}</Text>
-            <TouchableOpacity style={styles.settingsButton} onPress={() => { setShowSettings(false); setCurrentScreen('changePassword'); }}>
-              <Text style={styles.settingsButtonText}>🔑 {t('changePassword')}</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Account Section - VISIBLE */}
           <View style={styles.settingsSection}>

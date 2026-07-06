@@ -1366,8 +1366,12 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             <ActivityIndicator size="small" color="#444" />
           ) : (
             <>
-              <Text style={styles.googleBtnIcon}>G</Text>
-              <Text style={styles.googleBtnText}>Continue with Google</Text>
+              <Image
+                source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                style={styles.googleBtnLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.googleBtnText}>Sign in with Google</Text>
             </>
           )}
         </TouchableOpacity>
@@ -1375,21 +1379,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
 
       {/* Apple Sign-In — native only, auto-hidden on Android */}
       {appleAvailable && (
-        <TouchableOpacity
-          style={[styles.appleBtn, appleLoading && { opacity: 0.6 }]}
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={14}
+          style={{ width: '100%', height: 48, marginBottom: 14, opacity: appleLoading ? 0.6 : 1 }}
           onPress={handleAppleSignIn}
-          disabled={appleLoading}
-          activeOpacity={0.85}
-        >
-          {appleLoading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.appleBtnIcon}></Text>
-              <Text style={styles.appleBtnText}>Continue with Apple</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        />
       )}
 
       <TouchableOpacity 
@@ -1556,24 +1552,17 @@ const styles = StyleSheet.create({
   },
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff', borderRadius: 14, paddingVertical: 13,
-    paddingHorizontal: 20, marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 4, elevation: 3,
+    backgroundColor: '#fff', borderRadius: 4, paddingVertical: 12,
+    paddingHorizontal: 16, marginBottom: 14, borderWidth: 1,
+    borderColor: '#dadce0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 2, elevation: 2,
   },
-  googleBtnIcon: {
-    fontSize: 18, fontWeight: '900', color: '#4285F4',
-    marginRight: 10, fontStyle: 'italic',
+  googleBtnLogo: {
+    width: 20, height: 20, marginRight: 12,
   },
   googleBtnText: {
-    fontSize: 15, fontWeight: '600', color: '#333',
-  },
-  appleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#000', borderRadius: 14, paddingVertical: 13,
-    paddingHorizontal: 20, marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25, shadowRadius: 4, elevation: 3,
+    fontSize: 15, fontWeight: '600', color: '#3c4043', letterSpacing: 0.25,
   },
   appleBtnIcon: {
     fontSize: 18, color: '#fff', marginRight: 10,

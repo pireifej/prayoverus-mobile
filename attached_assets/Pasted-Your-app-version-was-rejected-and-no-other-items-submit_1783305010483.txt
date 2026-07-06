@@ -1,0 +1,118 @@
+Your app version was rejected and no other items submitted can be accepted or approved. You can make edits to your app version below.
+
+Items Submitted (1)
+You can review and make edits to your items below, or communicate with Apple. Accepted items won't be available for release until all items with issues are resubmitted and accepted. You can also remove those items and resubmit them later.
+Item
+Type
+Review Status
+Action
+iOS App 1.0.30
+
+1.0.30 (67)
+
+App Version
+Rejected
+2.1.0 Performance: App Completeness
+
+4.0.0 Design: Preamble
+
+5.1.1 Legal: Privacy - Data Collection and Storage
+
+See More
+Edit
+
+Messages (2)
+
+AppleYesterday 11:58 AM
+
+AppleToday 8:42 PM
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Bug Fix Submissions
+
+The issues we've identified below are eligible to be resolved on your next update. If this submission includes bug fixes and you'd like to have it approved at this time, reply to this message and let us know. You do not need to resubmit your app for us to proceed.
+
+Alternatively, if you'd like to resolve these issues now, please review the details, make the appropriate changes, and resubmit.
+
+Review Environment
+Submission ID: 4bd72455-60a5-458f-b1bc-b3a668329af8
+Review date: July 06, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0.30 (67)
+
+Guideline 2.1(a) - Performance - App Completeness
+Issue Description
+
+The app exhibited one or more bugs that would negatively impact users.
+
+Bug description: An error prompted when we attempted to Sign in with Apple. 
+
+Review device details:
+
+- Device type: iPad Air 11-inch (M3) 
+- OS version: iPadOS 26.5.2
+- Internet Connection: Active
+
+Next Steps
+
+Test the app on supported devices to identify and resolve bugs and stability issues before submitting for review.
+
+If the bug cannot be reproduced, try the following:
+
+- For new apps, uninstall all previous versions of the app from a device, then install and follow the steps to reproduce.
+- For app updates, install the new version as an update to the previous version, then follow the steps to reproduce.
+
+Note that users expect apps they download to function on all the devices where they are available. For example, apps that may be downloaded onto iPad devices should function as expected for iPad users. 
+
+Resources
+
+- For information about testing apps and preparing them for review, see Testing a Release Build.
+- To learn about troubleshooting networking issues, see Networking Overview.
+
+
+Guideline 4 - Design
+
+Issue Description
+
+The app offers Sign in with Apple as a login option but does not follow the design and user experience requirements for Sign in with Apple. Specifically:
+
+- Sign in with Apple button includes logo artwork that is not downloaded from Apple Design Resources. 
+
+These requirements provide the consistent experience users expect when using Sign In with Apple to authenticate or log in to an account.
+
+Next Steps
+
+Please revise the Sign in with Apple experience in the app to address the issues identified above. 
+
+Resources 
+
+- To learn more about App Store design requirements, see guideline 4. 
+- For an overview of design and formatting recommendations for Sign in with Apple, review the Human Interface Guidelines.
+Guideline 5.1.1(ii) - Legal - Privacy - Data Collection and Storage
+Issue Description
+
+One or more purpose strings in the app do not sufficiently explain the use of protected resources. Purpose strings must clearly and completely describe the app's use of data and, in most cases, provide an example of how the data will be used.
+
+Next Steps
+
+Update the photo library purpose string to explain how the app will use the requested information and provide a specific example of how the data will be used. See the attached screenshot.
+
+Resources
+
+Purpose strings must clearly describe how an app uses the ability, data, or resource. The following are hypothetical examples of unclear purpose strings that would not pass review: 
+
+- "App would like to access your Contacts"
+- "App needs microphone access"
+
+See examples of helpful, informative purpose strings.
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.

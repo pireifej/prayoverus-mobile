@@ -835,6 +835,30 @@ function App() {
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
+
+  const postLoadingFloat = useRef(new Animated.Value(0)).current;
+  const postLoadingGlow  = useRef(new Animated.Value(0.4)).current;
+  const postLoadingScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (isPosting) {
+      Animated.loop(Animated.sequence([
+        Animated.timing(postLoadingFloat, { toValue: -16, duration: 1900, useNativeDriver: true }),
+        Animated.timing(postLoadingFloat, { toValue: 0,   duration: 1900, useNativeDriver: true }),
+      ])).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(postLoadingGlow, { toValue: 1,   duration: 1500, useNativeDriver: true }),
+        Animated.timing(postLoadingGlow, { toValue: 0.3, duration: 1500, useNativeDriver: true }),
+      ])).start();
+      Animated.loop(Animated.sequence([
+        Animated.timing(postLoadingScale, { toValue: 1.1, duration: 1900, useNativeDriver: true }),
+        Animated.timing(postLoadingScale, { toValue: 1.0, duration: 1900, useNativeDriver: true }),
+      ])).start();
+    } else {
+      postLoadingFloat.stopAnimation(); postLoadingFloat.setValue(0);
+      postLoadingGlow.stopAnimation();  postLoadingGlow.setValue(0.4);
+      postLoadingScale.stopAnimation(); postLoadingScale.setValue(1);
+    }
+  }, [isPosting]);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset', 'resetSuccess'
   const [resetToken, setResetToken] = useState(null);
   const [pendingGoogleAuthCode, setPendingGoogleAuthCode] = useState(null);
@@ -7160,6 +7184,28 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </View>
       </Modal>
 
+      {/* Full-screen posting overlay */}
+      <Modal visible={isPosting} transparent animationType="fade" statusBarTranslucent>
+        <LinearGradient
+          colors={['#0f1b35', '#0a1628', '#071020']}
+          style={styles.postingOverlayContainer}
+        >
+          <Animated.View style={[styles.postingOverlayGlowRing, {
+            opacity: postLoadingGlow,
+            transform: [{ scale: postLoadingScale }],
+          }]} />
+          <Animated.Image
+            source={require('./assets/cross-hands.png')}
+            style={[styles.postingOverlayIcon, {
+              transform: [{ translateY: postLoadingFloat }, { scale: postLoadingScale }],
+            }]}
+            resizeMode="contain"
+          />
+          <Text style={styles.postingOverlayTitle}>{t('posting')}</Text>
+          <Text style={styles.postingOverlaySubtitle}>Lifting your prayer up…</Text>
+        </LinearGradient>
+      </Modal>
+
       {/* Floating +pts popup — game-style animation when praying/posting */}
       {floatingPtsVisible && (
         <Animated.View pointerEvents="none" style={[styles.floatingPtsContainer, {
@@ -7863,6 +7909,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
+  },
+  postingOverlayContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postingOverlayGlowRing: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 2,
+    borderColor: 'rgba(147, 197, 253, 0.5)',
+    shadowColor: '#60a5fa',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 40,
+    elevation: 20,
+  },
+  postingOverlayIcon: {
+    width: 130,
+    height: 130,
+    marginBottom: 36,
+    tintColor: '#e0f2fe',
+  },
+  postingOverlayTitle: {
+    color: '#e0f2fe',
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  postingOverlaySubtitle: {
+    color: 'rgba(186, 230, 253, 0.65)',
+    fontSize: 14,
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   prayerLoadingGlowRing: {
     position: 'absolute',

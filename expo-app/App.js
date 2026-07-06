@@ -835,13 +835,12 @@ function App() {
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
-  const [isAmenTransitioning, setIsAmenTransitioning] = useState(false);
 
   const postLoadingFloat = useRef(new Animated.Value(0)).current;
   const postLoadingGlow  = useRef(new Animated.Value(0.4)).current;
   const postLoadingScale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (isPosting || isAmenTransitioning) {
+    if (isPosting) {
       Animated.loop(Animated.sequence([
         Animated.timing(postLoadingFloat, { toValue: -16, duration: 1900, useNativeDriver: true }),
         Animated.timing(postLoadingFloat, { toValue: 0,   duration: 1900, useNativeDriver: true }),
@@ -859,7 +858,7 @@ function App() {
       postLoadingGlow.stopAnimation();  postLoadingGlow.setValue(0.4);
       postLoadingScale.stopAnimation(); postLoadingScale.setValue(1);
     }
-  }, [isPosting, isAmenTransitioning]);
+  }, [isPosting]);
   const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'reset', 'resetSuccess'
   const [resetToken, setResetToken] = useState(null);
   const [pendingGoogleAuthCode, setPendingGoogleAuthCode] = useState(null);
@@ -3272,52 +3271,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     } catch (_) {}
   };
 
-  const markAsPrayed = async () => {
+  const markAsPrayed = () => {
     const prayer = prayerModal.prayer;
     if (!prayer) return;
 
-    // Trigger magical animation
-    triggerPrayerAnimation();
-
-    try {
-      const endpoint = 'https://shouldcallpaul.replit.app/prayFor';
-      const requestPayload = {
-        userId: currentUser?.id,
-        requestId: prayer.id  // Using the request_id from the prayer feed
-      };
-      
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0) {
-          console.log('Prayer action recorded successfully in database');
-        }
-        if (data.new_badge) showBadgeCelebration(data.new_badge);
-      }
-    } catch (error) {
-      console.log('Failed to record prayer action:', error.message);
-    }
-
-    // Always update local state with immediate GUI feedback
+    // Optimistic local state update immediately
     setCommunityPrayers(prevPrayers =>
       prevPrayers.map(p =>
         p.id === prayer.id
-          ? { 
-              ...p, 
+          ? {
+              ...p,
               prayedFor: true,
               user_has_prayed: true,
               prayer_count: (p.prayer_count || 0) + 1,
@@ -3328,76 +3291,63 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       )
     );
 
-    // Refresh user profile from server to get updated faith_points (points awarded server-side)
+    // Fire API fire-and-forget — don't await, don't block UI
+    const prayPayload = { userId: currentUser?.id, requestId: prayer.id };
+    fetch('https://shouldcallpaul.replit.app/prayFor', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+      },
+      body: JSON.stringify(prayPayload)
+    }).then(res => res.ok ? res.json() : null).then(data => {
+      if (data?.new_badge) showBadgeCelebration(data.new_badge);
+    }).catch(e => console.log('prayFor error:', e.message));
+
+    // Refresh faith points in background after a delay
     if (currentUser) {
       const oldPoints = currentUser.faith_points || 0;
       const oldRank = getFaithRank(oldPoints, currentUser.faith_rank);
       setTimeout(async () => {
         try {
-          const endpoint = 'https://shouldcallpaul.replit.app/getUser';
-          const response = await fetch(endpoint, {
+          const res = await fetch('https://shouldcallpaul.replit.app/getUser', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-            },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
             body: JSON.stringify({ userId: currentUser.id.toString() })
           });
-          if (response.ok) {
-            const data = await response.json();
+          if (res.ok) {
+            const data = await res.json();
             const userArray = Array.isArray(data) ? data : (data.result || []);
             if (userArray.length > 0) {
-              const serverUser = userArray[0];
-              const serverPoints = serverUser.faith_points || 0;
-              const serverFaithRank = serverUser.faith_rank || null;
-              const newRank = getFaithRank(serverPoints, serverFaithRank);
-              setCurrentUser(prev => ({ ...prev, faith_points: serverPoints, faith_rank: serverFaithRank }));
-              if (newRank.level > oldRank.level) {
-                setShowLevelUp(newRank);
-                playHeavenlyChime();
-              }
+              const u = userArray[0];
+              const newRank = getFaithRank(u.faith_points || 0, u.faith_rank || null);
+              setCurrentUser(prev => ({ ...prev, faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null }));
+              if (newRank.level > oldRank.level) { setShowLevelUp(newRank); playHeavenlyChime(); }
             }
           }
-        } catch (e) {
-          console.log('Error refreshing faith points:', e.message);
-        }
+        } catch (e) { console.log('Error refreshing faith points:', e.message); }
       }, 2000);
     }
-    
-    // Close the modal after animation completes and handle auto-advance
+
+    // Play confetti animation, then close immediately after it finishes
+    triggerPrayerAnimation();
     setTimeout(() => {
-      setIsAmenTransitioning(true);
       closePrayerModal();
-      // Show +1pt popup on the feed (after modal closes so it's visible)
       showFloatingPoints('+1 pt 🙏');
-      setTimeout(() => setIsAmenTransitioning(false), 900);
-      
-      // Get the detail screen context for auto-advance
+
+      // Auto-advance if opened from feed
       const context = detailScreenContextRef.current;
       detailScreenContextRef.current = null;
-      
-      // Determine what to do next
-      const isFromDeepLink = !context || !context.isInFeedList;
       const hasNextPrayer = context && context.isInFeedList && context.index < context.prayerIds.length - 1;
-      
       if (hasNextPrayer) {
-        // From community wall with more prayers - reopen detail screen at next prayer
         const newIndex = context.index + 1;
-        const nextPrayerId = context.prayerIds[newIndex];
-        
-        // Small delay then open next prayer
         setTimeout(() => {
-          setDetailScreenProps({
-            requestId: nextPrayerId,
-            prayerIds: context.prayerIds,
-            currentIndex: newIndex
-          });
+          setDetailScreenProps({ requestId: context.prayerIds[newIndex], prayerIds: context.prayerIds, currentIndex: newIndex });
           setShowDetailScreen(true);
         }, 300);
       }
-      // Otherwise (deep link or last prayer) - just stay on community wall
-    }, 1000); // Close after 1 second — snappy!
+    }, 900); // Just long enough for confetti to shine ✨
   };
 
   // Open Edit Prayer Screen (reuses new prayer form)
@@ -7188,7 +7138,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       </Modal>
 
       {/* Full-screen posting / amen transition overlay */}
-      <Modal visible={isPosting || isAmenTransitioning} transparent animationType="fade" statusBarTranslucent>
+      <Modal visible={isPosting} transparent animationType="fade" statusBarTranslucent>
         <LinearGradient
           colors={['#0f1b35', '#0a1628', '#071020']}
           style={styles.postingOverlayContainer}
@@ -7204,12 +7154,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             }]}
             resizeMode="contain"
           />
-          <Text style={styles.postingOverlayTitle}>
-            {isAmenTransitioning ? 'Amen 🙏' : t('posting')}
-          </Text>
-          <Text style={styles.postingOverlaySubtitle}>
-            {isAmenTransitioning ? 'Your prayer has been sent' : 'Lifting your prayer up…'}
-          </Text>
+          <Text style={styles.postingOverlayTitle}>{t('posting')}</Text>
+          <Text style={styles.postingOverlaySubtitle}>Lifting your prayer up…</Text>
         </LinearGradient>
       </Modal>
 

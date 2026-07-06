@@ -783,6 +783,16 @@ function App() {
     ).start();
   }, []);
 
+  const [prayers, setPrayers] = useState([]);
+  const [communityPrayers, setCommunityPrayers] = useState([]);
+  const PRAYERS_PAGE_SIZE = 12;
+  const [displayedCount, setDisplayedCount] = useState(PRAYERS_PAGE_SIZE);
+  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
+  const [prayerImage, setPrayerImage] = useState(null);
+  const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
+  const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
+  const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+
   const prayerLoadingFloat = useRef(new Animated.Value(0)).current;
   const prayerLoadingGlow  = useRef(new Animated.Value(0.4)).current;
   const prayerLoadingScale = useRef(new Animated.Value(1)).current;
@@ -806,15 +816,7 @@ function App() {
       prayerLoadingScale.stopAnimation(); prayerLoadingScale.setValue(1);
     }
   }, [prayerModal.loading]);
-  const [prayers, setPrayers] = useState([]);
-  const [communityPrayers, setCommunityPrayers] = useState([]);
-  const PRAYERS_PAGE_SIZE = 12;
-  const [displayedCount, setDisplayedCount] = useState(PRAYERS_PAGE_SIZE);
-  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
-  const [prayerImage, setPrayerImage] = useState(null);
-  const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
-  const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
-  const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+
   const [extendedPrayer, setExtendedPrayer] = useState(null);
   const [loadingExtendedPrayer, setLoadingExtendedPrayer] = useState(false);
   const [refreshingCommunity, setRefreshingCommunity] = useState(false);

@@ -59,11 +59,13 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <string>PrayOverUs uses your camera so you can take a photo to add to your prayer request or set as your profile picture.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>PrayOverUs uses your photo library to let you set a profile picture and add photos to your prayer requests. For example, you can upload a photo of the person you are praying for.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>PrayOverUs saves photos to your library when you download shared prayer images.</string>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UILaunchStoryboardName</key>

@@ -629,6 +629,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     }
   }, [googleResponse]);
 
+  const fetchWithTimeout = (url, options, ms = 15000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...options, signal: controller.signal })
+      .finally(() => clearTimeout(timer));
+  };
+
   const handleGoogleResponse = async (code, codeVerifier) => {
     try {
       setGoogleLoading(true);
@@ -638,7 +645,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         return;
       }
       // Exchange code via server-side proxy so client_secret stays off the device
-      const tokenRes = await fetch('https://shouldcallpaul.replit.app/auth/google/token', {
+      const tokenRes = await fetchWithTimeout('https://shouldcallpaul.replit.app/auth/google/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

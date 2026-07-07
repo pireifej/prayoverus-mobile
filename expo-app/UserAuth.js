@@ -681,6 +681,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       const data = await res.json();
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
+        setGoogleLoading(false); // clear overlay before onLogin unmounts this component
         onLogin({
           id: u.user_id, email: u.email, firstName: u.real_name,
           userName: u.user_name, title: u.user_title, about: u.user_about,
@@ -1443,9 +1444,9 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </TouchableOpacity>
       )}
 
-      {/* Full-screen loading overlay — shown while Google sign-in is processing */}
-      <Modal visible={googleLoading} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.loadingOverlay}>
+      {/* Full-screen loading overlay — plain View avoids Modal unmount crash */}
+      {googleLoading && (
+        <View style={[styles.loadingOverlay, StyleSheet.absoluteFillObject, { zIndex: 9999 }]}>
           <LinearGradient
             colors={['#020818', '#0a1628', '#0f2547', '#1a3a6b']}
             style={StyleSheet.absoluteFill}
@@ -1464,7 +1465,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           <Text style={styles.loadingTitle}>Signing you in...</Text>
           <Text style={styles.loadingSubtitle}>Please wait a moment</Text>
         </View>
-      </Modal>
+      )}
 
       {/* Apple email fallback prompt — shown when Apple doesn't return an email */}
       {pendingAppleCredential ? (

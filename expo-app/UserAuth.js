@@ -681,6 +681,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       const data = await res.json();
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
+        setGoogleLoading(false); // dismiss modal BEFORE onLogin unmounts this component
         onLogin({
           id: u.user_id, email: u.email, firstName: u.real_name,
           userName: u.user_name, title: u.user_title, about: u.user_about,
@@ -738,6 +739,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         const u = data.result[0];
         setPendingAppleCredential(null);
         setAppleEmailInput('');
+        setAppleLoading(false); // dismiss modal BEFORE onLogin unmounts this component
         onLogin({
           id: u.user_id, email: u.email, firstName: u.real_name,
           userName: u.user_name, title: u.user_title, about: u.user_about,

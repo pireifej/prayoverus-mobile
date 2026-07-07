@@ -6835,6 +6835,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             />
             {prayerLayout === 'gallery' && <View style={styles.galleryBgTint} />}
 
+            {/* Universal dim overlay — softens vivid backgrounds so text is always legible */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.22)', zIndex: 0 }]} pointerEvents="none" />
+
             {/* Premium theme color overlay */}
             {premiumBgTheme === 'amber' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'purple' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(124,58,237,0.30)', zIndex: 0 }]} pointerEvents="none" />}
@@ -6920,6 +6923,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.sanctuaryHeaderTitle}>{t('prayerHeader')}</Text>
                   <Text style={styles.sanctuaryHeaderSubtitle}>{t('forAuthorPrefix')} {prayerModal.prayer?.author}</Text>
                 </View>
+                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.sanctuaryScrollView}
                   contentContainerStyle={styles.sanctuaryScrollContent}
@@ -6933,6 +6937,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </View>
                   ) : null}
                 </ScrollView>
+                </View>
                 <View style={styles.sanctuaryFooter}>
                   {!extendedPrayer ? (
                     <TouchableOpacity
@@ -6959,6 +6964,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.galleryHeaderLabel}>PRAYER FOR</Text>
                   <Text style={styles.galleryHeaderName}>{prayerModal.prayer?.author}</Text>
                 </View>
+                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.galleryScrollView}
                   contentContainerStyle={styles.galleryScrollContent}
@@ -6966,6 +6972,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
                 </ScrollView>
+                </View>
                 <View style={styles.galleryFooter}>
                   <TouchableOpacity style={[styles.galleryAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
                     <Text style={styles.galleryAmenButtonText}>{amenReady ? 'Amen' : '🙏 Praying...'}</Text>
@@ -6975,6 +6982,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ) : (
               /* ===== OPTION 3: IMMERSIVE QUOTE LAYOUT ===== */
               <View style={styles.immersiveLayout}>
+                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.immersiveScrollView}
                   contentContainerStyle={styles.immersiveScrollContent}
@@ -6988,6 +6996,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </View>
                   ) : null}
                 </ScrollView>
+                </View>
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {!extendedPrayer ? (
@@ -8053,31 +8062,49 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textAlign: 'center',
   },
+  frostedCard: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   sanctuaryLayout: {
     flex: 1,
-    paddingHorizontal: 40,
+    paddingHorizontal: 24,
   },
   sanctuaryHeader: {
     alignItems: 'center',
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
   sanctuaryHeaderTitle: {
     fontSize: 32,
     fontWeight: '200',
-    color: '#5C4033',
+    color: '#ffffff',
     textAlign: 'center',
     letterSpacing: 8,
     textTransform: 'uppercase',
     marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   sanctuaryHeaderSubtitle: {
     fontSize: 17,
     fontWeight: '300',
-    color: '#8B7D6B',
+    color: 'rgba(255,255,255,0.88)',
     textAlign: 'center',
     fontStyle: 'italic',
     letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   sanctuaryScrollView: {
     flex: 1,
@@ -8234,16 +8261,22 @@ const styles = StyleSheet.create({
   galleryHeaderLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#8B7D6B',
+    color: 'rgba(255,255,255,0.75)',
     letterSpacing: 4,
     textTransform: 'uppercase',
     marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   galleryHeaderName: {
     fontSize: 14,
     fontWeight: '300',
-    color: '#5C4033',
+    color: '#ffffff',
     letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   galleryScrollView: {
     flex: 1,
@@ -8316,10 +8349,13 @@ const styles = StyleSheet.create({
   immersiveAttribution: {
     fontSize: 20,
     fontWeight: '400',
-    color: '#8B7D6B',
+    color: 'rgba(255,255,255,0.90)',
     fontStyle: 'italic',
     letterSpacing: 1,
     marginBottom: 24,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
     textAlign: 'center',
   },
   immersiveAmenButton: {

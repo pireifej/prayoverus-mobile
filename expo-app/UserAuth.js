@@ -538,6 +538,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [pendingAppleCredential, setPendingAppleCredential] = useState(null);
+  const [appleEmailInput, setAppleEmailInput] = useState('');
 
   const loadingFloatAnim = useRef(new Animated.Value(0)).current;
   const loadingGlowAnim  = useRef(new Animated.Value(0.4)).current;
@@ -705,22 +707,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     }
   };
 
-  const handleAppleSignIn = async () => {
-    if (!appleAvailable) return;
+  const completeAppleSignIn = async (credential, resolvedEmail) => {
     try {
       setAppleLoading(true);
       setLoginError('');
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      // Email from credential is only available on first-ever sign-in.
-      // Fall back to decoding it from the identity token JWT for returning users.
-      const email = credential.email || decodeAppleEmail(credential.identityToken || '') || '';
-
       const res = await fetch('https://shouldcallpaul.replit.app/appleLogin', {
         method: 'POST',
         headers: {
@@ -730,7 +720,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         },
         body: JSON.stringify({
           apple_user_id: credential.user,
-          email,
+          email: resolvedEmail,
           first_name: credential.fullName?.givenName || '',
           last_name: credential.fullName?.familyName || '',
           identity_token: credential.identityToken || '',
@@ -739,6 +729,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       const data = await res.json();
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
+        setPendingAppleCredential(null);
+        setAppleEmailInput('');
         onLogin({
           id: u.user_id, email: u.email, firstName: u.real_name,
           userName: u.user_name, title: u.user_title, about: u.user_about,
@@ -754,10 +746,40 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         setLoginError(data.result || 'Apple Sign-In failed. Please try again.');
       }
     } catch (error) {
+      setLoginError('Apple Sign-In failed. Please check your connection.');
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (!appleAvailable) return;
+    try {
+      setAppleLoading(true);
+      setLoginError('');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      // Apple only provides email on the very first sign-in.
+      // Fall back to decoding it from the identity token JWT for returning users.
+      const resolvedEmail = credential.email || decodeAppleEmail(credential.identityToken || '') || '';
+
+      if (!resolvedEmail) {
+        // Apple didn't return email — prompt the user to enter it manually
+        setAppleLoading(false);
+        setPendingAppleCredential(credential);
+        return;
+      }
+
+      await completeAppleSignIn(credential, resolvedEmail);
+    } catch (error) {
       if (error.code !== 'ERR_REQUEST_CANCELED') {
         setLoginError('Apple Sign-In failed. Please check your connection.');
       }
-    } finally {
       setAppleLoading(false);
     }
   };
@@ -1437,8 +1459,43 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         </View>
       </Modal>
 
+      {/* Apple email fallback prompt — shown when Apple doesn't return an email */}
+      {pendingAppleCredential ? (
+        <View style={{ width: '100%', marginBottom: 14 }}>
+          <Text style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 8, textAlign: 'center' }}>
+             One more step — enter the email linked to your Apple ID:
+          </Text>
+          <TextInput
+            style={[styles.input, { marginBottom: 10 }]}
+            placeholder="Email address"
+            placeholderTextColor="rgba(255,255,255,0.45)"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={appleEmailInput}
+            onChangeText={setAppleEmailInput}
+          />
+          <TouchableOpacity
+            style={[styles.signInButton, { marginBottom: 8, opacity: appleLoading ? 0.6 : 1 }]}
+            onPress={() => {
+              const trimmed = appleEmailInput.trim();
+              if (!trimmed.includes('@')) { setLoginError('Please enter a valid email address.'); return; }
+              completeAppleSignIn(pendingAppleCredential, trimmed);
+            }}
+            disabled={appleLoading}
+          >
+            {appleLoading
+              ? <ActivityIndicator color="#1d3557" size="small" />
+              : <Text style={styles.signInButtonText}> Continue with Apple</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setPendingAppleCredential(null); setAppleEmailInput(''); setLoginError(''); }}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {/* Apple Sign-In — native only, auto-hidden on Android */}
-      {appleAvailable && (
+      {appleAvailable && !pendingAppleCredential && (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}

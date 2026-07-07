@@ -26,8 +26,9 @@
       ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "PrayOverUs uses your photo library so you can attach a personal photo to your prayer request. For example, you can add an image of the person or situation you are praying for.",
-        "NSCameraUsageDescription": "PrayOverUs uses your camera so you can take a photo to attach to your prayer request.",
+        "NSPhotoLibraryUsageDescription": "PrayOverUs uses your photo library to let you set a profile picture and add photos to your prayer requests. For example, you can upload a photo of the person you are praying for.",
+        "NSPhotoLibraryAddUsageDescription": "PrayOverUs saves photos to your library when you download shared prayer images.",
+        "NSCameraUsageDescription": "PrayOverUs uses your camera so you can take a photo to add to your prayer request or set as your profile picture.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [

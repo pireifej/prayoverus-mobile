@@ -1361,14 +1361,17 @@ function App() {
         interstitialLoadedRef.current = false;
         interstitialRef.current = null;
         interstitialLoadingInProgressRef.current = false;
-        // Defer callback — give the native ad layer time to fully dismiss before
-        // triggering React state updates, otherwise the UI freezes
+        // Defer callback — native ad dismissal animation needs to fully finish
+        // before any React state updates, otherwise iOS shows a black screen
         const cb = pendingAdCallbackRef.current;
         pendingAdCallbackRef.current = null;
         setTimeout(() => {
           if (cb) cb();
+        }, 700);
+        // Load next ad separately so it doesn't race with UI restoration
+        setTimeout(() => {
           loadInterstitialAd();
-        }, 350);
+        }, 1000);
       });
       
       interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
@@ -8067,7 +8070,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.78)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderRadius: 22,
     overflow: 'hidden',
     shadowColor: '#000',

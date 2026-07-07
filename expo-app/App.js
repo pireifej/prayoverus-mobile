@@ -1411,8 +1411,9 @@ function App() {
   };
   
   // Show interstitial ad and run a callback after it closes (or immediately if AdMob unavailable)
+  // Skips the ad if the prayer modal is open — two native overlays stacked on iOS causes a black screen
   const showInterstitialAdWithCallback = (callback) => {
-    if (!isAdMobAvailable) { callback(); return; }
+    if (!isAdMobAvailable || prayerModal.visible) { callback(); return; }
     pendingAdCallbackRef.current = callback;
     showInterstitialAd();
   };
@@ -2650,8 +2651,8 @@ function App() {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
-        console.log(`📺 🎬 Count hit ${newViewCount} — calling showInterstitialAd...`);
-        showInterstitialAd();
+        console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
+        setTimeout(() => showInterstitialAd(), 700);
       }
     }
     setShowSoundPicker(false);
@@ -3008,8 +3009,8 @@ Through Christ our Lord. Amen.`;
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
-        console.log(`📺 🎬 Count hit ${newViewCount} — calling showInterstitialAd...`);
-        showInterstitialAd();
+        console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
+        setTimeout(() => showInterstitialAd(), 700);
       }
     }
     // Close the new detail screen

@@ -6827,7 +6827,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }
             ]}
           >
-            {/* Background image layer - uses selectable blue & white backgrounds */}
+            {/* Background image layer — heavily blurred for bokeh/Spotify-style soft glow */}
             <Image
               source={prayerBgImages[prayerBgIndex]}
               style={[
@@ -6836,12 +6836,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 prayerLayout === 'immersive' && styles.immersiveBgImage,
               ]}
               resizeMode="cover"
-              blurRadius={prayerLayout === 'gallery' ? 20 : 0}
+              blurRadius={18}
             />
-            {prayerLayout === 'gallery' && <View style={styles.galleryBgTint} />}
 
-            {/* Universal dim overlay — softens vivid backgrounds so text is always legible */}
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.22)', zIndex: 0 }]} pointerEvents="none" />
+            {/* Dark overlay — deepens the bokeh so white text pops cleanly */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.42)', zIndex: 0 }]} pointerEvents="none" />
 
             {/* Premium theme color overlay */}
             {premiumBgTheme === 'amber' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}
@@ -6928,7 +6927,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.sanctuaryHeaderTitle}>{t('prayerHeader')}</Text>
                   <Text style={styles.sanctuaryHeaderSubtitle}>{t('forAuthorPrefix')} {prayerModal.prayer?.author}</Text>
                 </View>
-                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.sanctuaryScrollView}
                   contentContainerStyle={styles.sanctuaryScrollContent}
@@ -6942,7 +6940,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </View>
                   ) : null}
                 </ScrollView>
-                </View>
                 <View style={styles.sanctuaryFooter}>
                   {!extendedPrayer ? (
                     <TouchableOpacity
@@ -6969,7 +6966,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.galleryHeaderLabel}>PRAYER FOR</Text>
                   <Text style={styles.galleryHeaderName}>{prayerModal.prayer?.author}</Text>
                 </View>
-                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.galleryScrollView}
                   contentContainerStyle={styles.galleryScrollContent}
@@ -6977,7 +6973,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
                 </ScrollView>
-                </View>
                 <View style={styles.galleryFooter}>
                   <TouchableOpacity style={[styles.galleryAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
                     <Text style={styles.galleryAmenButtonText}>{amenReady ? 'Amen' : '🙏 Praying...'}</Text>
@@ -6987,7 +6982,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ) : (
               /* ===== OPTION 3: IMMERSIVE QUOTE LAYOUT ===== */
               <View style={styles.immersiveLayout}>
-                <View style={styles.frostedCard}>
                 <ScrollView
                   style={styles.immersiveScrollView}
                   contentContainerStyle={styles.immersiveScrollContent}
@@ -7001,7 +6995,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     </View>
                   ) : null}
                 </ScrollView>
-                </View>
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {!extendedPrayer ? (
@@ -8121,11 +8114,14 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   sanctuaryPrayerText: {
-    fontSize: 19,
-    lineHeight: 40,
-    color: '#3D2B1F',
+    fontSize: 20,
+    lineHeight: 42,
+    color: '#F5F0E8',
     textAlign: 'center',
     letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   sanctuaryFooter: {
     alignItems: 'center',
@@ -8294,11 +8290,14 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   galleryPrayerText: {
-    fontSize: 18,
-    lineHeight: 36,
-    color: '#2C1810',
+    fontSize: 19,
+    lineHeight: 38,
+    color: '#F5F0E8',
     textAlign: 'center',
     letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   galleryFooter: {
     alignItems: 'flex-end',
@@ -8341,11 +8340,14 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   immersivePrayerText: {
-    fontSize: 21,
-    lineHeight: 42,
-    color: '#2C1810',
+    fontSize: 22,
+    lineHeight: 44,
+    color: '#F5F0E8',
     textAlign: 'center',
     letterSpacing: 0.4,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   immersiveFooter: {
     alignItems: 'center',

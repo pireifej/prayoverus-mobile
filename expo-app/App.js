@@ -1360,14 +1360,15 @@ function App() {
         setInterstitialLoaded(false);
         interstitialLoadedRef.current = false;
         interstitialRef.current = null;
-        // Fire any pending gated action (e.g. post prayer, apply theme)
-        if (pendingAdCallbackRef.current) {
-          const cb = pendingAdCallbackRef.current;
-          pendingAdCallbackRef.current = null;
-          cb();
-        }
-        console.log('📺 Loading next interstitial ad...');
-        loadInterstitialAd();
+        interstitialLoadingInProgressRef.current = false;
+        // Defer callback — give the native ad layer time to fully dismiss before
+        // triggering React state updates, otherwise the UI freezes
+        const cb = pendingAdCallbackRef.current;
+        pendingAdCallbackRef.current = null;
+        setTimeout(() => {
+          if (cb) cb();
+          loadInterstitialAd();
+        }, 350);
       });
       
       interstitial.addAdEventListener(AdEventType.ERROR, (error) => {

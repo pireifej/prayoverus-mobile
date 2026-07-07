@@ -8063,6 +8063,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   frostedCard: {
+    flex: 1,
     marginHorizontal: 16,
     marginVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.78)',

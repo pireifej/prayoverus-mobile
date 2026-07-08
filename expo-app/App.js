@@ -2664,14 +2664,9 @@ function App() {
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
     console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 5, 10, 15...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 5 === 0) {
-      if (!isAdMobAvailable) {
-        console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
-      } else {
-        console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
-        showToast('Thanks for praying — quick ad coming up 🙏');
-        setTimeout(() => showInterstitialAd(), 1200);
-      }
+    const shouldTriggerAd = newViewCount % 5 === 0 && isAdMobAvailable;
+    if (newViewCount % 5 === 0 && !isAdMobAvailable) {
+      console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
     }
     setShowSoundPicker(false);
     // Check if we should return to detail view
@@ -2708,6 +2703,14 @@ function App() {
             openDetailModal(prayer);
           }
         }, 100);
+      }
+
+      // Trigger the interstitial ad AFTER the native modal has fully closed,
+      // otherwise the toast warning is hidden behind the still-closing modal window
+      if (shouldTriggerAd) {
+        console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
+        showToast('Thanks for praying — quick ad coming up 🙏');
+        setTimeout(() => showInterstitialAd(), 1200);
       }
     });
   };

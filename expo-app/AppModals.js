@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Modal, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Animated, Modal, StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // ─── Module-level singleton refs ────────────────────────────────────────────
@@ -44,9 +44,8 @@ export function AppToast() {
   if (!toast) return null;
 
   return (
-    <Modal transparent animationType="none" visible={!!toast} statusBarTranslucent>
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <Animated.View
-        pointerEvents="none"
         style={{
           position: 'absolute',
           top: 56,
@@ -73,7 +72,7 @@ export function AppToast() {
           {toast.message}
         </Text>
       </Animated.View>
-    </Modal>
+    </View>
   );
 }
 

@@ -787,7 +787,8 @@ function App() {
   const [communityPrayers, setCommunityPrayers] = useState([]);
   const PRAYERS_PAGE_SIZE = 12;
   const [displayedCount, setDisplayedCount] = useState(PRAYERS_PAGE_SIZE);
-  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true });
+  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false });
+  const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
   const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
@@ -2363,6 +2364,7 @@ function App() {
       title: prayerTitle,
       content: newPrayer.content,
       isPublic: newPrayer.isPublic,
+      isSilent: !!newPrayer.isSilent,
       author: currentUser?.firstName || 'You',
       userId: currentUser?.id,
       timestamp: new Date().toISOString(),
@@ -2376,7 +2378,7 @@ function App() {
       setPostSuccess(true);
       maybeRequestReview();
       setTimeout(() => {
-        setNewPrayer({ title: '', content: '', isPublic: true });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false });
         setPrayerImage(null);
         setShowTitleInput(false);
         setPostSuccess(false);
@@ -2388,7 +2390,7 @@ function App() {
       if (isNetworkError) {
         setPrayers([prayer, ...prayers]);
         if (newPrayer.isPublic) setCommunityPrayers([prayer, ...communityPrayers]);
-        setNewPrayer({ title: '', content: '', isPublic: true });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false });
         setPrayerImage(null);
         setShowTitleInput(false);
         showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
@@ -2447,12 +2449,17 @@ function App() {
         formData.append('requestTitle', prayer.title);
         formData.append('tz', timezone);
         formData.append('userId', currentUser?.id.toString());
-        formData.append('sendEmail', 'true');
+        formData.append('sendEmail', prayer.isSilent ? 'false' : 'true');
         formData.append('idempotencyKey', idempotencyKey);
         formData.append('lang', userLang);
         // Add myChurchOnly flag when checkbox is checked (isPublic = false)
         if (!prayer.isPublic) {
           formData.append('myChurchOnly', 'true');
+        }
+        // Test posts: mobile app already suppresses sendEmail; backend should
+        // also skip any push notification dispatch when this is set
+        if (prayer.isSilent) {
+          formData.append('isTest', 'true');
         }
         
         // Add image to FormData
@@ -2473,11 +2480,14 @@ function App() {
           requestTitle: prayer.title,
           tz: timezone,
           userId: currentUser?.id,
-          sendEmail: "true",
+          sendEmail: prayer.isSilent ? "false" : "true",
           idempotencyKey: idempotencyKey,
           lang: userLang,
           // Add myChurchOnly flag when checkbox is checked (isPublic = false)
-          ...((!prayer.isPublic) && { myChurchOnly: true })
+          ...((!prayer.isPublic) && { myChurchOnly: true }),
+          // Test posts: mobile app already suppresses sendEmail; backend should
+          // also skip any push notification dispatch when this is set
+          ...(prayer.isSilent && { isTest: true })
         };
         
         headers['Content-Type'] = 'application/json';
@@ -5798,6 +5808,26 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   </TouchableOpacity>
                 </View>
               </View>
+            )}
+
+            {isAdminUser && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, paddingVertical: 6 }}
+                onPress={() => setNewPrayer({ ...newPrayer, isSilent: !newPrayer.isSilent })}
+                disabled={isPosting}
+              >
+                <View style={{
+                  width: 22, height: 22, borderRadius: 6, marginRight: 10,
+                  borderWidth: 2, borderColor: newPrayer.isSilent ? '#2563eb' : '#94a3b8',
+                  backgroundColor: newPrayer.isSilent ? '#2563eb' : 'transparent',
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {newPrayer.isSilent && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                </View>
+                <Text style={{ fontSize: 14, color: '#475569', fontWeight: '600' }}>
+                  🔕 Test post (no notifications)
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 

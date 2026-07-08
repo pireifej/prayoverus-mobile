@@ -2669,7 +2669,8 @@ function App() {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
         console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
-        setTimeout(() => showInterstitialAd(), 700);
+        showToast('Thanks for praying — quick ad coming up 🙏');
+        setTimeout(() => showInterstitialAd(), 1200);
       }
     }
     setShowSoundPicker(false);
@@ -3027,7 +3028,8 @@ Through Christ our Lord. Amen.`;
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
         console.log(`📺 🎬 Count hit ${newViewCount} — scheduling interstitial after modal close...`);
-        setTimeout(() => showInterstitialAd(), 700);
+        showToast('Thanks for praying — quick ad coming up 🙏');
+        setTimeout(() => showInterstitialAd(), 1200);
       }
     }
     // Close the new detail screen

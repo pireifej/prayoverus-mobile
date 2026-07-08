@@ -6844,7 +6844,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               }
             ]}
           >
-            {/* Background image layer — heavily blurred for bokeh/Spotify-style soft glow */}
+            {/* Background image layer — full quality, each prayer gets a unique background */}
             <Image
               source={prayerBgImages[prayerBgIndex]}
               style={[
@@ -6853,11 +6853,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 prayerLayout === 'immersive' && styles.immersiveBgImage,
               ]}
               resizeMode="cover"
-              blurRadius={18}
             />
 
-            {/* Dark overlay — deepens the bokeh so white text pops cleanly */}
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.42)', zIndex: 0 }]} pointerEvents="none" />
+            {/* Light dark overlay — just enough to make white text pop without hiding the background */}
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.28)', zIndex: 0 }]} pointerEvents="none" />
 
             {/* Premium theme color overlay */}
             {premiumBgTheme === 'amber' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}

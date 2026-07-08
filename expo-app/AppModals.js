@@ -102,7 +102,9 @@ export function AppModal() {
       Animated.timing(scaleAnim, { toValue: 0.92, duration: 160, useNativeDriver: true }),
     ]).start(() => {
       setConfig(null);
-      if (onPress) onPress();
+      // Delay onPress so the dialog Modal's native window fully closes before
+      // any new native overlay (e.g. interstitial ad) tries to appear
+      if (onPress) setTimeout(onPress, 400);
     });
   };
 

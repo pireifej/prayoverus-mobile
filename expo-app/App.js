@@ -1112,6 +1112,8 @@ function App() {
   const [pendingDeepLinkPrayerId, setPendingDeepLinkPrayerId] = useState(null);
   // Store initial deep link URL to process after auth check completes
   const [pendingInitialUrl, setPendingInitialUrl] = useState(null);
+  // Navigate to Prayer Walk once prayers have actually loaded (avoids "prayed for everyone" on deep link)
+  const [pendingPrayerWalk, setPendingPrayerWalk] = useState(false);
   
   // Prayer Detail View Modal state (Instagram-style full-screen view) - DEPRECATED, using PrayerDetailScreen now
   const [detailModal, setDetailModal] = useState({
@@ -1621,7 +1623,14 @@ function App() {
       if (route.includes('open=prayerwalk')) {
         console.log('📱 Deep link detected: Prayer Walk');
         if (currentUser) {
-          setCurrentScreen('prayerWalk');
+          if (communityPrayers.length > 0) {
+            // Prayers already loaded — go straight in
+            setCurrentScreen('prayerWalk');
+          } else {
+            // Prayers not loaded yet — go home first (triggers fetch), then auto-nav when ready
+            setPendingPrayerWalk(true);
+            setCurrentScreen('home');
+          }
         } else {
           setPendingInitialUrl(url);
         }
@@ -1706,6 +1715,14 @@ function App() {
       setPendingInitialUrl(null);
     }
   }, [isCheckingAuth, pendingInitialUrl, currentUser]);
+
+  // Once prayers load, auto-navigate to Prayer Walk if deep link requested it
+  useEffect(() => {
+    if (pendingPrayerWalk && communityPrayers.length > 0) {
+      setPendingPrayerWalk(false);
+      setCurrentScreen('prayerWalk');
+    }
+  }, [pendingPrayerWalk, communityPrayers]);
   
   // Handle pending deep link prayer - open immediately without waiting for feed
   useEffect(() => {

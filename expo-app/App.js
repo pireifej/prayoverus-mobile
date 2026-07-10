@@ -838,6 +838,7 @@ function App() {
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
+  const [isCheckingContent, setIsCheckingContent] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
 
   const postLoadingFloat = useRef(new Animated.Value(0)).current;
@@ -2370,7 +2371,7 @@ function App() {
     }
   };
 
-  const doAddPrayer = async () => {
+  const doAddPrayer = async (contentOverride) => {
     // Set loading state
     setIsPosting(true);
     await incrementDailyPostCount();
@@ -2378,7 +2379,7 @@ function App() {
     const prayer = {
       id: Date.now(),
       title: prayerTitle,
-      content: newPrayer.content,
+      content: contentOverride ?? newPrayer.content,
       isPublic: newPrayer.isPublic,
       isSilent: !!newPrayer.isSilent,
       author: currentUser?.firstName || 'You',
@@ -2418,26 +2419,76 @@ function App() {
     }
   };
 
+  // Silently check if a prayer request is primarily material — never blocks posting
+  const checkPrayerContent = async (text) => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch('https://shouldcallpaul.replit.app/checkPrayerContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify({ requestText: text }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      return await response.json();
+    } catch (e) {
+      console.log('⚠️ Prayer content check skipped:', e?.message);
+      return { flagged: false, suggestion: null };
+    }
+  };
+
+  // Handle ad gate then post — reused whether user accepted suggestion or posted as-is
+  const proceedToPost = async (contentOverride) => {
+    if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
+      showModal({
+        icon: '📺',
+        title: 'Watch a Short Ad',
+        message: 'You\'ve already posted once today. Watch a quick ad to post another prayer request.',
+        buttons: [
+          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => doAddPrayer(contentOverride)) },
+          { label: 'Cancel', style: 'cancel' },
+        ],
+      });
+      return;
+    }
+    await doAddPrayer(contentOverride);
+  };
+
   const addPrayer = async () => {
     if (currentUser?.isGuest) { showGuestPrompt(); return; }
-    if (newPrayer.content.trim()) {
-      // If this is their 2nd+ post today, gate behind an interstitial ad
-      if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
-        showModal({
-          icon: '📺',
-          title: 'Watch a Short Ad',
-          message: 'You\'ve already posted once today. Watch a quick ad to post another prayer request.',
-          buttons: [
-            { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(doAddPrayer) },
-            { label: 'Cancel', style: 'cancel' },
-          ],
-        });
-        return;
-      }
-      await doAddPrayer();
-    } else {
+    const text = newPrayer.content.trim();
+    if (!text) {
       showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
+      return;
     }
+
+    // Run AI content check — silently skipped on timeout/error
+    setIsCheckingContent(true);
+    const check = await checkPrayerContent(text);
+    setIsCheckingContent(false);
+
+    if (check.flagged && check.suggestion) {
+      showModal({
+        icon: '🙏',
+        title: 'A gentle thought...',
+        message: `This sounds more like a wish than a prayer. What if you asked for the deeper blessing instead?\n\n"${check.suggestion}"`,
+        buttons: [
+          {
+            label: 'Update my wording',
+            onPress: () => setNewPrayer({ ...newPrayer, content: check.suggestion }),
+          },
+          { label: 'Post as written', onPress: () => proceedToPost(text) },
+          { label: 'Cancel', style: 'cancel' },
+        ],
+      });
+      return;
+    }
+
+    await proceedToPost(text);
   };
 
   const savePrayerToAPI = async (prayer) => {
@@ -5879,7 +5930,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <TouchableOpacity 
               style={[
                 styles.npPostButton, 
-                (!newPrayer.content.trim() || isPosting) && styles.npPostButtonDisabled
+                (!newPrayer.content.trim() || isPosting || isCheckingContent) && styles.npPostButtonDisabled
               ]}
               onPress={async () => {
                 if (isEditing) {
@@ -5889,10 +5940,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   setCurrentScreen('home');
                 }
               }}
-              disabled={!newPrayer.content.trim() || isPosting}
+              disabled={!newPrayer.content.trim() || isPosting || isCheckingContent}
             >
-              {(!newPrayer.content.trim() || isPosting) ? (
-                isPosting ? (
+              {(!newPrayer.content.trim() || isPosting || isCheckingContent) ? (
+                isCheckingContent ? (
+                  <View style={styles.npPostButtonInner}>
+                    <ActivityIndicator color="white" size="small" />
+                    <Text style={styles.npPostButtonText}>Checking... 🙏</Text>
+                  </View>
+                ) : isPosting ? (
                   <View style={styles.npPostButtonInner}>
                     <ActivityIndicator color="white" size="small" />
                     <Text style={styles.npPostButtonText}>{t('posting')}</Text>

@@ -6388,57 +6388,52 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
       {/* Sticky Filter Bar - Always visible */}
       <View style={styles.stickyFilterBar}>
-        <View style={styles.stickyFilterTopRow}>
-          <Text style={styles.stickyFilterHideLabel}>{t('hidePrayed')}</Text>
-          <TouchableOpacity 
-            onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
-            style={[styles.toggleSwitchSmall, hideAlreadyPrayed && styles.toggleSwitchSmallActive]}
+        {/* Row 1: All / Mine / Church — equal-width, full-bar segment buttons */}
+        <View style={styles.filterSegmentRow}>
+          <TouchableOpacity
+            style={[styles.filterSegmentBtn, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentBtnActive]}
+            onPress={() => { setShowMyRequestsOnly(false); setShowChurchOnly(false); loadCommunityPrayers(true); }}
+            activeOpacity={0.75}
           >
-            <View style={[styles.toggleKnobSmall, hideAlreadyPrayed && styles.toggleKnobSmallActive]} />
+            <Text style={[styles.filterSegmentText, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentTextActive]}>
+              🌍 {t('filterAll')}
+            </Text>
           </TouchableOpacity>
-          <View style={{width: 8}} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillRowCompact} style={{flex: 1}}>
-            <TouchableOpacity 
-              style={[styles.filterPillSmall, !showMyRequestsOnly && !showChurchOnly && styles.filterPillSmallActive]}
-              onPress={() => {
-                setShowMyRequestsOnly(false);
-                setShowChurchOnly(false);
-                loadCommunityPrayers(true);
-              }}
+          <TouchableOpacity
+            style={[styles.filterSegmentBtn, showMyRequestsOnly && styles.filterSegmentBtnActive]}
+            onPress={() => { setShowMyRequestsOnly(true); setShowChurchOnly(false); setHideAlreadyPrayed(false); loadUserPrayers(); loadAnsweredPrayers(); }}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.filterSegmentText, showMyRequestsOnly && styles.filterSegmentTextActive]}>
+              🙋 {t('filterMine')}
+            </Text>
+          </TouchableOpacity>
+          {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
+            <TouchableOpacity
+              style={[styles.filterSegmentBtn, showChurchOnly && styles.filterSegmentBtnActive]}
+              onPress={() => { setShowChurchOnly(true); setShowMyRequestsOnly(false); }}
+              activeOpacity={0.75}
             >
-              <Text style={[styles.filterPillSmallText, !showMyRequestsOnly && !showChurchOnly && styles.filterPillSmallTextActive]}>
-                {t('filterAll')}
+              <Text style={[styles.filterSegmentText, showChurchOnly && styles.filterSegmentTextActive]} numberOfLines={1}>
+                ⛪ {currentUser.churchName}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.filterPillSmall, showMyRequestsOnly && styles.filterPillSmallActive]}
-              onPress={() => {
-                setShowMyRequestsOnly(true);
-                setShowChurchOnly(false);
-                setHideAlreadyPrayed(false);
-                loadUserPrayers();
-                loadAnsweredPrayers(); // need answered IDs to show green cards
-              }}
-            >
-              <Text style={[styles.filterPillSmallText, showMyRequestsOnly && styles.filterPillSmallTextActive]}>
-                {t('filterMine')}
-              </Text>
-            </TouchableOpacity>
-            {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
-              <TouchableOpacity 
-                style={[styles.filterPillSmall, showChurchOnly && styles.filterPillSmallActive]}
-                onPress={() => {
-                  setShowChurchOnly(true);
-                  setShowMyRequestsOnly(false);
-                }}
-              >
-                <Text style={[styles.filterPillSmallText, showChurchOnly && styles.filterPillSmallTextActive]} numberOfLines={1}>
-                  ⛪ {currentUser.churchName}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
+          )}
         </View>
+
+        {/* Row 2: Hide Prayed toggle — full-width tappable row */}
+        <TouchableOpacity
+          style={styles.filterHideRow}
+          onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.filterHideLabel, hideAlreadyPrayed && styles.filterHideLabelActive]}>
+            {hideAlreadyPrayed ? '✓ Hiding prayed requests' : t('hidePrayed')}
+          </Text>
+          <View style={[styles.filterHideToggle, hideAlreadyPrayed && styles.filterHideToggleActive]}>
+            <View style={[styles.filterHideKnob, hideAlreadyPrayed && styles.filterHideKnobActive]} />
+          </View>
+        </TouchableOpacity>
       </View>
       
       <ScrollView 
@@ -7526,7 +7521,8 @@ const styles = StyleSheet.create({
   stickyFilterBar: {
     backgroundColor: '#ffffff',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 10,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     shadowColor: '#000',
@@ -7535,6 +7531,80 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
+  // Row 1 — All / Mine / Church segment buttons
+  filterSegmentRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterSegmentBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterSegmentBtnActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterSegmentText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  filterSegmentTextActive: {
+    color: '#ffffff',
+  },
+  // Row 2 — Hide Prayed full-width toggle row
+  filterHideRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+  },
+  filterHideLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  filterHideLabelActive: {
+    color: '#2563eb',
+  },
+  filterHideToggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#cbd5e1',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  filterHideToggleActive: {
+    backgroundColor: '#2563eb',
+  },
+  filterHideKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  filterHideKnobActive: {
+    transform: [{ translateX: 20 }],
+  },
+  // Legacy small toggle styles kept for any other usage
   stickyFilterTopRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -3592,7 +3592,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     try {
       const endpoint = 'https://shouldcallpaul.replit.app/deleteRequestById';
       const requestPayload = {
-        request_id: prayer.id
+        request_id: prayer.id,
+        userId: currentUser?.id,
       };
 
       console.log('📱 MOBILE APP API CALL:');

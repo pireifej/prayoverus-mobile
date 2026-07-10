@@ -189,22 +189,11 @@ class NotificationService {
       }
     });
 
-    // Handle notification taps/interactions
+    // Navigation on tap is handled centrally in App.js via
+    // addNotificationResponseReceivedListener — nothing to do here.
     this.responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('📱 Notification tapped:', response);
-      
-      const data = response.notification.request.content.data;
-      console.log('Notification data:', data);
-      
-      // Handle navigation based on notification type
-      if (data.type === 'new_prayer' && data.prayerId) {
-        // Navigate to prayer detail screen
-        console.log('Should navigate to prayer:', data.prayerId);
-        // TODO: Implement navigation to specific prayer
-      } else if (data.type === 'prayer_support' && data.prayerId) {
-        console.log('Should navigate to prayer:', data.prayerId);
-        // TODO: Implement navigation to specific prayer
-      }
+      const data = response.notification.request.content.data || {};
+      console.log('📱 Notification tapped (NotificationService log):', JSON.stringify(data));
     });
 
     console.log('✅ Notification handlers registered');

@@ -1115,6 +1115,8 @@ function App() {
   const [pendingInitialUrl, setPendingInitialUrl] = useState(null);
   // Navigate to Prayer Walk once prayers have actually loaded (avoids "prayed for everyone" on deep link)
   const [pendingPrayerWalk, setPendingPrayerWalk] = useState(false);
+  // Navigate to a specific prayer when a push notification is tapped
+  const [pendingNotificationRequestId, setPendingNotificationRequestId] = useState(null);
   
   // Prayer Detail View Modal state (Instagram-style full-screen view) - DEPRECATED, using PrayerDetailScreen now
   const [detailModal, setDetailModal] = useState({
@@ -1760,6 +1762,20 @@ function App() {
       }
     }
   }, [pendingDeepLinkPrayerId, currentUser, communityPrayers]);
+
+  // Navigate to prayer detail when a push notification is tapped
+  useEffect(() => {
+    if (!pendingNotificationRequestId || !currentUser) return;
+    const requestId = pendingNotificationRequestId;
+    setPendingNotificationRequestId(null);
+    setCurrentScreen('home');
+    setTimeout(() => {
+      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      const prayerIds = communityPrayers.map(p => p.id);
+      setDetailScreenProps({ requestId: requestId, prayerIds: prayerIds, currentIndex: -1 });
+      setShowDetailScreen(true);
+    }, 100);
+  }, [pendingNotificationRequestId, currentUser, communityPrayers]);
 
   // Load all badges when badge showcase screen opens
   useEffect(() => {
@@ -2832,13 +2848,41 @@ Through Christ our Lord. Amen.`;
     filteredPrayersRef.current = filtered;
   }, [communityPrayers, hideAlreadyPrayed]);
 
-  // Navigate to "Mine" tab when user taps any push notification
+  // Handle push notification taps — background & foreground
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(() => {
-      setCurrentScreen('home');
-      setShowMyRequestsOnly(true);
-    });
+    const handleNotificationTap = (response) => {
+      const data = response?.notification?.request?.content?.data || {};
+      console.log('📬 Notification tapped, data:', JSON.stringify(data));
+      if (data.screen === 'RequestDetail' && data.requestId) {
+        setPendingNotificationRequestId(String(data.requestId));
+      } else {
+        // Fallback: go to home / My Requests tab
+        setCurrentScreen('home');
+        setShowMyRequestsOnly(true);
+      }
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationTap);
     return () => sub.remove();
+  }, []);
+
+  // Handle cold-start notification tap (app was fully killed when notification was tapped)
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await Notifications.getLastNotificationResponseAsync();
+        if (!response) return;
+        const data = response.notification.request.content.data || {};
+        console.log('📬 Cold-start notification data:', JSON.stringify(data));
+        if (data.screen === 'RequestDetail' && data.requestId) {
+          setPendingNotificationRequestId(String(data.requestId));
+        } else {
+          setCurrentScreen('home');
+          setShowMyRequestsOnly(true);
+        }
+      } catch (e) {
+        console.log('📬 Cold-start notification check failed:', e?.message);
+      }
+    })();
   }, []);
 
   // Touch tracking state for swipe gestures

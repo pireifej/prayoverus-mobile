@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "83",
+      "buildNumber": "84",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -43,7 +43,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 100,
+      "versionCode": 101,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"

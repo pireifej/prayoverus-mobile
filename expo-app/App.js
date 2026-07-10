@@ -7497,9 +7497,9 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   cardText: {
-    fontSize: 16,
-    color: '#64748b',
-    lineHeight: 24,
+    fontSize: 17,
+    color: '#1e293b',
+    lineHeight: 25,
   },
   tapHint: {
     fontSize: 14,
@@ -7923,9 +7923,9 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   prayerContent: {
-    fontSize: 16,
-    color: '#64748b',
-    lineHeight: 22,
+    fontSize: 17,
+    color: '#1e293b',
+    lineHeight: 25,
     marginBottom: 8,
   },
   prayerMeta: {
@@ -7940,12 +7940,12 @@ const styles = StyleSheet.create({
   },
   prayerCategory: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: '#6b7280',
     marginLeft: 5,
   },
   prayerTime: {
-    fontSize: 12,
-    color: '#9ca3af',
+    fontSize: 13,
+    color: '#6b7280',
     marginBottom: 10,
   },
   prayerCardContainer: {
@@ -10340,7 +10340,7 @@ const styles = StyleSheet.create({
   },
   detailDate: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#4b5563',
     marginTop: 2,
   },
   detailCategoryBadge: {
@@ -10405,9 +10405,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   detailPrayerText: {
-    fontSize: 17,
-    color: '#374151',
-    lineHeight: 26,
+    fontSize: 18,
+    color: '#111827',
+    lineHeight: 29,
     letterSpacing: 0.2,
   },
   detailActionContainer: {

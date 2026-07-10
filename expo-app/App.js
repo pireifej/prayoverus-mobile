@@ -7030,7 +7030,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         setShowPremiumThemePicker(false);
                       } else {
                         setShowPremiumThemePicker(false);
-                        showInterstitialAdWithCallback(() => setPremiumBgTheme(theme.key));
+                        showModal({
+                          icon: '📺',
+                          title: 'Watch a Short Ad',
+                          message: 'Watch a quick ad to unlock this prayer theme.',
+                          buttons: [
+                            { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => setPremiumBgTheme(theme.key)) },
+                            { label: 'Cancel', style: 'cancel' },
+                          ],
+                        });
                       }
                     }}
                     activeOpacity={0.7}
@@ -7091,7 +7099,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
+                      onPress={() => showModal({
+                        icon: '📺',
+                        title: 'Watch a Short Ad',
+                        message: 'Watch a quick ad to generate an extended prayer for this request.',
+                        buttons: [
+                          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
+                          { label: 'Cancel', style: 'cancel' },
+                        ],
+                      })}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >
@@ -7147,7 +7163,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
+                      onPress={() => showModal({
+                        icon: '📺',
+                        title: 'Watch a Short Ad',
+                        message: 'Watch a quick ad to generate an extended prayer for this request.',
+                        buttons: [
+                          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
+                          { label: 'Cancel', style: 'cancel' },
+                        ],
+                      })}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >

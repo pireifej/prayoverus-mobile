@@ -102,6 +102,7 @@ const getFaithRank = (pointsOrRankObj, backendRank) => {
 };
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
+const ADS_ENABLED = false; // ← set to true to re-enable all ads
 let mobileAds, BannerAd, BannerAdSize, TestIds, InterstitialAd, AdEventType, RewardedAd, RewardedAdEventType;
 let isAdMobAvailable = false;
 
@@ -117,8 +118,8 @@ try {
   RewardedAd = adMobModule.RewardedAd;
   RewardedAdEventType = adMobModule.RewardedAdEventType;
   console.log('📺 AdMob exports — mobileAds:', !!mobileAds, 'InterstitialAd:', !!InterstitialAd, 'RewardedAd:', !!RewardedAd, 'TestIds:', !!TestIds);
-  isAdMobAvailable = true;
-  console.log('📺 ✅ AdMob available = true');
+  isAdMobAvailable = ADS_ENABLED;
+  console.log('📺 ✅ AdMob available =', ADS_ENABLED);
 } catch (e) {
   console.log('📺 ❌ AdMob require FAILED:', e?.message || String(e));
 }

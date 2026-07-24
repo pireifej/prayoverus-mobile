@@ -140,6 +140,7 @@ export default function PrayerDetailScreen({
   onClose,
   onPray,
   onNavigate,
+  onViewProfile,
   lang = 'en',
 }) {
   const [prayer, setPrayer] = useState(null);
@@ -652,14 +653,22 @@ export default function PrayerDetailScreen({
                 <View style={styles.prayerNamesList}>
                   {prayer.prayed_by_people.map((person, idx) => {
                     const personRank = getFaithRank(person.faith_points, person.faith_rank);
+                    const isTappable = !!(person.user_id && onViewProfile);
+                    const RowWrapper = isTappable ? TouchableOpacity : View;
                     return (
-                      <View key={idx} style={styles.prayerNameRow}>
+                      <RowWrapper
+                        key={idx}
+                        style={styles.prayerNameRow}
+                        {...(isTappable ? { onPress: () => onViewProfile(person), activeOpacity: 0.7 } : {})}
+                      >
                         <Avatar
                           picUri={resolveAvatarUri(person.picture)}
                           name={person.name || ''}
                           size={32}
                         />
-                        <Text style={styles.prayerNameText}>{person.name}</Text>
+                        <Text style={[styles.prayerNameText, isTappable && { color: '#2563eb', textDecorationLine: 'underline' }]}>
+                          {person.name}
+                        </Text>
                         <TouchableOpacity
                           style={styles.faithBadge}
                           onPress={() => setRankTooltip({ name: person.name, rank: personRank })}
@@ -668,7 +677,7 @@ export default function PrayerDetailScreen({
                           <Text style={styles.faithBadgeShield}>🛡️</Text>
                           <Text style={styles.faithBadgeLevel}>{personRank.level}</Text>
                         </TouchableOpacity>
-                      </View>
+                      </RowWrapper>
                     );
                   })}
                 </View>

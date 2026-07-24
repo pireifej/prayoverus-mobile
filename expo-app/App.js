@@ -878,6 +878,10 @@ function App() {
   const [communityMembers, setCommunityMembers] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
   const [viewingMember, setViewingMember] = useState(null);
+  const [viewingMemberPrevScreen, setViewingMemberPrevScreen] = useState(null);
+  const [memberFeedType, setMemberFeedType] = useState(null); // 'requests' | 'prayers'
+  const [memberFeedData, setMemberFeedData] = useState([]);
+  const [memberFeedLoading, setMemberFeedLoading] = useState(false);
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
@@ -2232,6 +2236,57 @@ function App() {
       console.log('❌ Logout error:', error);
       // Force logout even if there's an error
       setCurrentUser(null);
+    }
+  };
+
+  // Open any user's public profile from anywhere in the app
+  const openUserProfile = (person) => {
+    // Normalize prayed_by_people shape → viewingMember shape
+    const member = {
+      id: person.user_id,
+      first_name: person.name?.split(' ')[0] || person.name || '',
+      last_name: person.name?.split(' ').slice(1).join(' ') || '',
+      picture: person.picture || null,
+      faith_points: person.faith_points || 0,
+      faith_rank: person.faith_rank || null,
+      request_count: person.request_count ?? null,
+      prayer_count: person.prayer_count ?? null,
+      title: person.title || null,
+      about: person.about || null,
+      church_name: person.church_name || null,
+    };
+    setViewingMemberPrevScreen(currentScreen);
+    setMemberFeedType(null);
+    setMemberFeedData([]);
+    setViewingMember(member);
+  };
+
+  // Fetch a member's posted requests or prayed-for list
+  const loadMemberFeed = async (member, type) => {
+    setMemberFeedType(type);
+    setMemberFeedLoading(true);
+    setMemberFeedData([]);
+    try {
+      const endpoint = type === 'requests'
+        ? 'https://shouldcallpaul.replit.app/getUserRequests'
+        : 'https://shouldcallpaul.replit.app/getPrayedFor';
+      const body = type === 'requests'
+        ? { targetUserId: member.id, userId: currentUser?.id, lang: userLang }
+        : { userId: member.id, lang: userLang };
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      setMemberFeedData(Array.isArray(data) ? data : (data.result || []));
+    } catch (e) {
+      console.log('⚠️ loadMemberFeed error:', e?.message);
+    } finally {
+      setMemberFeedLoading(false);
     }
   };
 
@@ -4017,6 +4072,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onClose={closeDetailModal}
         onPray={handlePrayFromDetailScreen}
         onNavigate={handleDetailNavigate}
+        onViewProfile={openUserProfile}
         lang={userLang}
       />
     );
@@ -4082,7 +4138,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
-  if (currentScreen === 'community' && viewingMember) {
+  if (viewingMember) {
     const member = viewingMember;
     const memberRank = getFaithRank(member.faith_points || 0, member.faith_rank);
     const profilePicUri = member.picture 
@@ -4097,7 +4153,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <TouchableOpacity onPress={() => setViewingMember(null)} style={styles.communityBackButton}>
+          <TouchableOpacity onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); }} style={styles.communityBackButton}>
             <Text style={styles.communityBackText}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.communityHeaderTitle} numberOfLines={1}>{member.first_name}'s Profile</Text>
@@ -4123,15 +4179,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
 
               <View style={styles.memberStatsRow}>
-                <View style={styles.memberStatBox}>
+                <TouchableOpacity
+                  style={styles.memberStatBox}
+                  onPress={() => member.id && loadMemberFeed(member, 'requests')}
+                  activeOpacity={member.id ? 0.7 : 1}
+                >
                   <Text style={styles.memberStatNumber}>{member.request_count ?? member.requestCount ?? '—'}</Text>
-                  <Text style={styles.memberStatLabel}>Requests</Text>
-                </View>
+                  <Text style={[styles.memberStatLabel, member.id && { color: '#2563eb' }]}>Requests ›</Text>
+                </TouchableOpacity>
                 <View style={styles.memberStatDivider} />
-                <View style={styles.memberStatBox}>
+                <TouchableOpacity
+                  style={styles.memberStatBox}
+                  onPress={() => member.id && loadMemberFeed(member, 'prayers')}
+                  activeOpacity={member.id ? 0.7 : 1}
+                >
                   <Text style={styles.memberStatNumber}>{member.prayer_count ?? member.prayerCount ?? '—'}</Text>
-                  <Text style={styles.memberStatLabel}>Prayers</Text>
-                </View>
+                  <Text style={[styles.memberStatLabel, member.id && { color: '#2563eb' }]}>Prayers ›</Text>
+                </TouchableOpacity>
                 <View style={styles.memberStatDivider} />
                 <View style={styles.memberStatBox}>
                   <Text style={styles.memberStatNumber}>{member.faith_points || 0}</Text>
@@ -4147,10 +4211,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
             ) : null}
 
-            <View style={styles.memberProfileSection}>
-              <Text style={styles.memberProfileSectionTitle}>{t('churchSection')}</Text>
-              <Text style={styles.memberProfileSectionText}>⛪ {selectedChurch?.church_name || member.church_name || t('notSet')}</Text>
-            </View>
+            {member.church_name ? (
+              <View style={styles.memberProfileSection}>
+                <Text style={styles.memberProfileSectionTitle}>{t('churchSection')}</Text>
+                <Text style={styles.memberProfileSectionText}>⛪ {member.church_name}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.memberProfileSection}>
               <Text style={styles.memberProfileSectionTitle}>{t('faithPointsSection')}</Text>
@@ -4159,6 +4225,37 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
               <Text style={styles.memberFaithPoints}>{t('pointsLabel')(member.faith_points || 0)}</Text>
             </View>
+
+            {/* Member feed: their requests or prayed-for list */}
+            {memberFeedType && (
+              <View style={styles.memberProfileSection}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text style={styles.memberProfileSectionTitle}>
+                    {memberFeedType === 'requests' ? '🙏 Their Prayer Requests' : '✓ Prayers They\'ve Offered'}
+                  </Text>
+                  <TouchableOpacity onPress={() => { setMemberFeedType(null); setMemberFeedData([]); }}>
+                    <Text style={{ color: '#6b7280', fontSize: 13 }}>✕ Close</Text>
+                  </TouchableOpacity>
+                </View>
+                {memberFeedLoading ? (
+                  <ActivityIndicator color="#2563eb" style={{ marginVertical: 20 }} />
+                ) : memberFeedData.length === 0 ? (
+                  <Text style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', paddingVertical: 16 }}>Nothing to show yet.</Text>
+                ) : (
+                  memberFeedData.map((item, idx) => (
+                    <View key={item.request_id || idx} style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                      {item.request_title ? (
+                        <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b', marginBottom: 4 }}>{item.request_title}</Text>
+                      ) : null}
+                      <Text style={{ fontSize: 14, color: '#1e293b', lineHeight: 21 }} numberOfLines={4}>{item.request_text}</Text>
+                      {memberFeedType === 'prayers' && item.real_name ? (
+                        <Text style={{ fontSize: 12, color: '#6366f1', marginTop: 6 }}>for {item.real_name}</Text>
+                      ) : null}
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
           </View>
         </ScrollView>
         {renderBottomNav()}

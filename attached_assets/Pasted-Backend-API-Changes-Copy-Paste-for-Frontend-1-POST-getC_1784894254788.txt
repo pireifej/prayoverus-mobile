@@ -1,0 +1,72 @@
+Backend API Changes — Copy/Paste for Frontend
+1. POST /getCommunityWall
+prayed_by_people now includes user_id
+
+{
+  "user_id": 123,
+  "name": "Paul",
+  "picture": "https://...",
+  "faith_points": 45,
+  "faith_rank": { ... }
+}
+
+Auto-translation — already wired. Send lang: "en" or lang: "es" and request_text is returned in that language. If a translation was missing it's generated on the fly and cached — no extra work needed on your end.
+
+2. POST /getRequestById
+prayed_by_people now includes user_id — same shape as above.
+
+Auto-translation — same as wall. Send lang param and request_text comes back in the right language.
+
+3. New endpoint: POST /getUserRequests
+Fetch another user's active public prayer requests (for tappable profile pages).
+
+// Request
+{ "targetUserId": 123, "userId": 456, "lang": "en" }
+// Response — array of:
+{
+  "request_id": 2008,
+  "user_id": 123,
+  "request_text": "...",
+  "request_title": "...",
+  "request_picture": "https://...",
+  "active": 1,
+  "timestamp": "...",
+  "fk_prayer_id": 99,
+  "prayer_text": "...",
+  "user_name": "andy.ocasio@gmail.com",
+  "real_name": "Andy",
+  "user_picture": "https://...",
+  "church_id": 2,
+  "use_alias": false,
+  "allow_comments": true
+}
+
+Only returns active = 1 posts (not answered/archived). Respects lang.
+
+4. POST /getPrayedFor — cleaned up
+Fetch any user's list of requests they've prayed for. Already existed but now returns clean named fields and respects lang.
+
+// Request
+{ "userId": 123, "lang": "en" }
+// Response — array of:
+{
+  "request_id": 2007,
+  "user_id": 45,
+  "request_text": "...",
+  "request_title": "...",
+  "request_picture": "https://...",
+  "active": 1,
+  "timestamp": "...",
+  "fk_prayer_id": 88,
+  "prayer_text": "...",
+  "user_name": "someone@email.com",
+  "real_name": "Maria",
+  "user_picture": "https://...",
+  "church_id": 2
+}
+
+Phase 3 Quick Reference
+What you need	Endpoint	Key param
+Another user's posted prayers	POST /getUserRequests	targetUserId
+Another user's prayed-for list	POST /getPrayedFor	userId
+Navigate to profile from wall	prayed_by_people[n].user_id	now in res

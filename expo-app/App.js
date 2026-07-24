@@ -6397,7 +6397,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             activeOpacity={0.75}
           >
             <Text style={[styles.filterSegmentText, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentTextActive]}>
-              🌍 {t('filterAll')}
+              {t('filterAll')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -6406,7 +6406,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             activeOpacity={0.75}
           >
             <Text style={[styles.filterSegmentText, showMyRequestsOnly && styles.filterSegmentTextActive]}>
-              🙋 {t('filterMine')}
+              {t('filterMine')}
             </Text>
           </TouchableOpacity>
           {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (

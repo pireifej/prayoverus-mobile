@@ -18,7 +18,7 @@ const translations = {
     ptsLabel: 'pts',
 
     // Home feed filters
-    hidePrayed: 'Hide prayed',
+    hidePrayed: '🙈 Hide prayed',
     filterAll: '🌍 All',
     filterMine: '✍️ Mine',
     filterChurch: '⛪ My Church',
@@ -245,7 +245,7 @@ const translations = {
     ptsLabel: 'pts',
 
     // Home feed filters
-    hidePrayed: 'Ocultar oradas',
+    hidePrayed: '🙈 Ocultar oradas',
     filterAll: '🌍 Todas',
     filterMine: '✍️ Las mías',
     filterChurch: '⛪ Mi Iglesia',

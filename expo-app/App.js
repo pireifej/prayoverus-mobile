@@ -2539,7 +2539,16 @@ function App() {
             onPress: () => setNewPrayer({ ...newPrayer, content: check.suggestion }),
           },
           { label: 'Post as written', onPress: () => proceedToPost(text) },
-          { label: 'Cancel', style: 'cancel' },
+          {
+            label: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              if (newPrayer.content.trim()) {
+                showToast('Your prayer request has been saved as a draft.', '📝');
+              }
+              setCurrentScreen('home');
+            },
+          },
         ],
       });
       return;

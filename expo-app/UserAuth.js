@@ -5,7 +5,14 @@ import { Buffer } from 'buffer';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
-import * as AppleAuthentication from 'expo-apple-authentication';
+// Lazy-load to prevent launch crash on App Store binaries that may
+// not have the Apple Sign-In entitlement compiled in (OTA-safe guard).
+let _appleAuth = null;
+const getAppleAuth = () => {
+  if (_appleAuth) return _appleAuth;
+  try { _appleAuth = require('expo-apple-authentication'); } catch (_) {}
+  return _appleAuth;
+};
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base64 encoding that works in both web and React Native
@@ -576,7 +583,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   }, [googleLoading]);
 
   useEffect(() => {
-    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    const AA = getAppleAuth();
+    if (AA) AA.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
   }, []);
 
   useEffect(() => {
@@ -765,10 +773,12 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     try {
       setAppleLoading(true);
       setLoginError('');
-      const credential = await AppleAuthentication.signInAsync({
+      const AA = getAppleAuth();
+      if (!AA) throw new Error('Apple Sign-In not available on this device.');
+      const credential = await AA.signInAsync({
         requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AA.AppleAuthenticationScope.FULL_NAME,
+          AA.AppleAuthenticationScope.EMAIL,
         ],
       });
 
@@ -1503,15 +1513,19 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       ) : null}
 
       {/* Apple Sign-In — native only, auto-hidden on Android */}
-      {appleAvailable && !pendingAppleCredential && (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={14}
-          style={{ width: '100%', height: 48, marginBottom: 14, opacity: appleLoading ? 0.6 : 1 }}
-          onPress={handleAppleSignIn}
-        />
-      )}
+      {appleAvailable && !pendingAppleCredential && (() => {
+        const AA = getAppleAuth();
+        if (!AA) return null;
+        return (
+          <AA.AppleAuthenticationButton
+            buttonType={AA.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AA.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={14}
+            style={{ width: '100%', height: 48, marginBottom: 14, opacity: appleLoading ? 0.6 : 1 }}
+            onPress={handleAppleSignIn}
+          />
+        );
+      })()}
 
       <TouchableOpacity 
         style={styles.switchButton} 

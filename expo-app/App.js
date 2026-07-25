@@ -2532,10 +2532,10 @@ function App() {
       showModal({
         icon: '🙏',
         title: 'A gentle thought...',
-        message: `This sounds more like a wish than a prayer. What if you asked for the deeper blessing instead?\n\n"${check.suggestion}"`,
+        message: `In your Share a Prayer Request screen, this sounds more like a wish than a prayer. What if you asked for the deeper blessing instead?\n\n"${check.suggestion}"\n\nTapping "Use this wording" will update your text — you can still edit it before posting.`,
         buttons: [
           {
-            label: 'Update my wording',
+            label: 'Use this wording',
             onPress: () => setNewPrayer({ ...newPrayer, content: check.suggestion }),
           },
           { label: 'Post as written', onPress: () => proceedToPost(text) },

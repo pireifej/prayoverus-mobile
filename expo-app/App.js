@@ -2480,7 +2480,7 @@ function App() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const apiAuth = process.env.EXPO_PUBLIC_API_AUTH || base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
+      const apiAuth = process.env.EXPO_PUBLIC_API_AUTH;
       const response = await fetch('https://shouldcallpaul.replit.app/checkPrayerContent', {
         method: 'POST',
         headers: {

@@ -1,4 +1,5 @@
-- [Apple Sign-In entitlement crash](apple-signin-crash.md) — usesAppleSignIn in app.json + expo-apple-authentication in OTA bundle causes instant crash if native binary lacks entitlement
+- [Apple Sign-In entitlement crash](apple-signin-crash.md) — static import of expo-apple-authentication crashes on launch if binary lacks entitlement; fixed with lazy getAppleAuth() getter
+- [Fingerprint mismatch rebuild](fingerprint-mismatch-rebuild.md) — native-layer changes require new binary build + submit; pure JS OTAs are safe; always bump version before iOS binary build
 - [OTA breaks native-only features](ota-native-mismatch.md) — OTA updates that import native-only modules crash users on older App Store binaries; fix via counter-OTA targeting that runtime version
 - [Play App Signing SHA-1](play-app-signing.md) — Android OAuth must use Play App Signing SHA-1 (not upload key); found at Protected with Play → Play Store protection → Manage Play app signing
 - [OTA Crash Lessons](ota-crash-lessons.md) — module-level code added after binary build causes silent native OTA crashes; audit ALL JS files before every OTA push

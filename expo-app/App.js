@@ -5690,6 +5690,22 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           ) : null}
 
+          {/* Support This Ministry */}
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>Support This Ministry</Text>
+            <Text style={styles.settingsDescription}>
+              Pray Over Us is free for everyone. If it has blessed you, consider supporting the server costs and ongoing development. 🙏
+            </Text>
+            <TouchableOpacity
+              style={[styles.settingsButton, { backgroundColor: '#FF5E5B', marginTop: 10 }]}
+              onPress={() => Linking.openURL('https://ko-fi.com/prayoverus')}
+            >
+              <Text style={[styles.settingsButtonText, { color: '#fff', textAlign: 'center', fontWeight: '700' }]}>
+                ☕ Support on Ko-fi
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Language Section - VISIBLE */}
           <View style={styles.settingsSection}>
             <Text style={styles.settingsSectionTitle}>{t('language')}</Text>
@@ -7136,6 +7152,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       if (theme.key === null) {
                         setPremiumBgTheme(null);
                         setShowPremiumThemePicker(false);
+                      } else if (iapThemesUnlocked) {
+                        setPremiumBgTheme(theme.key);
+                        setShowPremiumThemePicker(false);
+                      } else if (rcAvailable) {
+                        setShowPremiumThemePicker(false);
+                        setIapModal({
+                          productId: PRODUCT_PREMIUM_THEMES,
+                          title: '🎨 Premium Themes',
+                          description: 'Unlock beautiful prayer themes to personalize your prayer experience.',
+                        });
                       } else {
                         setShowPremiumThemePicker(false);
                         showModal({
@@ -7155,7 +7181,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     {premiumBgTheme === theme.key
                       ? <Text style={{ color: '#10b981', fontSize: 14 }}>✓</Text>
                       : theme.key !== null
-                        ? <Text style={{ color: '#fbbf24', fontSize: 12 }}>🔒 Ad</Text>
+                        ? <Text style={{ color: '#fbbf24', fontSize: 12 }}>{iapThemesUnlocked ? '✓' : rcAvailable ? '🔒 Premium' : '🔒 Ad'}</Text>
                         : null
                     }
                   </TouchableOpacity>
@@ -7207,15 +7233,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => showModal({
-                        icon: '📺',
-                        title: 'Watch a Short Ad',
-                        message: 'Watch a quick ad to generate an extended prayer for this request.',
-                        buttons: [
-                          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
-                          { label: 'Cancel', style: 'cancel' },
-                        ],
-                      })}
+                      onPress={() => {
+                        if (iapExtendedPrayerUnlocked) {
+                          fetchExtendedPrayer(prayerModal.prayer?.id);
+                        } else if (rcAvailable) {
+                          setIapModal({
+                            productId: PRODUCT_EXTENDED_PRAYER,
+                            title: '✨ Extended Prayer',
+                            description: 'Generate a deeper, AI-crafted extended prayer for any request.',
+                          });
+                        } else {
+                          showModal({
+                            icon: '📺',
+                            title: 'Watch a Short Ad',
+                            message: 'Watch a quick ad to generate an extended prayer for this request.',
+                            buttons: [
+                              { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
+                              { label: 'Cancel', style: 'cancel' },
+                            ],
+                          });
+                        }
+                      }}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >
@@ -7271,15 +7309,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => showModal({
-                        icon: '📺',
-                        title: 'Watch a Short Ad',
-                        message: 'Watch a quick ad to generate an extended prayer for this request.',
-                        buttons: [
-                          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
-                          { label: 'Cancel', style: 'cancel' },
-                        ],
-                      })}
+                      onPress={() => {
+                        if (iapExtendedPrayerUnlocked) {
+                          fetchExtendedPrayer(prayerModal.prayer?.id);
+                        } else if (rcAvailable) {
+                          setIapModal({
+                            productId: PRODUCT_EXTENDED_PRAYER,
+                            title: '✨ Extended Prayer',
+                            description: 'Generate a deeper, AI-crafted extended prayer for any request.',
+                          });
+                        } else {
+                          showModal({
+                            icon: '📺',
+                            title: 'Watch a Short Ad',
+                            message: 'Watch a quick ad to generate an extended prayer for this request.',
+                            buttons: [
+                              { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => fetchExtendedPrayer(prayerModal.prayer?.id)) },
+                              { label: 'Cancel', style: 'cancel' },
+                            ],
+                          });
+                        }
+                      }}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >

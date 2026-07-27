@@ -1,0 +1,40 @@
+Hello, 
+
+Thank you for submitting an update to the app, Pray Over Us, for review. We noticed some issues that require your attention. Please see below for additional information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Bug Fix Submissions
+
+The issues we've identified below are eligible to be resolved on your next update. If this submission includes bug fixes and you'd like to have it approved at this time, reply to this message and let us know. You do not need to resubmit your app for us to proceed.
+
+Alternatively, if you'd like to resolve these issues now, please review the details, make the appropriate changes, and resubmit.
+
+Review Environment
+Submission ID: b0f8aa27-4c79-404f-a3cd-11e721f3838b
+Review date: July 27, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0.32 (87)
+
+Guideline 2.3.10 - Performance - Accurate Metadata
+Issue Description
+
+The app or metadata includes information about third-party platforms that may not be relevant for App Store users, who are focused on experiences offered by the app itself.
+
+Next Steps
+
+Revise the app's What's New text to remove Android references. 
+
+Reply to App Review in App Store Connect with additional information if the app's functionality and how it interacts with third-party platforms has been misunderstood.
+
+Resources
+
+Learn how to edit App Store metadata on App Store Connect Help.
+
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.

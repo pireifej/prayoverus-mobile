@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrayOverUs",
     "slug": "pray-over-us",
-    "version": "1.0.32",
+    "version": "1.0.33",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "87",
+      "buildNumber": "88",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -43,7 +43,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 105,
+      "versionCode": 106,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"

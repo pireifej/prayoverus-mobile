@@ -1,0 +1,52 @@
+[expo-cli] assets/morning-star.mp3 (42.7 kB)
+[expo-cli] assets/prayer-bg-1.png (846 kB)
+[expo-cli] assets/prayer-bg-10.png (853 kB)
+[expo-cli] assets/prayer-bg-2.png (964 kB)
+[expo-cli] assets/prayer-bg-3.png (1.02 MB)
+[expo-cli] assets/prayer-bg-4.png (841 kB)
+[expo-cli] assets/prayer-bg-5.png (1 MB)
+[expo-cli] assets/prayer-bg-6.png (930 kB)
+[expo-cli] assets/prayer-bg-7.png (1.59 MB)
+[expo-cli] assets/prayer-bg-8.png (1 MB)
+[expo-cli] assets/prayer-bg-9.png (2.14 MB)
+[expo-cli] assets/radiant-ascent.mp3 (41.8 kB)
+[expo-cli] assets/radiant-sparkle.mp3 (20.9 kB)
+[expo-cli] assets/resonant-cathedral.mp3 (68.2 kB)
+[expo-cli] assets/wind-spirit.mp3 (48.9 kB)
+[expo-cli] 
+[expo-cli] › android bundles (2):
+[expo-cli] _expo/static/js/android/index-d210adc9a370f7342ea1af8a1202d665.hbc (2.61 MB)
+[expo-cli] _expo/static/js/android/index-d210adc9a370f7342ea1af8a1202d665.hbc.map (8.2 MB)
+[expo-cli] 
+[expo-cli] › ios bundles (2):
+[expo-cli] _expo/static/js/ios/index-243588dd99ba04516ad0b129096f5f4f.hbc (2.61 MB)
+[expo-cli] _expo/static/js/ios/index-243588dd99ba04516ad0b129096f5f4f.hbc.map (8.18 MB)
+[expo-cli] 
+[expo-cli] › Files (2):
+[expo-cli] assetmap.json (8.05 kB)
+[expo-cli] metadata.json (2.89 kB)
+[expo-cli] 
+[expo-cli] Exported: dist
+✔ Exported bundle(s)
+✔ Uploaded assetmap.json 
+✔ Uploaded 2 app bundles
+✔ Uploading assets skipped - no new assets found
+ℹ 22 iOS assets, 22 Android assets (maximum: 2000 total per update). Learn more about asset limits: https://expo.fyi/eas-update-asset-limits
+✔ Computed project fingerprints
+✔ Published!
+
+Branch             production
+Runtime version    1.0.31
+Platform           android, ios
+Update group ID    2af3a21c-f1c9-4c01-a7bc-396d27cd68da
+Android update ID  019fa84d-d72d-7426-ae00-e498804e4d5e
+iOS update ID      019fa84d-d72d-7d94-a033-be7dbdd88c4a
+Message            Sync both platforms to latest
+Commit             d8634505377c7718467c1e0762317cc35ec695f8
+EAS Dashboard      https://expo.dev/accounts/pireifej/projects/pray-over-us/updates/2af3a21c-f1c9-4c01-a7bc-396d27cd68da
+
+No compatible builds found for the following fingerprints:
+    iOS fingerprint:  fcc98f4f271d9ada7ebf088a1a58dc1d2f6f19f3
+    URL            :  https://expo.dev/accounts/pireifej/projects/pray-over-us/fingerprints/fcc98f4f271d9ada7ebf088a1a58dc1d2f6f19f3
+
+~/workspace/expo-app$ 

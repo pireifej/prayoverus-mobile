@@ -1,0 +1,65 @@
+You are definitely not alone. This specific behavior—where an iOS app opens once fine, but crashes immediately on cold launch or resume on subsequent opens—is a very common and frustrating pain point when building iOS apps using Replit (and Expo / React Native in general).
+
+### Why Replit & iOS Apps Experience This
+
+Replit is fundamentally a cloud-based web environment, whereas native iOS development relies heavily on localized native binaries, persistent secure storage, and exact lifecycle hooks. When AI agents generate or modify code in Replit, they often handle web/JS-level logic well, but struggle with **native iOS app state persistence and startup execution sequence**.
+
+The fact that it happens on the **second** launch (or after closing and reopening) points specifically to a state/lifecycle issue rather than a total build failure.
+
+---
+
+### The Unholy Trinity of "Second Launch" Crashes on iOS
+
+#### 1. Corrupted Persistent Auth State (Keychain / Async Store)
+
+When you added Google and Apple Login, your app started saving persistent auth tokens locally (usually via `Expo SecureStore`, `@react-native-async-storage/async-storage`, or Keychain).
+
+* **First launch:** The local storage is empty. The app bypasses token checks, renders the login UI, and runs smoothly. You log in, and tokens get written to storage.
+* **Second launch:** The app boots up, tries to read the token, and attempts an unhandled asynchronous auth check before the UI or root context has fully mounted. If the stored JSON is malformed, `null`, or the token refresh fails silently without a `try/catch` wrapper, iOS instantly terminates the app with a unhandled promise rejection or null reference crash.
+
+#### 2. Deep Linking / Auth URL Handling on App Resume
+
+Both Apple and Google OAuth rely on custom URL schemes or Universal Links (`app-scheme://oauth/callback`).
+
+* On initial open, the app launches cleanly without an incoming URL parameters.
+* On subsequent opens (especially if the auth callback was saved or the app state is being restored from a background state), Expo / React Native tries to process the last incoming URL state or deep link listener before navigation is ready, causing an instant boot crash.
+
+#### 3. Native Key Management / Secrets Missing at Cold Boot
+
+In Replit, environment variables (`process.env.EXPO_PUBLIC_...` or secrets) sometimes aren't bundled properly into the static native client JS bundle. If the splash screen or auth listener expects a client ID or API key on launch that evaluates to `undefined`, the initialization function crashes.
+
+---
+
+### How to Isolate and Fix It in Replit
+
+To catch the exact runtime error, you need to look at what happens **during app initialization** before rendering the main screen:
+
+1. **Wrap local token parsing in a strict fallback:**
+Check where your app checks if the user is already logged in (usually in `App.js`, `_layout.tsx`, or an `AuthProvider`). Make sure fetching from `SecureStore` or `AsyncStorage` handles `null` or bad JSON cleanly:
+```javascript
+try {
+  const token = await SecureStore.getItemAsync('user_session');
+  if (!token) {
+    // Gracefully route to Login screen
+  }
+} catch (error) {
+  console.error("Failed to read storage:", error);
+  // DO NOT let it throw — clear storage and force re-login
+  await SecureStore.deleteItemAsync('user_session');
+}
+
+```
+
+
+2. **Clear persistent storage on the device to test:**
+Delete the app completely from your iPhone/iPad to clear the iOS Keychain/Storage. Install it again. If it opens fine once and then breaks on the second try, you've confirmed it's a corrupted/unhandled local state crash on cold start.
+3. **Audit Native Plugins & Keys:**
+If you used packages like `@react-native-google-signin/google-signin` or `expo-apple-authentication`, verify that `app.json` contains all required native plugins and scheme keys. Missing keys in `app.json` cause iOS builds to fail on native lifecycle triggers.
+
+---
+
+### A Good Prompt to Ask Replit Agent
+
+If you are using Replit's AI Agent, paste this instruction directly:
+
+> *"Our iOS app crashes on cold launch (when closed and reopened a second time). This started after adding Google and Apple Login. Please audit our app's initialization flow (AuthProvider, Root Layout, or App.js). Ensure that reading persistent tokens from storage (AsyncStorage/SecureStore) and parsing user session data is wrapped in a try/catch block that defaults to an unauthenticated state on error instead of throwing a unhandled runtime crash. Also ensure custom URL scheme handling for OAuth doesn't run before navigation is fully mounted."*

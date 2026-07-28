@@ -1,4 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
+
+// ── Global error boundary — catches render/lifecycle crashes and shows them
+// on screen instead of silently closing the app. Remove in a future release.
+class AppErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('🔴 AppErrorBoundary caught a render crash:', error?.message, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      const { View, Text, TouchableOpacity, ScrollView } = require('react-native');
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0d1f3c', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ color: '#f87171', fontSize: 22, fontWeight: '700', marginBottom: 12 }}>Something went wrong</Text>
+          <ScrollView style={{ maxHeight: 300, width: '100%', backgroundColor: '#1e293b', borderRadius: 8, padding: 12, marginBottom: 20 }}>
+            <Text style={{ color: '#fbbf24', fontSize: 13, fontFamily: 'monospace' }}>
+              {this.state.error?.message || 'Unknown error'}{'\n\n'}{this.state.error?.stack || ''}
+            </Text>
+          </ScrollView>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor: '#6366f1', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 28 }}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as StoreReview from 'expo-store-review';
@@ -1592,101 +1628,103 @@ function App() {
   };
 
   // ─── Deep linking support for password reset and prayer sharing ────────────
-  useEffect(() => {
-    const handleDeepLink = ({ url }, isInitialUrl = false) => {
-      const route = url.replace(/.*?:\/\//g, '');
-      
-      // Check for Google OAuth callback relay (prayoverus://auth?code=...&state=...)
-      if (route.startsWith('auth?')) {
-        const params = new URLSearchParams(route.slice('auth?'.length));
-        const code = params.get('code');
-        if (code) {
-          console.log('📱 Deep link detected: Google OAuth callback');
-          setPendingGoogleAuthCode(code);
-        }
-        return;
-      }
+  // Separate refs so the live-link handler always sees current values
+  // without re-registering the Linking listener on every render.
+  const currentUserRef = useRef(currentUser);
+  const isCheckingAuthRef = useRef(isCheckingAuth);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+  useEffect(() => { isCheckingAuthRef.current = isCheckingAuth; }, [isCheckingAuth]);
 
-      // Check for password reset link (can be processed immediately)
-      const resetMatch = route.match(/reset-password(?:\.html)?\?token=([^&]+)/);
-      if (resetMatch && resetMatch[1]) {
-        console.log('📱 Deep link detected: Password reset with token');
-        setResetToken(resetMatch[1]);
-        setAuthScreen('reset');
-        return;
+  // Shared deep-link dispatcher — uses refs so it never needs to be recreated
+  const handleDeepLinkRef = useRef(null);
+  handleDeepLinkRef.current = ({ url }, isInitialUrl = false) => {
+    if (!url) return;
+    // Ignore stale OAuth redirect URLs — they've already been processed
+    // during the login flow and must not be replayed on subsequent launches.
+    if (url.includes('prayoverus://auth') || url.includes('prayoverus%3A%2F%2Fauth')) {
+      console.log('📱 Deep link: skipping stale OAuth callback URL on launch');
+      return;
+    }
+
+    const route = url.replace(/.*?:\/\//g, '');
+
+    // Check for password reset link
+    const resetMatch = route.match(/reset-password(?:\.html)?\?token=([^&]+)/);
+    if (resetMatch && resetMatch[1]) {
+      console.log('📱 Deep link detected: Password reset with token');
+      setResetToken(resetMatch[1]);
+      setAuthScreen('reset');
+      return;
+    }
+
+    // Check for Daily Bread deep link (?open=dailybread)
+    if (route.includes('open=dailybread')) {
+      console.log('📱 Deep link detected: Daily Bread');
+      if (currentUserRef.current) {
+        setSelectedDevotional(dailyDevotional);
+        setCurrentScreen('dailyBread');
+      } else {
+        setPendingInitialUrl(url);
       }
-      
-      // Check for Daily Bread deep link (?open=dailybread)
-      if (route.includes('open=dailybread')) {
-        console.log('📱 Deep link detected: Daily Bread');
-        if (currentUser) {
-          setSelectedDevotional(dailyDevotional);
-          setCurrentScreen('dailyBread');
+      return;
+    }
+
+    // Check for Prayer Walk deep link (?open=prayerwalk)
+    if (route.includes('open=prayerwalk')) {
+      console.log('📱 Deep link detected: Prayer Walk');
+      if (currentUserRef.current) {
+        if (communityPrayers.length > 0) {
+          setCurrentScreen('prayerWalk');
         } else {
-          setPendingInitialUrl(url);
-        }
-        return;
-      }
-
-      // Check for Prayer Walk deep link (?open=prayerwalk)
-      if (route.includes('open=prayerwalk')) {
-        console.log('📱 Deep link detected: Prayer Walk');
-        if (currentUser) {
-          if (communityPrayers.length > 0) {
-            // Prayers already loaded — go straight in
-            setCurrentScreen('prayerWalk');
-          } else {
-            // Prayers not loaded yet — go home first (triggers fetch), then auto-nav when ready
-            setPendingPrayerWalk(true);
-            setCurrentScreen('home');
-          }
-        } else {
-          setPendingInitialUrl(url);
-        }
-        return;
-      }
-
-      // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
-      const prayerMatch = route.match(/requestId=(\d+)/);
-      if (prayerMatch && prayerMatch[1]) {
-        const prayerId = parseInt(prayerMatch[1], 10);
-        console.log('📱 Deep link detected: Prayer ID', prayerId);
-        
-        // If this is the initial URL and auth check hasn't completed yet, store it for later
-        if (isInitialUrl && isCheckingAuth) {
-          console.log('📱 Auth check in progress, storing URL for later processing');
-          setPendingInitialUrl(url);
-          return;
-        }
-        
-        // If user is logged in, store the prayer ID and navigate to home
-        if (currentUser) {
-          setPendingDeepLinkPrayerId(prayerId);
+          setPendingPrayerWalk(true);
           setCurrentScreen('home');
-        } else {
-          // User is truly not logged in (auth check completed)
-          console.log('📱 User not logged in, will navigate after login');
-          setPendingDeepLinkPrayerId(prayerId);
-          showModal({ icon: '🔐', title: 'Sign In Required', message: 'Please sign in to view this prayer request.' });
         }
+      } else {
+        setPendingInitialUrl(url);
+      }
+      return;
+    }
+
+    // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
+    const prayerMatch = route.match(/requestId=(\d+)/);
+    if (prayerMatch && prayerMatch[1]) {
+      const prayerId = parseInt(prayerMatch[1], 10);
+      console.log('📱 Deep link detected: Prayer ID', prayerId);
+
+      if (isInitialUrl && isCheckingAuthRef.current) {
+        console.log('📱 Auth check in progress, storing URL for later processing');
+        setPendingInitialUrl(url);
         return;
       }
-    };
 
-    // Handle initial URL if app opened from link
-    Linking.getInitialURL().then(url => {
-      if (url) {
-        handleDeepLink({ url }, true); // Pass flag indicating this is initial URL
+      if (currentUserRef.current) {
+        setPendingDeepLinkPrayerId(prayerId);
+        setCurrentScreen('home');
+      } else {
+        setPendingDeepLinkPrayerId(prayerId);
+        showModal({ icon: '🔐', title: 'Sign In Required', message: 'Please sign in to view this prayer request.' });
       }
-    });
+      return;
+    }
+  };
 
-    // Listen for deep links while app is running (not initial, so auth is already checked)
-    const subscription = Linking.addEventListener('url', ({ url }) => handleDeepLink({ url }, false));
+  // ONE-TIME mount effect: check the URL that opened this launch.
+  // Must never re-run — re-running calls getInitialURL() again and can
+  // replay a stale Google OAuth redirect from a previous session.
+  useEffect(() => {
+    Linking.getInitialURL().then(url => {
+      if (url) handleDeepLinkRef.current({ url }, true);
+    }).catch(e => console.log('📱 getInitialURL error:', e?.message));
+  }, []); // ← empty deps: runs exactly once per cold launch
 
-    return () => {
-      subscription?.remove();
-    };
-  }, [currentUser, isCheckingAuth]);
+  // Persistent live-link listener — also mount-only; uses the ref so it
+  // always dispatches with current state without needing to re-register.
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) =>
+      handleDeepLinkRef.current({ url }, false)
+    );
+    return () => subscription?.remove();
+  }, []); // ← empty deps: one listener for the lifetime of the app
   
   // Process pending initial URL after auth check completes
   useEffect(() => {
@@ -2078,7 +2116,20 @@ function App() {
     try {
       const userData = await storage.getItem('userSession');
       if (userData) {
-        const parsedUserData = JSON.parse(userData);
+        let parsedUserData;
+        try {
+          parsedUserData = JSON.parse(userData);
+        } catch (parseErr) {
+          console.log('🔴 Stored session JSON is corrupt — clearing and forcing re-login:', parseErr.message);
+          await storage.removeItem('userSession');
+          return; // falls through to finally → setIsCheckingAuth(false) → login screen
+        }
+        // Validate minimum required fields before trusting the session
+        if (!parsedUserData || !parsedUserData.id) {
+          console.log('🔴 Stored session missing required fields — clearing');
+          await storage.removeItem('userSession');
+          return;
+        }
         console.log('Found stored user session:', parsedUserData.firstName, 'ID:', parsedUserData.id);
         setCurrentUser(parsedUserData);
         
@@ -11337,5 +11388,12 @@ const styles = StyleSheet.create({
 });
 
 // Register the main component
-AppRegistry.registerComponent('main', () => App);
-export default App;
+// Wrap App in the error boundary so render crashes are visible on screen
+const AppWithBoundary = () => (
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
+
+AppRegistry.registerComponent('main', () => AppWithBoundary);
+export default AppWithBoundary;

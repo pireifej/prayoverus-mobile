@@ -2307,7 +2307,6 @@ function App() {
         {
           label: 'Yes, Report',
           onPress: async () => {
-            setCommunityPrayers(prev => prev.filter(p => p.id !== prayer.id));
             showToast('Content reported. Thank you for helping keep our community safe.', '🛡️');
             try {
               await fetch('https://shouldcallpaul.replit.app/reportContent', {

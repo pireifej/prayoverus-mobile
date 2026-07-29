@@ -390,7 +390,7 @@ const base64EncodeForMenu = (str) => {
 };
 
 // Prayer Options Menu Component - Three dots menu for edit/delete/share
-function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, isProfileSection = false }) {
+function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, onReport, isProfileSection = false }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
@@ -573,6 +573,18 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
               >
                 <Text style={optionsMenuStyles.menuIcon}>🗑️</Text>
                 <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>{t('deleteMenuItem')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Report Content - Non-owners only */}
+            {!isOwner && onReport && (
+              <TouchableOpacity
+                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
+                onPress={() => { setMenuVisible(false); onReport(prayer); }}
+                data-testid={`button-report-${prayer.id}`}
+              >
+                <Text style={optionsMenuStyles.menuIcon}>🚩</Text>
+                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Report Content</Text>
               </TouchableOpacity>
             )}
             
@@ -918,6 +930,8 @@ function App() {
   const [memberFeedType, setMemberFeedType] = useState(null); // 'requests' | 'prayers'
   const [memberFeedData, setMemberFeedData] = useState([]);
   const [memberFeedLoading, setMemberFeedLoading] = useState(false);
+  const [eulaAccepted, setEulaAccepted] = useState(true); // defaults true; set false if first launch
+  const [blockedUserIds, setBlockedUserIds] = useState(new Set());
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
@@ -1219,6 +1233,20 @@ function App() {
 
   // Load IAP data on startup
   useEffect(() => { loadIapData(); loadDailyPostCount(); }, []);
+
+  // Load EULA acceptance and blocked users on startup
+  useEffect(() => {
+    (async () => {
+      try {
+        const accepted = await AsyncStorage.getItem('@eula_accepted');
+        if (!accepted) setEulaAccepted(false);
+      } catch (_) {}
+      try {
+        const raw = await AsyncStorage.getItem('@blocked_users');
+        if (raw) setBlockedUserIds(new Set(JSON.parse(raw)));
+      } catch (_) {}
+    })();
+  }, []);
 
   // Load saved language preference
   useEffect(() => {
@@ -2257,6 +2285,43 @@ function App() {
   };
 
   // Handle user logout and clear storage
+  // Report a prayer/content — removes from local feed immediately, notifies backend
+  const handleReportContent = async (prayer) => {
+    setCommunityPrayers(prev => prev.filter(p => p.id !== prayer.id));
+    showToast('Content reported. Thank you for helping keep our community safe.', '🛡️');
+    try {
+      await fetch('https://shouldcallpaul.replit.app/reportContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode(process.env.EXPO_PUBLIC_API_AUTH || ''),
+        },
+        body: JSON.stringify({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() }),
+      });
+    } catch (_) {}
+  };
+
+  // Block a user — removes their content from feed immediately, persists locally, notifies backend
+  const handleBlockUser = async (userId, userName) => {
+    const idStr = userId.toString();
+    const newBlocked = new Set([...blockedUserIds, idStr]);
+    setBlockedUserIds(newBlocked);
+    setCommunityPrayers(prev => prev.filter(p => p.user_id?.toString() !== idStr));
+    setViewingMember(null);
+    showToast(`${userName} has been blocked and their content removed from your feed.`, '🛡️');
+    try {
+      await AsyncStorage.setItem('@blocked_users', JSON.stringify([...newBlocked]));
+      await fetch('https://shouldcallpaul.replit.app/blockUser', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + base64Encode(process.env.EXPO_PUBLIC_API_AUTH || ''),
+        },
+        body: JSON.stringify({ blockerId: currentUser?.id, blockedId: userId }),
+      });
+    } catch (_) {}
+  };
+
   const handleLogout = () => {
     console.log('🚪 Logout button pressed - user:', currentUser?.firstName);
     
@@ -4161,6 +4226,74 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     );
   }
 
+  // Show EULA before login if not yet accepted (Apple guideline 1.2)
+  if (!eulaAccepted && !currentUser) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0d1f3c' }}>
+        <StatusBar style="light" />
+        <LinearGradient colors={['#0d1f3c', '#1e3a5f']} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 72, paddingBottom: 60 }}>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 6 }}>🙏 Welcome to Pray Over Us</Text>
+            <Text style={{ fontSize: 14, color: '#93c5fd', textAlign: 'center', marginBottom: 28 }}>Please review and accept our Terms of Use to continue</Text>
+
+            <View style={{ backgroundColor: '#1e3a5f', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 12 }}>Terms of Use & Community Standards</Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                By using Pray Over Us, you agree to the following:
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>1. No Objectionable Content. </Text>
+                You will not post content that is offensive, abusive, harassing, threatening, defamatory, obscene, or otherwise objectionable. There is zero tolerance for content that violates these standards.
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>2. No Abusive Behavior. </Text>
+                You will treat all members of this community with dignity and respect. Harassment, bullying, or targeting of other users is strictly prohibited and will result in immediate removal.
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>3. Reporting & Moderation. </Text>
+                You may flag inappropriate content using the 🚩 Report option on any prayer card. You may block abusive users from their profile. Reported content is reviewed and removed within 24 hours.
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>4. Prayer Content Only. </Text>
+                This platform is for sharing and praying over personal prayer intentions. Content unrelated to faith and prayer may be removed.
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>5. Privacy. </Text>
+                Do not share private information about others without their consent. User data is handled in accordance with our Privacy Policy.
+              </Text>
+
+              <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22 }}>
+                <Text style={{ color: '#60a5fa', fontWeight: '700' }}>6. Enforcement. </Text>
+                The Pray Over Us team reserves the right to remove any content and suspend or permanently ban any account that violates these terms at any time without prior notice.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={async () => {
+                try { await AsyncStorage.setItem('@eula_accepted', '1'); } catch (_) {}
+                setEulaAccepted(true);
+              }}
+              style={{ backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 14 }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>✓ I Agree — Continue</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 12, color: '#64748b', textAlign: 'center', lineHeight: 18 }}>
+              By tapping "I Agree", you confirm that you have read, understood, and agree to these Terms of Use and Community Standards.
+            </Text>
+          </ScrollView>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   // Show onboarding carousel for first-time visitors
   if (showOnboarding && !currentUser) {
     return (
@@ -4286,6 +4419,28 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </View>
               <Text style={styles.memberFaithPoints}>{t('pointsLabel')(member.faith_points || 0)}</Text>
             </View>
+
+            {/* Block User — only show for other users, not yourself */}
+            {member.id && member.id?.toString() !== currentUser?.id?.toString() && (
+              <TouchableOpacity
+                onPress={() => {
+                  const name = member.first_name || 'This user';
+                  showModal({
+                    icon: '🛡️',
+                    title: `Block ${name}?`,
+                    message: `${name}'s content will be removed from your feed immediately. This action cannot be undone from within the app.`,
+                    buttons: [
+                      { label: 'Cancel' },
+                      { label: 'Block', onPress: () => handleBlockUser(member.id, name), style: { color: '#ef4444' } },
+                    ],
+                  });
+                }}
+                style={{ marginTop: 16, marginHorizontal: 16, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: '#fca5a5', alignItems: 'center' }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#ef4444', fontWeight: '600', fontSize: 15 }}>🚫 Block User</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Member feed: their requests or prayed-for list */}
             {memberFeedType && (
@@ -5741,21 +5896,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             </View>
           ) : null}
 
-          {/* Support This Ministry */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>Support This Ministry</Text>
-            <Text style={styles.settingsDescription}>
-              Pray Over Us is free for everyone. If it has blessed you, consider supporting the server costs and ongoing development. 🙏
-            </Text>
-            <TouchableOpacity
-              style={[styles.settingsButton, { backgroundColor: '#FF5E5B', marginTop: 10 }]}
-              onPress={() => Linking.openURL('https://ko-fi.com/prayoverus')}
-            >
-              <Text style={[styles.settingsButtonText, { color: '#fff', textAlign: 'center', fontWeight: '700' }]}>
-                ☕ Support on Ko-fi
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Support This Ministry — external donation link removed per App Store guidelines */}
 
           {/* Language Section - VISIBLE */}
           <View style={styles.settingsSection}>
@@ -6803,6 +6944,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ? prayers.map(p => answeredIds.has(p.id) ? { ...p, is_answered: true } : p)
             : communityPrayers;
           
+          // Filter out blocked users from community feed
+          if (blockedUserIds.size > 0 && !showMyRequestsOnly) {
+            filteredPrayers = filteredPrayers.filter(p => !blockedUserIds.has(p.user_id?.toString()));
+          }
+
           // Apply "Hide Prayed" filter (only relevant on community feed)
           if (hideAlreadyPrayed && !showMyRequestsOnly) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
@@ -6885,6 +7031,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   onEdit={handleEditPrayer}
                   onDelete={handleDeletePrayer}
                   onMarkAnswered={handleMarkAnswered}
+                  onReport={handleReportContent}
                 />
                 
                 <Text style={styles.prayerTitle}>

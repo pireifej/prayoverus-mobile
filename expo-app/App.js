@@ -2296,20 +2296,33 @@ function App() {
   };
 
   // Handle user logout and clear storage
-  // Report a prayer/content — removes from local feed immediately, notifies backend
-  const handleReportContent = async (prayer) => {
-    setCommunityPrayers(prev => prev.filter(p => p.id !== prayer.id));
-    showToast('Content reported. Thank you for helping keep our community safe.', '🛡️');
-    try {
-      await fetch('https://shouldcallpaul.replit.app/reportContent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+  // Report a prayer/content — confirms first, then removes from local feed and notifies backend
+  const handleReportContent = (prayer) => {
+    showModal({
+      icon: '🚩',
+      title: 'Report this content?',
+      message: 'This prayer will be removed from your feed and our team will be notified to review it within 24 hours.',
+      buttons: [
+        { label: 'Cancel' },
+        {
+          label: 'Yes, Report',
+          onPress: async () => {
+            setCommunityPrayers(prev => prev.filter(p => p.id !== prayer.id));
+            showToast('Content reported. Thank you for helping keep our community safe.', '🛡️');
+            try {
+              await fetch('https://shouldcallpaul.replit.app/reportContent', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+                },
+                body: JSON.stringify({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() }),
+              });
+            } catch (_) {}
+          },
         },
-        body: JSON.stringify({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() }),
-      });
-    } catch (_) {}
+      ],
+    });
   };
 
   // Block a user — removes their content from feed immediately, persists locally, notifies backend

@@ -2294,7 +2294,7 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode(process.env.EXPO_PUBLIC_API_AUTH || ''),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() }),
       });
@@ -2315,7 +2315,7 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode(process.env.EXPO_PUBLIC_API_AUTH || ''),
+          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
         },
         body: JSON.stringify({ blockerId: currentUser?.id, blockedId: userId }),
       });

@@ -1667,9 +1667,20 @@ function App() {
   const handleDeepLinkRef = useRef(null);
   handleDeepLinkRef.current = ({ url }, isInitialUrl = false) => {
     if (!url) return;
-    // Ignore stale OAuth redirect URLs — they've already been processed
-    // during the login flow and must not be replayed on subsequent launches.
-    if (url.includes('prayoverus://auth') || url.includes('prayoverus%3A%2F%2Fauth')) {
+
+    // Handle live Google OAuth callback (from Linking event listener, not initial URL)
+    if (!isInitialUrl && (url.includes('prayoverus://auth') || url.includes('prayoverus%3A%2F%2Fauth'))) {
+      console.log('📱 Deep link: live Google OAuth callback received');
+      const codeMatch = url.match(/[?&]code=([^&]+)/);
+      if (codeMatch) {
+        setPendingGoogleAuthCode(decodeURIComponent(codeMatch[1]));
+      }
+      return;
+    }
+
+    // Ignore OAuth redirect URLs that arrive as the initial URL — these are
+    // stale replays from a previous session and must not be re-processed.
+    if (isInitialUrl && (url.includes('prayoverus://auth') || url.includes('prayoverus%3A%2F%2Fauth'))) {
       console.log('📱 Deep link: skipping stale OAuth callback URL on launch');
       return;
     }

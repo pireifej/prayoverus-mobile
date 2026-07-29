@@ -4209,7 +4209,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onClose={closeDetailModal}
         onPray={handlePrayFromDetailScreen}
         onNavigate={handleDetailNavigate}
-        onViewProfile={openUserProfile}
         lang={userLang}
       />
     );

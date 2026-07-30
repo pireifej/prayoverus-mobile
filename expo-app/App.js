@@ -15,19 +15,20 @@ class AppErrorBoundary extends Component {
   }
   render() {
     if (this.state.hasError) {
-      const { View, Text, TouchableOpacity, ScrollView } = require('react-native');
+      const { View, Text, TouchableOpacity } = require('react-native');
       return (
-        <View style={{ flex: 1, backgroundColor: '#0d1f3c', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <Text style={{ color: '#f87171', fontSize: 22, fontWeight: '700', marginBottom: 12 }}>Something went wrong</Text>
-          <ScrollView style={{ maxHeight: 300, width: '100%', backgroundColor: '#1e293b', borderRadius: 8, padding: 12, marginBottom: 20 }}>
-            <Text style={{ color: '#fbbf24', fontSize: 13, fontFamily: 'monospace' }}>
-              {this.state.error?.message || 'Unknown error'}{'\n\n'}{this.state.error?.stack || ''}
-            </Text>
-          </ScrollView>
+        <View style={{ flex: 1, backgroundColor: '#0d1f3c', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <Text style={{ fontSize: 48, marginBottom: 20 }}>🙏</Text>
+          <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '700', marginBottom: 10, textAlign: 'center' }}>
+            Something went wrong
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+            Pray Over Us ran into an unexpected issue.{'\n'}Tap below to get back to your prayers.
+          </Text>
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false, error: null })}
-            style={{ backgroundColor: '#6366f1', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 28 }}>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Try Again</Text>
+            style={{ backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 16, paddingHorizontal: 40 }}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 17 }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );

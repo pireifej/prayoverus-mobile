@@ -671,7 +671,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         setLoginError('Could not get email from Google. Please try again.');
         return;
       }
-      const res = await fetch('https://shouldcallpaul.replit.app/googleLogin', {
+      const res = await fetchWithTimeout('https://shouldcallpaul.replit.app/googleLogin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -685,7 +685,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           last_name: userInfo.family_name || '',
           picture: userInfo.picture || '',
         }),
-      });
+      }, 15000);
       const data = await res.json();
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];

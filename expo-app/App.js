@@ -2861,32 +2861,23 @@ function App() {
       const authHeader = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
       const payload = { requestId: prayerRequest.id, lang: userLang };
 
-      // Fire both calls in parallel — use extended if it exists, normal as fallback
-      const [extData, normData] = await Promise.all([
-        fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-          body: JSON.stringify(payload),
-        }).then(r => r.json()).catch(() => null),
-        fetch('https://shouldcallpaul.replit.app/getPrayerByRequestId', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-          body: JSON.stringify(payload),
-        }).then(r => r.json()).catch(() => null),
-      ]);
+      // Single call — backend returns extended prayer if exists, standard otherwise
+      const data = await fetch('https://shouldcallpaul.replit.app/getPrayer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+        body: JSON.stringify(payload),
+      }).then(r => r.json()).catch(() => null);
 
       let prayerText = null;
 
-      if (extData?.error === 0 && extData?.result) {
-        // Extended prayer exists — use it and hide the Generate button
-        prayerText = markdownToHtml(extData.result);
-        setExtendedPrayer(prayerText);
-      } else if (normData?.error === 0 && normData?.prayerText) {
-        // No extended prayer yet — use normal prayer
-        prayerText = markdownToHtml(normData.prayerText);
+      if (data?.error === 0 && data?.prayerText) {
+        prayerText = markdownToHtml(data.prayerText);
+        if (data.isExtended) {
+          setExtendedPrayer(prayerText); // hide Generate button — already has extended prayer
+        }
       }
 
-      // Last resort: hardcoded fallback for very old requests with no prayer at all
+      // Fallback for very old requests with no prayer at all
       if (!prayerText) {
         prayerText = userLang === 'es'
           ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`

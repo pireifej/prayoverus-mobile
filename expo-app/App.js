@@ -7362,12 +7362,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       } else {
                         setShowPremiumThemePicker(false);
                         const price = getIapPrice(PRODUCT_PREMIUM_THEMES);
+                        const selectedKey = theme.key;
                         Alert.alert(
                           '🎨 Premium Themes',
                           `Unlock all prayer themes${price ? ` for ${price}` : ''} — personalize your prayer experience.`,
                           [
                             { text: 'Cancel', style: 'cancel' },
-                            { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_PREMIUM_THEMES) },
+                            { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_PREMIUM_THEMES, () => setPremiumBgTheme(selectedKey)) },
                           ]
                         );
                       }

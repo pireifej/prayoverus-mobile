@@ -2560,7 +2560,7 @@ function App() {
             prayer_title: request.prayer_title,
             other_person: request.other_person,
             picture: request.request_picture, // Use request_picture for the prayer's image
-            user_id: request.user_id,
+            user_id: request.user_id || currentUser?.id, // Mine tab = always current user's prayers
             fk_prayer_id: request.fk_prayer_id,
             allow_comments: request.allow_comments,
             use_alias: request.use_alias,

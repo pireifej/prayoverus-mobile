@@ -62,9 +62,18 @@ import { showToast, showModal } from './AppModals';
 let rcAvailable = false;
 let Purchases = null;
 const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
-const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes';
+const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes'; // legacy — unlocks all themes
 const PRODUCT_EXTENDED_PRAYER = 'extended_prayer_single';
-const PRODUCT_PREMIUM_THEMES   = 'premium_themes';
+const PRODUCT_PREMIUM_THEMES   = 'premium_themes'; // legacy
+
+// Per-theme products & entitlements (key matches theme key in picker)
+const THEME_PRODUCTS = {
+  amber:    'theme_amber',
+  purple:   'theme_purple',
+  rose:     'theme_rose',
+  forest:   'theme_forest',
+  midnight: 'theme_midnight',
+};
 const RC_TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const RC_IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const RC_ANDROID_KEY  = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
@@ -1093,14 +1102,22 @@ function App() {
 
   const hasEntitlement = (key) => iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
   const iapExtendedPrayerUnlocked = hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER);
-  const iapThemesUnlocked = hasEntitlement(ENTITLEMENT_PREMIUM_THEMES);
+  const iapThemesUnlocked = hasEntitlement(ENTITLEMENT_PREMIUM_THEMES); // legacy all-unlock
+  // Returns true if a specific theme is unlocked (legacy all-unlock OR individual purchase)
+  const isThemeUnlocked = (themeKey) =>
+    iapThemesUnlocked || hasEntitlement(THEME_PRODUCTS[themeKey] || '');
 
   const loadIapData = async () => {
     if (!rcAvailable || !Purchases) return;
     try {
+      const allProductIds = [
+        PRODUCT_EXTENDED_PRAYER,
+        PRODUCT_PREMIUM_THEMES,
+        ...Object.values(THEME_PRODUCTS),
+      ];
       const [info, prods] = await Promise.all([
         Purchases.getCustomerInfo(),
-        Purchases.getProducts([PRODUCT_EXTENDED_PRAYER, PRODUCT_PREMIUM_THEMES]),
+        Purchases.getProducts(allProductIds),
       ]);
       setIapCustomerInfo(info);
       setIapProducts(prods);
@@ -7360,42 +7377,47 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   { key: 'rose', label: '🌸 Rose Dawn', color: '#f43f5e' },
                   { key: 'forest', label: '🌿 Forest', color: '#166534' },
                   { key: 'midnight', label: '🌌 Midnight', color: '#0f172a' },
-                ].map(theme => (
-                  <TouchableOpacity
-                    key={String(theme.key)}
-                    style={[styles.themeOption, premiumBgTheme === theme.key && styles.themeOptionActive]}
-                    onPress={() => {
-                      if (theme.key === null) {
-                        setPremiumBgTheme(null);
-                        setShowPremiumThemePicker(false);
-                      } else if (iapThemesUnlocked) {
-                        setPremiumBgTheme(theme.key);
-                        setShowPremiumThemePicker(false);
-                      } else {
-                        setShowPremiumThemePicker(false);
-                        const price = getIapPrice(PRODUCT_PREMIUM_THEMES);
-                        const selectedKey = theme.key;
-                        Alert.alert(
-                          '🎨 Premium Themes',
-                          `Unlock all prayer themes${price ? ` for ${price}` : ''} — personalize your prayer experience.`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_PREMIUM_THEMES, () => setPremiumBgTheme(selectedKey)) },
-                          ]
-                        );
+                ].map(theme => {
+                  const unlocked = theme.key === null || isThemeUnlocked(theme.key);
+                  const isActive = premiumBgTheme === theme.key;
+                  return (
+                    <TouchableOpacity
+                      key={String(theme.key)}
+                      style={[styles.themeOption, isActive && styles.themeOptionActive]}
+                      onPress={() => {
+                        if (theme.key === null) {
+                          setPremiumBgTheme(null);
+                          setShowPremiumThemePicker(false);
+                        } else if (unlocked) {
+                          setPremiumBgTheme(theme.key);
+                          setShowPremiumThemePicker(false);
+                        } else {
+                          setShowPremiumThemePicker(false);
+                          const productId = THEME_PRODUCTS[theme.key];
+                          const price = getIapPrice(productId);
+                          const selectedKey = theme.key;
+                          Alert.alert(
+                            `${theme.label}`,
+                            `Unlock this theme${price ? ` for ${price}` : ''} — yours forever across all your prayers.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(productId, () => setPremiumBgTheme(selectedKey)) },
+                            ]
+                          );
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.themeOptionText}>{theme.label}</Text>
+                      {isActive
+                        ? <Text style={{ color: '#10b981', fontSize: 14 }}>✓</Text>
+                        : theme.key !== null
+                          ? <Text style={{ color: unlocked ? '#10b981' : '#fbbf24', fontSize: 12 }}>{unlocked ? '✓ Owned' : '🔒'}</Text>
+                          : null
                       }
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.themeOptionText}>{theme.label}</Text>
-                    {premiumBgTheme === theme.key
-                      ? <Text style={{ color: '#10b981', fontSize: 14 }}>✓</Text>
-                      : theme.key !== null
-                        ? <Text style={{ color: '#fbbf24', fontSize: 12 }}>{iapThemesUnlocked ? '✓' : '🔒 Premium'}</Text>
-                        : null
-                    }
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
 

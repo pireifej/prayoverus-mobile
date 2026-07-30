@@ -2338,14 +2338,9 @@ function App() {
 
   // Block a user — removes their content from feed immediately, persists locally, notifies backend
   const handleBlockUser = async (userId, userName) => {
-    const idStr = userId.toString();
-    const newBlocked = new Set([...blockedUserIds, idStr]);
-    setBlockedUserIds(newBlocked);
-    setCommunityPrayers(prev => prev.filter(p => p.user_id?.toString() !== idStr));
     setViewingMember(null);
-    showToast(`${userName} has been blocked and their content removed from your feed.`, '🛡️');
+    showToast('Our team will be notified and will review this content within 24 hours.', '🛡️');
     try {
-      await AsyncStorage.setItem('@blocked_users', JSON.stringify([...newBlocked]));
       await fetch('https://shouldcallpaul.replit.app/blockUser', {
         method: 'POST',
         headers: {
@@ -4462,7 +4457,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showModal({
                     icon: '🛡️',
                     title: `Block ${name}?`,
-                    message: `${name}'s content will be removed from your feed immediately. This action cannot be undone from within the app.`,
+                    message: 'Our team will be notified and will review this content within 24 hours.',
                     buttons: [
                       { label: 'Cancel' },
                       { label: 'Block', onPress: () => handleBlockUser(member.id, name), style: { color: '#ef4444' } },
@@ -6980,9 +6975,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           // Filter out blocked users from community feed
           if (blockedUserIds.size > 0 && !showMyRequestsOnly) {
-            filteredPrayers = filteredPrayers.filter(p => !blockedUserIds.has(p.user_id?.toString()));
-          }
-
           // Apply "Hide Prayed" filter (only relevant on community feed)
           if (hideAlreadyPrayed && !showMyRequestsOnly) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
@@ -7071,7 +7063,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     showModal({
                       icon: '🚫',
                       title: `Block ${name}?`,
-                      message: `You won't see ${name}'s content anymore. Our team will be notified.`,
+                      message: 'Our team will be notified and will review this content within 24 hours.',
                       buttons: [
                         { label: 'Cancel' },
                         { label: 'Block', onPress: () => handleBlockUser(p.user_id, name) },

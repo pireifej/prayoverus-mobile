@@ -7,3 +7,4 @@
 - [Modal unmount crash](modal-unmount-crash.md) — never call setState then onLogin while a Modal is visible; the Modal's fade animation crashes when parent unmounts mid-animation. Use a plain View overlay instead of Modal for login loading states.
 - [Notification email change](notification-email-change.md) — prayer support emails replaced with nightly summary; good feature to highlight in future update broadcasts
 - [Second-launch crash after Google login](second-launch-crash.md) — getInitialURL() in a re-running useEffect replays stale OAuth URL; fix: mount-only effect + ignore OAuth URLs + add AppErrorBoundary
+- [Consumable IAP — Extra Prayer Post](consumable-iap-extra-post.md) — add per-post charge for 2nd+ daily posts; hold until 1.0.33 approved; needs new Consumable product in ASC + RevenueCat

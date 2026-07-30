@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "95",
+      "buildNumber": "96",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "usesAppleSignIn": true,
       "associatedDomains": [

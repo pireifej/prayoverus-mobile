@@ -239,6 +239,12 @@ class SimpleStorage {
 const storage = new SimpleStorage();
 
 // Component to render HTML with proper formatting in React Native
+// Convert markdown bold (**text**) to HTML <strong> tags for HtmlText rendering
+function markdownToHtml(text) {
+  if (!text) return text;
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
 function HtmlText({ html, style }) {
   if (!html) return null;
   
@@ -2866,8 +2872,8 @@ function App() {
         if (extRes.ok) {
           const extData = await extRes.json();
           if (extData.error === 0 && extData.result) {
-            prayerText = extData.result;
-            setExtendedPrayer(extData.result); // hide Generate button — already has extended prayer
+            prayerText = markdownToHtml(extData.result);
+            setExtendedPrayer(prayerText); // hide Generate button — already has extended prayer
           }
         }
       } catch (_) {}
@@ -2883,7 +2889,7 @@ function App() {
           if (normRes.ok) {
             const normData = await normRes.json();
             if (normData.error === 0 && normData.prayerText) {
-              prayerText = normData.prayerText;
+              prayerText = markdownToHtml(normData.prayerText);
             }
           }
         } catch (_) {}
@@ -2930,8 +2936,9 @@ function App() {
       const data = await res.json();
       if (data.error === 0 && data.result) {
         // Replace the prayer text in place — extended prayer becomes the new prayer
-        setExtendedPrayer(data.result); // flag to hide the Generate button
-        setPrayerModal(prev => ({ ...prev, generatedPrayer: data.result }));
+        const extText = markdownToHtml(data.result);
+        setExtendedPrayer(extText); // flag to hide the Generate button
+        setPrayerModal(prev => ({ ...prev, generatedPrayer: extText }));
       } else if (!silent) {
         showModal({ icon: '🙏', title: 'Extended Prayer', message: 'Could not load the extended prayer. Please try again.' });
       }

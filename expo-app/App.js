@@ -9957,10 +9957,10 @@ const styles = StyleSheet.create({
   },
   prayerCardImage: {
     width: '100%',
-    aspectRatio: 4 / 3,
-    borderRadius: 12,
-    marginTop: 12,
-    marginBottom: 12,
+    height: 160,
+    borderRadius: 10,
+    marginTop: 10,
+    marginBottom: 4,
   },
   postButton: {
     backgroundColor: '#6366f1',

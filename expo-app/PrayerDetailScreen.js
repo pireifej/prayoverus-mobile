@@ -635,7 +635,7 @@ export default function PrayerDetailScreen({
                   : `${API_BASE_URL}/${prayer.picture}` 
               }}
               style={styles.imageBanner}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </View>
         )}
@@ -744,7 +744,7 @@ export default function PrayerDetailScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#ffffff',
   },
   header: {
     flexDirection: 'row',
@@ -857,12 +857,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
   authorCardLeft: {
     flexDirection: 'row',
@@ -874,22 +872,22 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 12,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
   },
   titleLarge: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#0f172a',
-    lineHeight: 28,
+    lineHeight: 32,
+    letterSpacing: -0.3,
   },
   authorAvatarLarge: {
     width: 48,
@@ -924,30 +922,26 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   imageContainer: {
-    marginHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#000000',
     overflow: 'hidden',
   },
   imageBanner: {
     width: '100%',
-    height: 240,
+    aspectRatio: 4 / 3,
   },
   prayerCountSection: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
   },
   prayerCountBadge: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#dbeafe',
+    backgroundColor: '#ffffff',
   },
   prayerCountText: {
-    fontSize: 15,
-    color: '#2563eb',
+    fontSize: 14,
+    color: '#64748b',
     fontWeight: '600',
   },
   prayerNamesList: {
@@ -1074,40 +1068,42 @@ const styles = StyleSheet.create({
   prayerText: {
     fontSize: 17,
     color: '#334155',
-    lineHeight: 28,
-    letterSpacing: 0.2,
+    lineHeight: 30,
+    letterSpacing: 0.1,
   },
   actionContainer: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 32,
     backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    marginBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginTop: 4,
   },
   prayButton: {
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
-    minHeight: 52,
+    minHeight: 56,
   },
   prayButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 16,
   },
   prayButtonInner: {
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
+    backgroundColor: '#10b981',
+    borderRadius: 16,
   },
   prayButtonPrayed: {
     backgroundColor: '#10b981',
-    borderRadius: 14,
+    borderRadius: 16,
   },
   prayButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#ffffff',
+    letterSpacing: 0.2,
   },
 });

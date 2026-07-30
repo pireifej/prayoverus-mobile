@@ -35,7 +35,7 @@ class AppErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as StoreReview from 'expo-store-review';
 import { StatusBar } from 'expo-status-bar';
@@ -7404,11 +7404,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         setShowPremiumThemePicker(false);
                       } else {
                         setShowPremiumThemePicker(false);
-                        setIapModal({
-                          productId: PRODUCT_PREMIUM_THEMES,
-                          title: '🎨 Premium Themes',
-                          description: 'Unlock beautiful prayer themes to personalize your prayer experience.',
-                        });
+                        const price = getIapPrice(PRODUCT_PREMIUM_THEMES);
+                        Alert.alert(
+                          '🎨 Premium Themes',
+                          `Unlock all prayer themes${price ? ` for ${price}` : ''} — personalize your prayer experience.`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_PREMIUM_THEMES) },
+                          ]
+                        );
                       }
                     }}
                     activeOpacity={0.7}

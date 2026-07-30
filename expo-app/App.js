@@ -1101,7 +1101,7 @@ function App() {
     } catch (e) { console.warn('[IAP] load error:', e?.message); }
   };
 
-  const doIapPurchase = async (productId) => {
+  const doIapPurchase = async (productId, onSuccess) => {
     if (!rcAvailable || !Purchases) return;
     setIapPurchasing(true);
     try {
@@ -1110,7 +1110,11 @@ function App() {
       const { customerInfo } = await Purchases.purchaseStoreProduct(product);
       setIapCustomerInfo(customerInfo);
       setIapModal(null);
-      showToast('Thank you — enjoy your new feature.', '🙌');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        showToast('Thank you — enjoy your new feature.', '🙌');
+      }
     } catch (e) {
       if (!e?.userCancelled) showModal({ icon: '😔', title: 'Purchase failed', message: e?.message ?? 'Please try again.' });
     } finally {
@@ -7467,19 +7471,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
                       onPress={() => {
-                        if (iapExtendedPrayerUnlocked) {
-                          fetchExtendedPrayer(prayerModal.prayer?.id);
-                        } else {
-                          const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
-                          Alert.alert(
-                            '✨ Extended Prayer',
-                            `Unlock a deeper, AI-crafted extended prayer for your request.`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER) },
-                            ]
-                          );
-                        }
+                        const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
+                        const prayerId = prayerModal.prayer?.id;
+                        Alert.alert(
+                          '✨ Extended Prayer',
+                          `Generate a deeper, AI-crafted prayer for this request.`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: `Generate${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER, () => fetchExtendedPrayer(prayerId)) },
+                          ]
+                        );
                       }}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
@@ -7538,19 +7539,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
                       onPress={() => {
-                        if (iapExtendedPrayerUnlocked) {
-                          fetchExtendedPrayer(prayerModal.prayer?.id);
-                        } else {
-                          const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
-                          Alert.alert(
-                            '✨ Extended Prayer',
-                            `Unlock a deeper, AI-crafted extended prayer for your request.`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER) },
-                            ]
-                          );
-                        }
+                        const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
+                        const prayerId = prayerModal.prayer?.id;
+                        Alert.alert(
+                          '✨ Extended Prayer',
+                          `Generate a deeper, AI-crafted prayer for this request.`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: `Generate${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER, () => fetchExtendedPrayer(prayerId)) },
+                          ]
+                        );
                       }}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}

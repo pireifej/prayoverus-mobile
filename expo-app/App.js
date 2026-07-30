@@ -7419,7 +7419,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   contentContainerStyle={styles.sanctuaryScrollContent}
                   showsVerticalScrollIndicator={false}
                 >
-                  <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
+                  <View style={styles.sanctuaryTextScrim}>
+                    <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
+                  </View>
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
                   {/* Extended Prayer — only for your own prayer requests */}
@@ -7480,7 +7482,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   contentContainerStyle={styles.immersiveScrollContent}
                   showsVerticalScrollIndicator={false}
                 >
-                  <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                  <View style={styles.immersiveTextScrim}>
+                    <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                  </View>
                 </ScrollView>
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
@@ -8687,15 +8691,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
   },
+  sanctuaryTextScrim: {
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    borderRadius: 20,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+  },
   sanctuaryPrayerText: {
     fontSize: 20,
     lineHeight: 42,
     color: '#F5F0E8',
     textAlign: 'center',
     letterSpacing: 0.3,
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    textShadowRadius: 4,
   },
   sanctuaryFooter: {
     alignItems: 'center',
@@ -8913,15 +8923,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
     paddingVertical: 40,
   },
+  immersiveTextScrim: {
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+  },
   immersivePrayerText: {
     fontSize: 22,
     lineHeight: 44,
     color: '#F5F0E8',
     textAlign: 'center',
     letterSpacing: 0.4,
-    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    textShadowRadius: 4,
   },
   immersiveFooter: {
     alignItems: 'center',

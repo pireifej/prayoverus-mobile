@@ -810,7 +810,7 @@ function App() {
 
   const renderBottomNav = () => (
     <View style={[styles.bottomNav, { paddingBottom: BOTTOM_INSET }]}>
-      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('home')}>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => { setCurrentScreen('home'); setShowMyRequestsOnly(false); setShowChurchOnly(false); setHideAlreadyPrayed(false); }}>
         <Text style={styles.bottomNavIcon}>🏠</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'home' && styles.bottomNavLabelActive]}>{t('home')}</Text>
       </TouchableOpacity>

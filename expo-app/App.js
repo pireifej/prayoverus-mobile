@@ -68,8 +68,8 @@ const PRODUCT_PREMIUM_THEMES   = 'premium_themes'; // legacy
 
 // Per-theme products & entitlements (key matches theme key in picker)
 const THEME_PRODUCTS = {
-  amber:    'theme_amber',
-  purple:   'theme_purple',
+  golden:   'theme_golden',
+  amethyst: 'theme_amethyst',
   rose:     'theme_rose',
   forest:   'theme_forest',
   midnight: 'theme_midnight',
@@ -7346,8 +7346,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.28)', zIndex: 0 }]} pointerEvents="none" />
 
             {/* Premium theme color overlay */}
-            {premiumBgTheme === 'amber' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}
-            {premiumBgTheme === 'purple' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(124,58,237,0.30)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'golden' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,158,11,0.30)', zIndex: 0 }]} pointerEvents="none" />}
+            {premiumBgTheme === 'amethyst' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(124,58,237,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'rose' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(244,63,94,0.25)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'forest' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(22,101,52,0.30)', zIndex: 0 }]} pointerEvents="none" />}
             {premiumBgTheme === 'midnight' && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,23,42,0.45)', zIndex: 0 }]} pointerEvents="none" />}
@@ -7371,12 +7371,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <View style={styles.themePicker}>
                 <Text style={styles.themePickerTitle}>Prayer Themes</Text>
                 {[
-                  { key: null, label: '✕ None (default)', color: '#6b7280' },
-                  { key: 'amber', label: '🌅 Golden Sunset', color: '#d97706' },
-                  { key: 'purple', label: '💜 Amethyst', color: '#7c3aed' },
-                  { key: 'rose', label: '🌸 Rose Dawn', color: '#f43f5e' },
-                  { key: 'forest', label: '🌿 Forest', color: '#166534' },
-                  { key: 'midnight', label: '🌌 Midnight', color: '#0f172a' },
+                  { key: null,       label: '✕ None (default)', color: '#6b7280' },
+                  { key: 'golden',   label: '🌅 Golden',         color: '#d97706' },
+                  { key: 'amethyst', label: '💜 Amethyst',       color: '#7c3aed' },
+                  { key: 'rose',     label: '🌸 Rose',           color: '#f43f5e' },
+                  { key: 'forest',   label: '🌿 Forest',         color: '#166534' },
+                  { key: 'midnight', label: '🌌 Midnight',       color: '#0f172a' },
                 ].map(theme => {
                   const unlocked = theme.key === null || isThemeUnlocked(theme.key);
                   const isActive = premiumBgTheme === theme.key;

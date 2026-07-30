@@ -390,7 +390,7 @@ const base64EncodeForMenu = (str) => {
 };
 
 // Prayer Options Menu Component - Three dots menu for edit/delete/share
-function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, onReport, isProfileSection = false }) {
+function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, onReport, onBlock, isProfileSection = false }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
@@ -587,7 +587,19 @@ function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnsw
                 <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Report Content</Text>
               </TouchableOpacity>
             )}
-            
+
+            {/* Block User - Non-owners only */}
+            {!isOwner && onBlock && (
+              <TouchableOpacity
+                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
+                onPress={() => { setMenuVisible(false); onBlock(prayer); }}
+                data-testid={`button-block-${prayer.id}`}
+              >
+                <Text style={optionsMenuStyles.menuIcon}>🚫</Text>
+                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Block User</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Cancel */}
             <TouchableOpacity 
               style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemCancel]}
@@ -2301,7 +2313,7 @@ function App() {
     showModal({
       icon: '🚩',
       title: 'Report this content?',
-      message: 'This prayer will be removed from your feed and our team will be notified to review it within 24 hours.',
+      message: 'Our team will be notified and will review this content within 24 hours.',
       buttons: [
         { label: 'Cancel' },
         {
@@ -7054,6 +7066,18 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   onDelete={handleDeletePrayer}
                   onMarkAnswered={handleMarkAnswered}
                   onReport={handleReportContent}
+                  onBlock={(p) => {
+                    const name = p.author || 'This user';
+                    showModal({
+                      icon: '🚫',
+                      title: `Block ${name}?`,
+                      message: `You won't see ${name}'s content anymore. Our team will be notified.`,
+                      buttons: [
+                        { label: 'Cancel' },
+                        { label: 'Block', onPress: () => handleBlockUser(p.user_id, name) },
+                      ],
+                    });
+                  }}
                 />
                 
                 <Text style={styles.prayerTitle}>

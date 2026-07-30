@@ -2935,7 +2935,9 @@ function App() {
       });
       const data = await res.json();
       if (data.error === 0 && data.result) {
-        setExtendedPrayer(data.result);
+        // Replace the prayer text in place — extended prayer becomes the new prayer
+        setExtendedPrayer(data.result); // flag to hide the Generate button
+        setPrayerModal(prev => ({ ...prev, generatedPrayer: data.result }));
       } else {
         showModal({ icon: '🙏', title: 'Extended Prayer', message: 'Could not load the extended prayer. Please try again.' });
       }
@@ -7340,15 +7342,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
             {/* ── Top bar: Theme + Close buttons ── */}
             <View style={styles.prayerModalTopBar}>
-              {/* Themes — only on your own prayer requests */}
-              {!!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() && (
-                <TouchableOpacity
-                  onPress={() => setShowPremiumThemePicker(v => !v)}
-                  style={styles.unlockThemeBtn}
-                >
-                  <Text style={styles.unlockThemeBtnText}>🎨 Themes</Text>
-                </TouchableOpacity>
-              )}
+              {/* Themes — available on all prayers */}
+              <TouchableOpacity
+                onPress={() => setShowPremiumThemePicker(v => !v)}
+                style={styles.unlockThemeBtn}
+              >
+                <Text style={styles.unlockThemeBtnText}>🎨 Themes</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={closePrayerModal} style={styles.fullScreenCloseButton}>
                 <Text style={styles.fullScreenCloseButtonText}>✕</Text>
               </TouchableOpacity>
@@ -7436,12 +7436,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showsVerticalScrollIndicator={false}
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
-                  {extendedPrayer ? (
-                    <View style={{ marginTop: 20, padding: 16, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ {t('extendedPrayerLabel')}</Text>
-                      <Text style={{ color: '#e2e8f0', fontSize: 16, lineHeight: 26, fontStyle: 'italic' }}>{extendedPrayer}</Text>
-                    </View>
-                  ) : null}
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
                   {/* Extended Prayer — only for your own prayer requests */}
@@ -7503,12 +7497,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showsVerticalScrollIndicator={false}
                 >
                   <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
-                  {extendedPrayer ? (
-                    <View style={{ marginTop: 20, padding: 16, backgroundColor: 'rgba(251,191,36,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                      <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>✨ {t('extendedPrayerLabel')}</Text>
-                      <Text style={{ color: '#e2e8f0', fontSize: 16, lineHeight: 26, fontStyle: 'italic' }}>{extendedPrayer}</Text>
-                    </View>
-                  ) : null}
                 </ScrollView>
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>

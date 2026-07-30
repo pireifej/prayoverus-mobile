@@ -3864,48 +3864,59 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   };
 
   // Submit the answered testimony to the API
-  const submitTestimony = async () => {
+  const submitTestimony = () => {
     if (!answeredModal.prayer || !answeredModal.text.trim() || answeredModal.isLoading) return;
-    setAnsweredModal(prev => ({ ...prev, isLoading: true }));
-    try {
-      const res = await fetch('https://shouldcallpaul.replit.app/markPrayerAnswered', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          request_id: answeredModal.prayer.id,
-          user_id: currentUser?.id,
-          answered_message: answeredModal.text.trim(),
-        }),
+
+    const prayerId = answeredModal.prayer.id;
+    const answeredMessage = answeredModal.text.trim();
+
+    // Optimistic update — close modal and update feed immediately
+    setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
+    setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
+    setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
+    playHeavenlyChime();
+    showToast('Your testimony has been shared! 🙌 Notifying everyone who prayed for you...', '🙌');
+
+    // Fire request in background — no await
+    fetch('https://shouldcallpaul.replit.app/markPrayerAnswered', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
+      },
+      body: JSON.stringify({
+        request_id: prayerId,
+        user_id: currentUser?.id,
+        answered_message: answeredMessage,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log('📥 markPrayerAnswered response:', JSON.stringify(data));
+        const isSuccess = data.error === 0 || data.success === true || (data.result && !String(data.result).toLowerCase().includes('fail'));
+        if (isSuccess) {
+          const notified = data.notified || data.pushCount || 0;
+          setTimeout(() => maybeRequestReview(), 3000);
+          if (data.new_badge) showBadgeCelebration(data.new_badge);
+          if (notified > 0) {
+            const peopleWord = notified === 1 ? 'person' : 'people';
+            const verbWord = notified === 1 ? 'has' : 'have';
+            showToast(`${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`, '🔔');
+          }
+        } else {
+          // Revert optimistic update on failure
+          const errMsg = data.result || data.message || data.error || 'Failed to share testimony';
+          setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: false } : p));
+          showModal({ icon: '⚠️', title: 'Could not share testimony', message: String(errMsg) });
+        }
+      })
+      .catch(e => {
+        console.log('📥 markPrayerAnswered error:', e?.message);
+        // Revert optimistic update on network error
+        setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: false } : p));
+        showModal({ icon: '📶', title: 'Error', message: 'Could not reach the server. Your testimony may not have been saved — please try again.' });
       });
-      const data = await res.json();
-      console.log('📥 markPrayerAnswered response:', JSON.stringify(data));
-      const isSuccess = data.error === 0 || data.success === true || res.status === 200 && data.result && !data.result.toLowerCase().includes('fail');
-      if (isSuccess) {
-        const notified = data.notified || data.pushCount || 0;
-        const prayerId = answeredModal.prayer.id;
-        setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
-        setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
-        setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
-        playHeavenlyChime();
-        setTimeout(() => maybeRequestReview(), 3000);
-        if (data.new_badge) showBadgeCelebration(data.new_badge);
-        const peopleWord = notified === 1 ? 'person' : 'people';
-        const verbWord = notified === 1 ? 'has' : 'have';
-        showToast(`Your testimony has been shared! ${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`, '🙌');
-      } else {
-        const errMsg = data.result || data.message || data.error || 'Failed to share testimony';
-        showModal({ icon: '⚠️', title: 'Error', message: String(errMsg) });
-        setAnsweredModal(prev => ({ ...prev, isLoading: false }));
-      }
-    } catch (e) {
-      console.log('📥 markPrayerAnswered error:', e?.message);
-      showModal({ icon: '📶', title: 'Error', message: 'Could not reach the server. Please check your connection.' });
-      setAnsweredModal(prev => ({ ...prev, isLoading: false }));
-    }
   };
 
   // Fetch all churches for the dropdown

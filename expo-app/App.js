@@ -3370,16 +3370,8 @@ Through Christ our Lord. Amen.`;
   const handlePrayFromDetailScreen = (prayer, context) => {
     if (!prayer) return;
     
-    // Store the detail screen context for auto-advance after Amen
-    if (context) {
-      detailScreenContextRef.current = {
-        index: context.index,
-        prayerIds: context.prayerIds,
-        isInFeedList: context.isInFeedList
-      };
-    } else {
-      detailScreenContextRef.current = null;
-    }
+    // Store ref so closePrayerModal returns to this same detail screen after Amen
+    returnToDetailRef.current = { prayerId: prayer.id };
     
     // Close detail screen first, then open prayer modal
     closeDetailModal();
@@ -3694,23 +3686,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       }, 2000);
     }
 
-    // Play confetti animation, then close immediately after it finishes
+    // Play confetti animation, then close — closePrayerModal returns to same detail screen if opened from one
     triggerPrayerAnimation();
     setTimeout(() => {
       closePrayerModal();
       showFloatingPoints('+1 pt 🙏');
-
-      // Auto-advance if opened from feed
-      const context = detailScreenContextRef.current;
-      detailScreenContextRef.current = null;
-      const hasNextPrayer = context && context.isInFeedList && context.index < context.prayerIds.length - 1;
-      if (hasNextPrayer) {
-        const newIndex = context.index + 1;
-        setTimeout(() => {
-          setDetailScreenProps({ requestId: context.prayerIds[newIndex], prayerIds: context.prayerIds, currentIndex: newIndex });
-          setShowDetailScreen(true);
-        }, 300);
-      }
     }, 900); // Just long enough for confetti to shine ✨
   };
 

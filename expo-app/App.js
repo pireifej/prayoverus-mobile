@@ -2906,6 +2906,7 @@ function App() {
   const fetchExtendedPrayer = async (prayerId, { silent = false } = {}) => {
     if (!prayerId) return;
     if (!silent) setLoadingExtendedPrayer(true);
+    setExtendedPrayer('generating'); // hide the button immediately while AI generates
     try {
       const res = await fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
         method: 'POST',

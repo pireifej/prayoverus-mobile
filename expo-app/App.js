@@ -7478,11 +7478,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         if (iapExtendedPrayerUnlocked) {
                           fetchExtendedPrayer(prayerModal.prayer?.id);
                         } else {
-                          setIapModal({
-                            productId: PRODUCT_EXTENDED_PRAYER,
-                            title: '✨ Extended Prayer',
-                            description: 'Unlock a deeper, AI-crafted extended prayer for your request.',
-                          });
+                          const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
+                          Alert.alert(
+                            '✨ Extended Prayer',
+                            `Unlock a deeper, AI-crafted extended prayer for your request.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER) },
+                            ]
+                          );
                         }
                       }}
                       activeOpacity={0.8}
@@ -7545,11 +7549,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                         if (iapExtendedPrayerUnlocked) {
                           fetchExtendedPrayer(prayerModal.prayer?.id);
                         } else {
-                          setIapModal({
-                            productId: PRODUCT_EXTENDED_PRAYER,
-                            title: '✨ Extended Prayer',
-                            description: 'Unlock a deeper, AI-crafted extended prayer for your request.',
-                          });
+                          const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
+                          Alert.alert(
+                            '✨ Extended Prayer',
+                            `Unlock a deeper, AI-crafted extended prayer for your request.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER) },
+                            ]
+                          );
                         }
                       }}
                       activeOpacity={0.8}

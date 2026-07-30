@@ -329,6 +329,7 @@ export default function PrayerDetailScreen({
           content: data.request.request_text,
           author: data.request.real_name || data.request.user_name,
           real_name: data.request.real_name,
+          user_id: data.request.user_id,
           picture: data.request.request_picture,
           date: data.request.timestamp,
           category: null,

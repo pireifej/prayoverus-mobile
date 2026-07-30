@@ -7367,7 +7367,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {/* ── Top bar: Theme + Close buttons ── */}
             <View style={styles.prayerModalTopBar}>
               {/* Themes — only on your own prayer requests */}
-              {prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() && (
+              {!!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() && (
                 <TouchableOpacity
                   onPress={() => setShowPremiumThemePicker(v => !v)}
                   style={styles.unlockThemeBtn}
@@ -7467,7 +7467,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
                   {/* Extended Prayer — only for your own prayer requests */}
-                  {!extendedPrayer && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
+                  {!extendedPrayer && !!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
                       onPress={() => {
@@ -7534,7 +7534,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <View style={styles.immersiveFooter}>
                   <Text style={styles.immersiveAttribution}>for {prayerModal.prayer?.author}</Text>
                   {/* Extended Prayer — only for your own prayer requests */}
-                  {!extendedPrayer && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
+                  {!extendedPrayer && !!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
                       onPress={() => {

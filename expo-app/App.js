@@ -2887,6 +2887,8 @@ function App() {
               generatedPrayer: data.prayerText,
               loading: false
             }));
+            // Silently load extended prayer if one exists — replaces text automatically
+            fetchExtendedPrayer(prayerRequest.id, { silent: true });
             return;
           } else {
             console.log('data.error:', data.error);
@@ -2921,9 +2923,9 @@ function App() {
     }
   };
 
-  const fetchExtendedPrayer = async (prayerId) => {
+  const fetchExtendedPrayer = async (prayerId, { silent = false } = {}) => {
     if (!prayerId) return;
-    setLoadingExtendedPrayer(true);
+    if (!silent) setLoadingExtendedPrayer(true);
     try {
       const res = await fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
         method: 'POST',
@@ -2938,14 +2940,14 @@ function App() {
         // Replace the prayer text in place — extended prayer becomes the new prayer
         setExtendedPrayer(data.result); // flag to hide the Generate button
         setPrayerModal(prev => ({ ...prev, generatedPrayer: data.result }));
-      } else {
+      } else if (!silent) {
         showModal({ icon: '🙏', title: 'Extended Prayer', message: 'Could not load the extended prayer. Please try again.' });
       }
     } catch (e) {
       console.log('[ExtendedPrayer] error:', e.message);
-      showModal({ icon: '⚠️', title: 'Error', message: 'Could not load the extended prayer.' });
+      if (!silent) showModal({ icon: '⚠️', title: 'Error', message: 'Could not load the extended prayer.' });
     } finally {
-      setLoadingExtendedPrayer(false);
+      if (!silent) setLoadingExtendedPrayer(false);
     }
   };
 

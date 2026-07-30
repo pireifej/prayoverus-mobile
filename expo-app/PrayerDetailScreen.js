@@ -342,7 +342,9 @@ export default function PrayerDetailScreen({
             })),
           user_picture: data.request.user_picture,
           church_id: data.request.church_id,
-          my_church_only: data.request.my_church_only
+          my_church_only: data.request.my_church_only,
+          is_answered: !!(data.request.is_answered || data.request.prayer_answered),
+          answered_message: data.request.answered_message || null,
         };
         
         // Cache the prayer
@@ -644,6 +646,13 @@ export default function PrayerDetailScreen({
           <Text style={styles.prayerText} selectable={true}>{prayer?.content}</Text>
         </View>
 
+        {prayer?.is_answered && prayer?.answered_message && (
+          <View style={styles.testimonyContainer}>
+            <Text style={styles.testimonyLabel}>✅ Prayer Answered</Text>
+            <Text style={styles.testimonyText} selectable={true}>"{prayer.answered_message}"</Text>
+          </View>
+        )}
+
         {prayer?.prayer_count > 0 && (
           <View style={styles.prayerCountSection}>
             <View style={styles.prayerCountBadge}>
@@ -928,6 +937,29 @@ const styles = StyleSheet.create({
   imageBanner: {
     width: '100%',
     aspectRatio: 4 / 3,
+  },
+  testimonyContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    backgroundColor: '#f0fdf4',
+    borderTopWidth: 1,
+    borderTopColor: '#bbf7d0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bbf7d0',
+  },
+  testimonyLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#16a34a',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  testimonyText: {
+    fontSize: 16,
+    color: '#166534',
+    lineHeight: 26,
+    fontStyle: 'italic',
   },
   prayerCountSection: {
     paddingHorizontal: 20,

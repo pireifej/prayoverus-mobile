@@ -6977,8 +6977,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             ? prayers.map(p => answeredIds.has(p.id) ? { ...p, is_answered: true } : p)
             : communityPrayers;
           
-          // Filter out blocked users from community feed
-          if (blockedUserIds.size > 0 && !showMyRequestsOnly) {
           // Apply "Hide Prayed" filter (only relevant on community feed)
           if (hideAlreadyPrayed && !showMyRequestsOnly) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);

@@ -2852,61 +2852,53 @@ function App() {
         }),
       ]).start();
 
-      // Get prayer text from database by request ID
-      try {
-        const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
-        const requestPayload = {
-          requestId: prayerRequest.id,
-          lang: userLang,
-        };
-        
-        // Clean debug output - endpoint and payload ONLY
-        console.log('📱 MOBILE APP API CALL:');
-        console.log('POST ' + endpoint);
-        console.log(JSON.stringify(requestPayload, null, 2));
-        
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: JSON.stringify(requestPayload),
-        });
+      const authHeader = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
+      const payload = { requestId: prayerRequest.id, lang: userLang };
+      let prayerText = null;
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('data.error:', data.error);
-          console.log('data.prayerText exists:', !!data.prayerText);
-          console.log('data.prayerText length:', data.prayerText?.length);
-          
-          if (data.error === 0 && data.prayerText) {
-            setPrayerModal(prev => ({
-              ...prev,
-              generatedPrayer: data.prayerText,
-              loading: false
-            }));
-            // Silently load extended prayer if one exists — replaces text automatically
-            fetchExtendedPrayer(prayerRequest.id, { silent: true });
-            return;
-          } else {
-            console.log('data.error:', data.error);
-            console.log('Available fields:', Object.keys(data));
+      // 1. Try extended prayer first — backend caches it, instant on repeat visits
+      try {
+        const extRes = await fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+          body: JSON.stringify(payload),
+        });
+        if (extRes.ok) {
+          const extData = await extRes.json();
+          if (extData.error === 0 && extData.result) {
+            prayerText = extData.result;
+            setExtendedPrayer(extData.result); // hide Generate button — already has extended prayer
           }
-        } else {
         }
-      } catch (error) {
+      } catch (_) {}
+
+      // 2. Fall back to normal prayer if no extended prayer exists
+      if (!prayerText) {
+        try {
+          const normRes = await fetch('https://shouldcallpaul.replit.app/getPrayerByRequestId', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': authHeader },
+            body: JSON.stringify(payload),
+          });
+          if (normRes.ok) {
+            const normData = await normRes.json();
+            if (normData.error === 0 && normData.prayerText) {
+              prayerText = normData.prayerText;
+            }
+          }
+        } catch (_) {}
       }
 
-      // Fallback prayer if API fails
-      const fallbackPrayer = userLang === 'es'
-        ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`
-        : `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request.\n\nGrant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.\n\nThrough Christ our Lord. Amen.`;
-      
+      // 3. Last resort hardcoded fallback (very old requests with no prayer at all)
+      if (!prayerText) {
+        prayerText = userLang === 'es'
+          ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`
+          : `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request.\n\nGrant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.\n\nThrough Christ our Lord. Amen.`;
+      }
+
       setPrayerModal(prev => ({
         ...prev,
-        generatedPrayer: fallbackPrayer,
+        generatedPrayer: prayerText,
         loading: false
       }));
 

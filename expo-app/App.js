@@ -2860,42 +2860,33 @@ function App() {
 
       const authHeader = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
       const payload = { requestId: prayerRequest.id, lang: userLang };
-      let prayerText = null;
 
-      // 1. Try extended prayer first — backend caches it, instant on repeat visits
-      try {
-        const extRes = await fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
+      // Fire both calls in parallel — use extended if it exists, normal as fallback
+      const [extData, normData] = await Promise.all([
+        fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
           body: JSON.stringify(payload),
-        });
-        if (extRes.ok) {
-          const extData = await extRes.json();
-          if (extData.error === 0 && extData.result) {
-            prayerText = markdownToHtml(extData.result);
-            setExtendedPrayer(prayerText); // hide Generate button — already has extended prayer
-          }
-        }
-      } catch (_) {}
+        }).then(r => r.json()).catch(() => null),
+        fetch('https://shouldcallpaul.replit.app/getPrayerByRequestId', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+          body: JSON.stringify(payload),
+        }).then(r => r.json()).catch(() => null),
+      ]);
 
-      // 2. Fall back to normal prayer if no extended prayer exists
-      if (!prayerText) {
-        try {
-          const normRes = await fetch('https://shouldcallpaul.replit.app/getPrayerByRequestId', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': authHeader },
-            body: JSON.stringify(payload),
-          });
-          if (normRes.ok) {
-            const normData = await normRes.json();
-            if (normData.error === 0 && normData.prayerText) {
-              prayerText = markdownToHtml(normData.prayerText);
-            }
-          }
-        } catch (_) {}
+      let prayerText = null;
+
+      if (extData?.error === 0 && extData?.result) {
+        // Extended prayer exists — use it and hide the Generate button
+        prayerText = markdownToHtml(extData.result);
+        setExtendedPrayer(prayerText);
+      } else if (normData?.error === 0 && normData?.prayerText) {
+        // No extended prayer yet — use normal prayer
+        prayerText = markdownToHtml(normData.prayerText);
       }
 
-      // 3. Last resort hardcoded fallback (very old requests with no prayer at all)
+      // Last resort: hardcoded fallback for very old requests with no prayer at all
       if (!prayerText) {
         prayerText = userLang === 'es'
           ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`

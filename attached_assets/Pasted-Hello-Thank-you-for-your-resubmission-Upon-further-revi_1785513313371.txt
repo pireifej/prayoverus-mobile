@@ -1,0 +1,102 @@
+Hello,
+
+Thank you for your resubmission. Upon further review, we identified additional issues that need your attention. See below for more information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Bug Fix Submissions
+
+The issues we've identified below are eligible to be resolved on your next update. If this submission includes bug fixes and you'd like to have it approved at this time, reply to this message and let us know. You do not need to resubmit your app for us to proceed.
+
+Alternatively, if you'd like to resolve these issues now, please review the details, make the appropriate changes, and resubmit.
+
+Review Environment
+Submission ID: 3e445097-e5f4-4569-8537-7e467da3526d
+Review date: July 31, 2026
+Review Device: iPad Air 11-inch (M3)
+Version reviewed: 1.0.32 (102)
+
+
+App Version
+Guideline 1.2 - Safety - User-Generated Content
+
+Issue Description
+
+We found in our review that the app includes user-generated content but does not have all the required precautions. Apps with user-generated content must take specific steps to moderate content and prevent abusive behavior.
+
+Next Steps
+
+To resolve this issue, revise the app to implement the following precautions: require that users agree to terms (EULA) and these terms must make it clear that there is no tolerance for objectionable content or abusive users.
+
+Once the required precautions have been implemented, or if they are already in place, reply to this message with a screen recording captured on a physical device that demonstrates:
+
+- The EULA or terms of use agreement presented to users before registering or logging in
+- The mechanism for users to flag objectionable content
+- The mechanism for users to block abusive users
+
+Include the recording in the Notes field of the App Review Information section in App Store Connect for future submissions.
+
+Resources
+
+Learn more about our policies for user-generated content in guideline 1.2.
+Guideline 2.3.10 - Performance - Accurate Metadata
+Issue Description
+
+The app or metadata includes information about third-party platforms that may not be relevant for App Store users, who are focused on experiences offered by the app itself.
+
+Next Steps
+
+Revise the app's screenshots to remove non-iOS status bar images. 
+
+Revised screenshots should accurately reflect the app in use on the supported devices and highlight the app's main features in the majority of the screenshots. Note some screenshots may only be viewed and updated by selecting "View All Sizes in Media Manager" in the Previews and Screenshots section of App Store Connect. 
+
+Reply to App Review in App Store Connect with additional information if the app's functionality and how it interacts with third-party platforms has been misunderstood.
+
+Resources
+
+Learn how to edit App Store metadata on App Store Connect Help.
+
+
+IAP Theme Rose
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+
+
+IAP Theme Amethyst
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+
+
+IAP Theme Midnight
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+
+
+IAP Theme Forest
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+
+
+IAP Theme Golden
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+
+
+IAP Extended Prayer Single
+App Review Notice
+
+This In-App Purchase, subscription, or Game Center component has been returned because the associated app was rejected. It will have the "Rejected" status until it is resubmitted for review. Learn more about submitting In-App Purchases or Game Center components for review.
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Request an App Review Appointment at Meet with Apple to discuss your app's review. Appointments subject to availability during your local business hours on Tuesdays and Thursdays.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.
+

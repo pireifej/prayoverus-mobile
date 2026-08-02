@@ -1,0 +1,51 @@
+ What do you want to do? › Distribution Certificate: Add a new one to your account
+✔ Generate a new Apple Distribution Certificate? … yes
+✔ Created Apple distribution certificate
+✔ Created distribution certificate
+✔ Do you want pray-over-us to use the new Distribution Certificate? … yes
+Setting up pray-over-us to use Distribution Certificate
+Creating provisioning profile...
+✔ Generate a new Apple Provisioning Profile? … yes
+✔ Created Apple provisioning profile
+✔ Created provisioning profile
+Press any key to continue...
+
+
+iOS Credentials            
+Project                    @pireifej/pray-over-us
+Bundle Identifier          com.pireifej.prayoverus
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+                           
+Push Key                   
+Developer Portal ID        G49NSL8CBS
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    8 months ago
+                           
+App Store Connect API Key  
+Developer Portal ID        LB69DG6Z4L
+Issuer ID                  bd0a1c09-ea05-4a1e-aa75-001705abdbdb
+Updated                    29 days ago
+                           
+                           
+App Store Configuration    
+                           
+Distribution Certificate   
+Serial Number              5EF9BB5503BFD472A34EB72C8B2DC328
+Expiration Date            Mon, 02 Aug 2027 20:29:55 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    10 seconds ago
+                           
+Provisioning Profile       
+Developer Portal ID        DD8SQL6WRY
+Status                     active
+Expiration                 Mon, 02 Aug 2027 20:29:55 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    4 seconds ago
+                           
+? What do you want to do? › - Use arrow-keys. Return to submit.
+❯   All: Set up all the required credentials to build your project
+    Distribution Certificate: Use an existing one for your project
+    Distribution Certificate: Add a new one to your account
+    Distribution Certificate: Delete one from your account
+    Provisioning Profile: Delete one from your project
+    Go back

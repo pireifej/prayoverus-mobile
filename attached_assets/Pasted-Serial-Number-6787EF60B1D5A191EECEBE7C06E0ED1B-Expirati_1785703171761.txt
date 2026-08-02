@@ -1,0 +1,51 @@
+Serial Number              6787EF60B1D5A191EECEBE7C06E0ED1B
+Expiration Date            Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    11 months ago
+                           
+Provisioning Profile       
+Developer Portal ID        S4639SU4A9
+Status                     active
+Expiration                 Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    1 month ago
+                           
+✔ What do you want to do? › Build Credentials: Manage everything needed to build your project
+iOS Credentials            
+Project                    @pireifej/pray-over-us
+Bundle Identifier          com.pireifej.prayoverus
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+                           
+Push Key                   
+Developer Portal ID        G49NSL8CBS
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    8 months ago
+                           
+App Store Connect API Key  
+Developer Portal ID        LB69DG6Z4L
+Issuer ID                  bd0a1c09-ea05-4a1e-aa75-001705abdbdb
+Updated                    29 days ago
+                           
+                           
+App Store Configuration    
+                           
+Distribution Certificate   
+Serial Number              6787EF60B1D5A191EECEBE7C06E0ED1B
+Expiration Date            Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    11 months ago
+                           
+Provisioning Profile       
+Developer Portal ID        S4639SU4A9
+Status                     active
+Expiration                 Tue, 01 Sep 2026 11:55:26 UTC
+Apple Team                 MC4R3L639K (Paul Ireifej (Individual))
+Updated                    1 month ago
+                           
+? What do you want to do? › - Use arrow-keys. Return to submit.
+    All: Set up all the required credentials to build your project
+    Distribution Certificate: Use an existing one for your project
+❯   Distribution Certificate: Add a new one to your account
+    Distribution Certificate: Delete one from your account
+    Provisioning Profile: Delete one from your project
+    Go back

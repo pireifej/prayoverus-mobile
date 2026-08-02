@@ -64,14 +64,17 @@ let rcAvailable = false;
 let Purchases = null;
 const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
 const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes'; // legacy — unlocks all themes
-// Apple uses underscores; Google Play uses hyphens (no underscores, max 20 chars)
-const PRODUCT_EXTENDED_PRAYER = Platform.OS === 'android' ? 'extended-prayer' : 'extended_prayer_single';
+const PRODUCT_EXTENDED_PRAYER = 'extended_prayer_single';
 const PRODUCT_PREMIUM_THEMES   = 'premium_themes'; // legacy
 
-// Per-theme products & entitlements (key matches theme key in picker)
-const THEME_PRODUCTS = Platform.OS === 'android'
-  ? { golden: 'theme-golden', amethyst: 'theme-amethyst', rose: 'theme-rose', forest: 'theme-forest', midnight: 'theme-midnight' }
-  : { golden: 'theme_golden', amethyst: 'theme_amethyst', rose: 'theme_rose', forest: 'theme_forest', midnight: 'theme_midnight' };
+// Per-theme products & entitlements — same IDs on both Apple and Google Play
+const THEME_PRODUCTS = {
+  golden:   'theme_golden',
+  amethyst: 'theme_amethyst',
+  rose:     'theme_rose',
+  forest:   'theme_forest',
+  midnight: 'theme_midnight',
+};
 const RC_TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const RC_IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const RC_ANDROID_KEY  = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;

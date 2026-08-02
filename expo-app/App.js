@@ -2366,8 +2366,21 @@ function App() {
 
   // Block a user — removes their content from feed immediately, persists locally, notifies backend
   const handleBlockUser = async (userId, userName) => {
+    // 1. Close member profile immediately
     setViewingMember(null);
-    showToast('Our team will be notified and will review this content within 24 hours.', '🛡️');
+
+    // 2. Update local blocked set and persist to AsyncStorage
+    const updatedBlocked = new Set(blockedUserIds);
+    updatedBlocked.add(String(userId));
+    setBlockedUserIds(updatedBlocked);
+    try {
+      await AsyncStorage.setItem('@blocked_users', JSON.stringify([...updatedBlocked]));
+    } catch (_) {}
+
+    // 3. Show user-facing confirmation
+    showToast('User blocked. You will no longer see content from this user.', '🚫');
+
+    // 4. Notify moderation team (fire-and-forget)
     try {
       await fetch('https://shouldcallpaul.replit.app/blockUser', {
         method: 'POST',
@@ -3113,11 +3126,14 @@ Through Christ our Lord. Amen.`;
   // Update filtered prayers ref when filters or prayers change
   useEffect(() => {
     let filtered = communityPrayers;
+    if (blockedUserIds.size > 0) {
+      filtered = filtered.filter(p => !blockedUserIds.has(String(p.user_id)));
+    }
     if (hideAlreadyPrayed) {
       filtered = filtered.filter(prayer => !prayer.user_has_prayed);
     }
     filteredPrayersRef.current = filtered;
-  }, [communityPrayers, hideAlreadyPrayed]);
+  }, [communityPrayers, hideAlreadyPrayed, blockedUserIds]);
 
   // Handle push notification taps — background & foreground
   useEffect(() => {
@@ -4456,7 +4472,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showModal({
                     icon: '🛡️',
                     title: `Block ${name}?`,
-                    message: 'Our team will be notified and will review this content within 24 hours.',
+                    message: 'You will no longer see content from this user. Our moderation team will also be notified.',
                     buttons: [
                       { label: 'Cancel' },
                       { label: 'Block', onPress: () => handleBlockUser(member.id, name), style: { color: '#ef4444' } },
@@ -6971,7 +6987,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           let filteredPrayers = showMyRequestsOnly
             ? prayers.map(p => answeredIds.has(p.id) ? { ...p, is_answered: true } : p)
             : communityPrayers;
-          
+
+          // Filter out blocked users (community feed only — Mine feed always shows own prayers)
+          if (!showMyRequestsOnly && blockedUserIds.size > 0) {
+            filteredPrayers = filteredPrayers.filter(p => !blockedUserIds.has(String(p.user_id)));
+          }
+
           // Apply "Hide Prayed" filter (only relevant on community feed)
           if (hideAlreadyPrayed && !showMyRequestsOnly) {
             filteredPrayers = filteredPrayers.filter(prayer => !prayer.user_has_prayed);
@@ -7060,7 +7081,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     showModal({
                       icon: '🚫',
                       title: `Block ${name}?`,
-                      message: 'Our team will be notified and will review this content within 24 hours.',
+                      message: 'You will no longer see content from this user. Our moderation team will also be notified.',
                       buttons: [
                         { label: 'Cancel' },
                         { label: 'Block', onPress: () => handleBlockUser(p.user_id, name) },

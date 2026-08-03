@@ -859,7 +859,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           auth_provider: user.auth_provider || 'facebook',
           has_password: user.has_password ?? false,
         };
-        console.log('Facebook login successful for user:', userDataFormatted.firstName);
         onLogin(userDataFormatted);
       } else {
         // User doesn't exist, create account
@@ -995,7 +994,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           auth_provider: user.auth_provider || 'email',
           has_password: user.has_password ?? true,
         };
-        console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
         if (rememberMe) {
           try {
             await storage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);

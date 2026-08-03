@@ -141,7 +141,6 @@ let isAdMobAvailable = false;
 
 try {
   const adMobModule = require('react-native-google-mobile-ads');
-  console.log('📺 AdMob module keys:', Object.keys(adMobModule));
   mobileAds = adMobModule.default || adMobModule.mobileAds;
   BannerAd = adMobModule.BannerAd;
   BannerAdSize = adMobModule.BannerAdSize;
@@ -150,9 +149,7 @@ try {
   AdEventType = adMobModule.AdEventType;
   RewardedAd = adMobModule.RewardedAd;
   RewardedAdEventType = adMobModule.RewardedAdEventType;
-  console.log('📺 AdMob exports — mobileAds:', !!mobileAds, 'InterstitialAd:', !!InterstitialAd, 'RewardedAd:', !!RewardedAd, 'TestIds:', !!TestIds);
   isAdMobAvailable = ADS_ENABLED;
-  console.log('📺 ✅ AdMob available =', ADS_ENABLED);
 } catch (e) {
   console.log('📺 ❌ AdMob require FAILED:', e?.message || String(e));
 }
@@ -1245,7 +1242,6 @@ function App() {
   useEffect(() => {
     const loadProfileData = async () => {
       if (currentUser?.id && currentScreen === 'profile') {
-        console.log('📍 Profile screen opened. Current churchName:', currentUser.churchName, 'Current churchId:', currentUser.churchId);
         setIsLoadingProfile(true);
         try {
           await refreshUserProfile();
@@ -2253,10 +2249,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     morningStar: 'Morning Star',
   };
 
+  // Cleanup: unload chime sound on unmount or when a new one replaces it
+  useEffect(() => {
+    return () => { sound?.unloadAsync().catch(() => {}); };
+  }, [sound]);
+
   const playHeavenlyChime = async () => {
     try {
-      console.log('🔔 Playing prayer sound:', prayerSound);
-      
+      // Unload the previous sound instance before creating a new one
+      if (sound) { try { await sound.unloadAsync(); } catch (_) {} }
+
       const { sound: newSound } = await Audio.Sound.createAsync(
         soundFiles[prayerSound],
         { shouldPlay: true, volume: 0.9 }
@@ -2650,8 +2652,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         type: `image/${fileExtension}`,
         name: `profile.${fileExtension}`,
       });
-
-      console.log('📱 Uploading profile picture for user:', currentUser.id);
 
       const data = await apiUploadProfilePicture(formData);
 

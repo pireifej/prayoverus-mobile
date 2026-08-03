@@ -595,6 +595,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     } catch (error) {
       setLoginError('Google sign-in failed. Please check your connection.');
     } finally {
+      _googleCodeVerifier = null; // prevent stale verifier reuse on next sign-in attempt
       setGoogleLoading(false);
     }
   };
@@ -749,9 +750,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         if (savedEmail) {
           setEmail(savedEmail);
           setRememberMe(true);
-          console.log('✅ Loaded saved email:', savedEmail);
-        } else {
-          console.log('ℹ️ No saved email found');
         }
       } catch (error) {
         console.log('Error loading saved email:', error);
@@ -784,11 +782,9 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     if (checked && email) {
       // Save email
       await storage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
-      console.log('💾 Saved email for Remember Me:', email);
     } else {
       // Clear saved email
       await storage.removeItem(STORAGE_KEYS.REMEMBERED_EMAIL);
-      console.log('🗑️ Cleared saved email from Remember Me');
     }
   };
   
@@ -832,8 +828,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
       );
       const userData = await graphResponse.json();
-      
-      console.log('Facebook user data:', userData);
       
       if (!userData.email) {
         Alert.alert('Error', 'Could not get email from Facebook. Please use email login instead.');

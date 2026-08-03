@@ -124,11 +124,7 @@ export function useAuth() {
     // Set up push notifications for the logged-in user
     if (userData?.id) {
       NotificationService.setupNotifications(userData.id)
-        .then(success => {
-          if (success) console.log('✅ Push notifications configured successfully');
-          else console.log('⚠️ Push notifications setup skipped or failed');
-        })
-        .catch(error => console.error('Error setting up push notifications:', error));
+        .catch(error => console.warn('[Notifications] Setup failed:', error?.message));
     }
   };
 

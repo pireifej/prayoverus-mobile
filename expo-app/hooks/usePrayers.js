@@ -11,7 +11,7 @@
  * the hook call without React TDZ issues; all callbacks are up-to-date by the
  * time any user-interaction handler actually invokes them.
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '../utils/storage';
 import { markdownToHtml, getFaithRank } from '../utils/helpers';
@@ -66,6 +66,11 @@ export function usePrayers({
   });
   const [amenReady, setAmenReady] = useState(false);
   const amenTimerRef = useRef(null);
+
+  // Clear amen timer on unmount to prevent state updates on an unmounted hook
+  useEffect(() => {
+    return () => { clearTimeout(amenTimerRef.current); };
+  }, []);
 
   // ── Extended (AI) prayer state ──────────────────────────────────────────────
   const [extendedPrayer, setExtendedPrayer] = useState(null);

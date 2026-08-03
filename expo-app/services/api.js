@@ -22,7 +22,9 @@ const post = async (path, body) => {
   return res.json();
 };
 
-// Public POST — no Authorization header (for unauthenticated endpoints)
+// Public POST — no Authorization header.
+// Reserved for if/when the server exposes truly unauthenticated endpoints.
+// Currently unused: all endpoints require the Basic Auth API key (see AUTH_CREDENTIALS above).
 const postPublic = async (path, body) => {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',

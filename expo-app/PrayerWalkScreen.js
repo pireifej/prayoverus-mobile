@@ -13,6 +13,20 @@ import { apiGetPrayerByRequestId, apiGetPrayerAudio, API_BASE } from './services
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
+// ─── Hardcoded nature/floral background images for the slideshow ──
+const BG_IMAGES = [
+  require('./assets/prayer-bg-1.png'),
+  require('./assets/prayer-bg-2.png'),
+  require('./assets/prayer-bg-3.png'),
+  require('./assets/prayer-bg-4.png'),
+  require('./assets/prayer-bg-5.png'),
+  require('./assets/prayer-bg-6.png'),
+  require('./assets/prayer-bg-7.png'),
+  require('./assets/prayer-bg-8.png'),
+  require('./assets/prayer-bg-9.png'),
+  require('./assets/prayer-bg-10.png'),
+];
+
 // Accurate safe areas — no useSafeAreaInsets (causes white screen)
 const STATUS_H = Platform.OS === 'android' ? (RNStatusBar.currentHeight || 24) : 0;
 const SAFE_TOP = Platform.OS === 'android' ? STATUS_H + 28 : 64;
@@ -41,6 +55,76 @@ const buildSpokenText = (prayer, prayerText) => {
   const body = prayerText.replace(/\.?\s*Amen\.?\s*$/i, '').trim();
   return `${intro}${body}. Amen.`;
 };
+
+// ─────────────────────────────────────────────────────────────────
+// Crossfading nature/floral background slideshow
+// ─────────────────────────────────────────────────────────────────
+function SlideshowBackground({ playing }) {
+  const [curIdx, setCurIdx] = useState(() => Math.floor(Math.random() * BG_IMAGES.length));
+  const nextIdxRef = useRef(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef(null);
+  const animRef = useRef(null);
+
+  // Pick a different random next image each time
+  const pickNext = (current) => {
+    let n = Math.floor(Math.random() * BG_IMAGES.length);
+    if (n === current) n = (n + 1) % BG_IMAGES.length;
+    return n;
+  };
+
+  useEffect(() => {
+    nextIdxRef.current = pickNext(curIdx);
+  }, []);
+
+  const crossfade = useCallback(() => {
+    const next = nextIdxRef.current;
+    animRef.current = Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 2800,       // 2.8 s dissolve
+      useNativeDriver: true,
+    });
+    animRef.current.start(({ finished }) => {
+      if (!finished) return;
+      setCurIdx(next);
+      const newNext = pickNext(next);
+      nextIdxRef.current = newNext;
+      fadeAnim.setValue(0);
+    });
+  }, [fadeAnim]);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    animRef.current?.stop();
+    if (!playing) return;
+    // First transition after 7 s, then every 9 s
+    const id = setInterval(crossfade, 9000);
+    timerRef.current = id;
+    return () => { clearInterval(id); animRef.current?.stop(); };
+  }, [playing, crossfade]);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Current image — always fully visible */}
+      <Image
+        source={BG_IMAGES[curIdx]}
+        style={{ ...StyleSheet.absoluteFillObject, opacity: 0.42 }}
+        resizeMode="cover"
+      />
+      {/* Next image — fades in over the current one */}
+      <Animated.Image
+        source={BG_IMAGES[nextIdxRef.current]}
+        style={{ ...StyleSheet.absoluteFillObject, opacity: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.42] }) }}
+        resizeMode="cover"
+      />
+      {/* Dark scrim so text stays legible regardless of image brightness */}
+      <LinearGradient
+        colors={['rgba(4,12,30,0.55)', 'rgba(4,12,30,0.30)', 'rgba(4,12,30,0.60)']}
+        style={StyleSheet.absoluteFill}
+      />
+    </View>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Blue celestial rings animation
@@ -468,20 +552,13 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
     <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Blue celestial background animations */}
+      {/* Crossfading nature/floral background slideshow */}
+      <SlideshowBackground playing={isPlaying} />
+
+      {/* Blue celestial background animations — layered on top of slideshow */}
       <CentralGlow playing={isPlaying} />
       <CelestialRings playing={isPlaying} />
       <BlueSparks playing={isPlaying} />
-
-      {/* Prayer picture — translucent so the animations show through */}
-      {current?.picture ? (
-        <Image
-          source={{ uri: current.picture.startsWith('http') ? current.picture : `${API_BASE}${current.picture}` }}
-          style={styles.prayerBgImage}
-          resizeMode="cover"
-          blurRadius={2}
-        />
-      ) : null}
 
       {/* Header — well clear of the status bar */}
       <View style={[styles.header, { paddingTop: SAFE_TOP }]}>
@@ -562,13 +639,6 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-
-  // Translucent prayer picture shown as background — animations layer on top
-  prayerBgImage: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    opacity: 0.18,
-    zIndex: 1,
-  },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',

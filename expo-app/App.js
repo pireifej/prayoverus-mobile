@@ -2957,7 +2957,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', paddingVertical: 16 }}>Nothing to show yet.</Text>
                 ) : (
                   memberFeedData.map((item, idx) => (
-                    <View key={item.request_id || idx} style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                    <TouchableOpacity
+                      key={item.request_id || idx}
+                      style={{ backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#e2e8f0' }}
+                      activeOpacity={memberFeedType === 'requests' ? 0.7 : 1}
+                      onPress={memberFeedType === 'requests' && item.request_id ? () => {
+                        setDetailScreenProps({ requestId: item.request_id, prayerIds: [item.request_id], currentIndex: 0 });
+                        setShowDetailScreen(true);
+                      } : undefined}
+                    >
                       {item.request_title ? (
                         <Text style={{ fontSize: 15, fontWeight: '700', color: '#1e293b', marginBottom: 4 }}>{item.request_title}</Text>
                       ) : null}
@@ -2965,7 +2973,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                       {memberFeedType === 'prayers' && item.real_name ? (
                         <Text style={{ fontSize: 12, color: '#6366f1', marginTop: 6 }}>for {item.real_name}</Text>
                       ) : null}
-                    </View>
+                      {memberFeedType === 'requests' && item.request_id ? (
+                        <Text style={{ fontSize: 12, color: '#2563eb', marginTop: 6 }}>View full request →</Text>
+                      ) : null}
+                    </TouchableOpacity>
                   ))
                 )}
               </View>

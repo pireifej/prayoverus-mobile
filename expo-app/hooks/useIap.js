@@ -2,12 +2,12 @@
  * useIap — owns all in-app purchase state and RevenueCat SDK calls.
  *
  * Extracted from App.js so that a crash in the RevenueCat SDK never brings
- * down the rest of the app. The module-level SDK initialization (previously
- * inline in App.js) now lives here so all IAP concerns are co-located.
+ * down the rest of the app. SDK bootstrap lives in services/purchasesClient.js
+ * so it can be mocked independently in tests.
  */
 import { useState } from 'react';
-import { Platform } from 'react-native';
 import { showToast, showModal } from '../AppModals';
+import { client as Purchases, isAvailable as rcAvailable } from '../services/purchasesClient';
 
 // ── RevenueCat constants ─────────────────────────────────────────────────────
 
@@ -24,45 +24,6 @@ export const THEME_PRODUCTS = {
   forest:   'theme_forest',
   midnight: 'theme_midnight',
 };
-
-// ── RevenueCat SDK bootstrap (safe to call at module load time) ──────────────
-// Kept here instead of App.js module-level so all IAP code is co-located.
-
-let rcAvailable = false;
-let Purchases = null;
-
-const RC_TEST_KEY    = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
-const RC_IOS_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
-const RC_ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
-
-try {
-  Purchases = require('react-native-purchases').default;
-  if (RC_TEST_KEY || RC_IOS_KEY || RC_ANDROID_KEY) {
-    const key =
-      (__DEV__ || Platform.OS === 'web')
-        ? RC_TEST_KEY
-        : Platform.OS === 'ios'
-          ? RC_IOS_KEY || RC_TEST_KEY
-          : RC_ANDROID_KEY || RC_TEST_KEY;
-    if (key) {
-      // Only enable verbose logging in dev — DEBUG level causes extra native traffic in
-      // production and is one known trigger for iOS crashes on re-configure.
-      if (__DEV__) Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
-      // configure() is safe to call on every launch per RevenueCat docs.
-      try {
-        Purchases.configure({ apiKey: key });
-        rcAvailable = true;
-      } catch (configErr) {
-        console.warn('[IAP] configure() threw — SDK may already be initialized:', configErr?.message);
-        // SDK was already initialized by the native layer (app resumed from suspended state).
-        // It is still usable; mark as available.
-        rcAvailable = true;
-      }
-    }
-  }
-} catch (e) {
-  console.warn('[IAP] react-native-purchases not available:', e?.message);
-}
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -154,6 +115,7 @@ export function useIap() {
     iapCustomerInfo,
     setIapCustomerInfo,
     iapProducts,
+    setIapProducts,
     iapPurchasing,
     iapModal,
     setIapModal,

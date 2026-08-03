@@ -86,12 +86,7 @@ import PrayerOptionsMenu from './components/PrayerOptionsMenu';
 import { showToast, showModal } from './AppModals';
 import {
   apiHeaders,
-  apiGetUser,
-  apiGetMyRequests,
-  apiGetCommunityWall,
   apiGetDailyDevotional,
-  apiGetPrayer,
-  apiGetDetailedPrayer,
   apiGetPrayerByRequestId,
   apiGetBadgeDefinitions,
   apiGetUserBadges,
@@ -100,9 +95,6 @@ import {
   apiBlockUser,
   apiGetUserRequests,
   apiGetPrayedFor,
-  apiPrayFor,
-  apiMarkAnswered,
-  apiGetAnsweredPrayers,
   apiEditPrayer,
   apiDeletePrayer,
   apiGetAllChurches,

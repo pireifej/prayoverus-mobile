@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SimpleStorage, STORAGE_KEYS } from './utils/storage';
 import {
-  apiHeaders,
+  API_BASE,
   apiLogin,
   apiAppleLogin,
   apiGetAllChurches,
@@ -531,7 +531,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   const nativeClientId = Platform.OS === 'ios' ? IOS_CLIENT_ID : WEB_CLIENT_ID;
   const googleRedirectUri = Platform.OS === 'ios'
     ? 'com.googleusercontent.apps.798628803696-2sodci2f99h4ojbhiqm851im6bgjuiqg:/'
-    : 'https://shouldcallpaul.replit.app/auth/google/callback';
+    : `${API_BASE}/auth/google/callback`;
 
   const [googleRequest, googleResponse, googlePromptAsync] = useAuthRequest(
     {
@@ -549,13 +549,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       handleGoogleResponse(googleResponse.params?.code, verifier);
     }
   }, [googleResponse]);
-
-  const fetchWithTimeout = (url, options, ms = 15000) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ms);
-    return fetch(url, { ...options, signal: controller.signal })
-      .finally(() => clearTimeout(timer));
-  };
 
   const handleGoogleResponse = async (code, codeVerifier) => {
     try {

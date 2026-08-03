@@ -271,16 +271,16 @@ function App() {
         <Text style={styles.bottomNavIcon}>🌍</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>{t('community')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
+      <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
         <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
           <Text style={styles.bottomNavCenterIcon}>✙</Text>
         </LinearGradient>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('groups')}>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); setCurrentScreen('groups'); }}>
         <Text style={styles.bottomNavIcon}>👥</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'groups' && styles.bottomNavLabelActive]}>{t('groups')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.bottomNavItem} onPress={() => setCurrentScreen('profile')}>
+      <TouchableOpacity style={styles.bottomNavItem} onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); setCurrentScreen('profile'); }}>
         <Text style={styles.bottomNavIcon}>👤</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'profile' && styles.bottomNavLabelActive]}>{t('profile')}</Text>
       </TouchableOpacity>

@@ -68,6 +68,9 @@ import PrayerDetailScreen from './PrayerDetailScreen';
 import RosaryScreen from './RosaryScreen';
 import GroupRosaryScreen from './GroupRosaryScreen';
 import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
+import { useAuth } from './hooks/useAuth';
+import { usePrayers } from './hooks/usePrayers';
+import { useIap, ENTITLEMENT_EXTENDED_PRAYER, ENTITLEMENT_PREMIUM_THEMES, PRODUCT_EXTENDED_PRAYER, THEME_PRODUCTS } from './hooks/useIap';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
@@ -132,49 +135,8 @@ try {
   });
 } catch (_) {}
 
-// ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
-let rcAvailable = false;
-let Purchases = null;
-const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
-const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes'; // legacy — unlocks all themes
-const PRODUCT_EXTENDED_PRAYER = 'extended_prayer_single';
-const PRODUCT_PREMIUM_THEMES   = 'premium_themes'; // legacy
-
-// Per-theme products & entitlements — same IDs on both Apple and Google Play
-const THEME_PRODUCTS = {
-  golden:   'theme_golden',
-  amethyst: 'theme_amethyst',
-  rose:     'theme_rose',
-  forest:   'theme_forest',
-  midnight: 'theme_midnight',
-};
-const RC_TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
-const RC_IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
-const RC_ANDROID_KEY  = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
-try {
-  Purchases = require('react-native-purchases').default;
-  if (RC_TEST_KEY || RC_IOS_KEY || RC_ANDROID_KEY) {
-    const { Platform } = require('react-native');
-    const key = (__DEV__ || Platform.OS === 'web') ? RC_TEST_KEY
-      : Platform.OS === 'ios' ? (RC_IOS_KEY || RC_TEST_KEY) : (RC_ANDROID_KEY || RC_TEST_KEY);
-    if (key) {
-      // Only enable verbose logging in dev — DEBUG level causes extra native traffic in production
-      // and is one known trigger for iOS crashes on re-configure.
-      if (__DEV__) Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
-      // configure() is safe to call on every launch per RevenueCat docs.
-      // Wrapped in its own try so a native-layer re-init error doesn't suppress rcAvailable.
-      try {
-        Purchases.configure({ apiKey: key });
-        rcAvailable = true;
-      } catch (configErr) {
-        console.warn('[IAP] configure() threw — SDK may already be initialized:', configErr?.message);
-        // SDK was already initialized by the native layer (app resumed from suspended state).
-        // It is still usable; mark as available.
-        rcAvailable = true;
-      }
-    }
-  }
-} catch (e) { console.warn('[IAP] react-native-purchases not available:', e?.message); }
+// ── RevenueCat IAP — SDK initialization and state live in hooks/useIap.js ──
+// ENTITLEMENT_*, PRODUCT_*, THEME_PRODUCTS are imported from hooks/useIap.js
 
 // App build tag — dynamically built from expo-updates + constants
 const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
@@ -240,7 +202,74 @@ const getGreeting = () => {
 };
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+  // ── showChurchOnly must be declared before hook calls (needed by usePrayers) ─
+  const [showChurchOnly, setShowChurchOnly] = useState(false);
+
+  // ── Custom hooks — isolate auth/prayer/IAP logic from the render tree ────────
+  // A crash inside any one hook is caught by the AppErrorBoundary and won't
+  // take down the others. Each hook owns its own state and all fetch/storage calls.
+
+  const auth = useAuth();
+  const prayerCallbacksRef = React.useRef({});
+
+  const prayersHook = usePrayers({
+    currentUser: auth.currentUser,
+    setCurrentUser: auth.setCurrentUser,
+    showChurchOnly,
+    userLang,
+    callbacksRef: prayerCallbacksRef,
+  });
+
+  const iap = useIap();
+
+  // Destructure auth hook
+  const {
+    currentUser, setCurrentUser,
+    isCheckingAuth,
+    eulaAccepted, setEulaAccepted,
+    showOnboarding, setShowOnboarding,
+    checkStoredAuth,
+    saveUserToStorage,
+    clearUserFromStorage,
+    handleLogin: _authHandleLogin,
+    handleLogout: _authHandleLogout,
+    refreshUserProfile,
+  } = auth;
+
+  // Destructure prayers hook
+  const {
+    prayers, setPrayers,
+    communityPrayers, setCommunityPrayers,
+    refreshingCommunity,
+    displayedCount, setDisplayedCount,
+    PRAYERS_PAGE_SIZE,
+    prayerModal, setPrayerModal,
+    amenReady, setAmenReady, amenTimerRef,
+    extendedPrayer, setExtendedPrayer,
+    loadingExtendedPrayer, setLoadingExtendedPrayer,
+    answeredPrayers, answeredModal, setAnsweredModal, loadingAnswered,
+    loadCommunityPrayers,
+    onRefreshCommunity,
+    loadUserPrayers,
+    prayForRequest,
+    markAsPrayed: _markAsPrayed,
+    recordSwipePrayer,
+    generatePrayer: _generatePrayer,
+    clearPrayerModal,
+    fetchExtendedPrayer,
+    loadAnsweredPrayers,
+    submitTestimony,
+  } = prayersHook;
+
+  // Destructure IAP hook
+  const {
+    rcAvailable,
+    iapCustomerInfo, iapProducts, iapPurchasing, iapModal, setIapModal,
+    iapExtendedPrayerUnlocked, iapThemesUnlocked,
+    hasEntitlement, isThemeUnlocked, getIapPrice,
+    loadIapData, doIapPurchase, doIapRestore,
+  } = iap;
+
   const [currentScreen, setCurrentScreen] = useState('home');
 
   const renderBottomNav = () => (
@@ -279,19 +308,13 @@ function App() {
     ).start();
   }, []);
 
-  const [prayers, setPrayers] = useState([]);
-  const [communityPrayers, setCommunityPrayers] = useState([]);
-  const PRAYERS_PAGE_SIZE = 12;
-  const [displayedCount, setDisplayedCount] = useState(PRAYERS_PAGE_SIZE);
+  // prayers, communityPrayers, displayedCount — owned by usePrayers hook
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false });
   const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
   const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
-  const [prayerModal, setPrayerModal] = useState({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-  const [amenReady, setAmenReady] = useState(false);
-  const amenTimerRef = useRef(null);
-  const recentPrayerTimesRef = useRef([]);
+  // prayerModal, amenReady, amenTimerRef — owned by usePrayers hook (see hooks/usePrayers.js)
 
   const prayerLoadingFloat = useRef(new Animated.Value(0)).current;
   const prayerLoadingGlow  = useRef(new Animated.Value(0.4)).current;
@@ -317,9 +340,7 @@ function App() {
     }
   }, [prayerModal.loading]);
 
-  const [extendedPrayer, setExtendedPrayer] = useState(null);
-  const [loadingExtendedPrayer, setLoadingExtendedPrayer] = useState(false);
-  const [refreshingCommunity, setRefreshingCommunity] = useState(false);
+  // extendedPrayer, loadingExtendedPrayer, refreshingCommunity — owned by usePrayers hook
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [helpForm, setHelpForm] = useState({
     message: '',
@@ -328,8 +349,7 @@ function App() {
     phone: ''
   });
   const [expandedPrayers, setExpandedPrayers] = useState({});
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // isCheckingAuth, showOnboarding — owned by useAuth hook (see hooks/useAuth.js)
   const [authInitMode, setAuthInitMode] = useState('login');
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
@@ -368,7 +388,7 @@ function App() {
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
-  const [showChurchOnly, setShowChurchOnly] = useState(false);
+  // showChurchOnly declared at top of App() before hook calls
   const [communityChurches, setCommunityChurches] = useState([]);
   const [communityMembers, setCommunityMembers] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
@@ -377,15 +397,13 @@ function App() {
   const [memberFeedType, setMemberFeedType] = useState(null); // 'requests' | 'prayers'
   const [memberFeedData, setMemberFeedData] = useState([]);
   const [memberFeedLoading, setMemberFeedLoading] = useState(false);
-  const [eulaAccepted, setEulaAccepted] = useState(true); // defaults true; set false if first launch
+  // eulaAccepted — owned by useAuth hook
   const [blockedUserIds, setBlockedUserIds] = useState(new Set());
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
-  const [answeredModal, setAnsweredModal] = useState({ visible: false, prayer: null, text: '', isLoading: false });
-  const [answeredPrayers, setAnsweredPrayers] = useState([]);
+  // answeredModal, answeredPrayers, loadingAnswered — owned by usePrayers hook
   const [answeredExpanded, setAnsweredExpanded] = useState(false);
-  const [loadingAnswered, setLoadingAnswered] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const toastAnim = useRef(new Animated.Value(0)).current;
   
@@ -509,72 +527,8 @@ function App() {
     finally { setIsLoadingAllBadges(false); }
   };
 
-  // IAP state
-  const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
-  const [iapProducts, setIapProducts] = useState([]); // direct product list, no offerings needed
-  const [iapPurchasing, setIapPurchasing] = useState(false);
-  const [iapModal, setIapModal] = useState(null); // { productId, title, description } | null
+  // IAP state + functions — owned by useIap hook (see hooks/useIap.js)
 
-  const hasEntitlement = (key) => iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
-  const iapExtendedPrayerUnlocked = hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER);
-  const iapThemesUnlocked = hasEntitlement(ENTITLEMENT_PREMIUM_THEMES); // legacy all-unlock
-  // Returns true if a specific theme is unlocked (legacy all-unlock OR individual purchase)
-  const isThemeUnlocked = (themeKey) =>
-    iapThemesUnlocked || hasEntitlement(THEME_PRODUCTS[themeKey] || '');
-
-  const loadIapData = async () => {
-    if (!rcAvailable || !Purchases) return;
-    try {
-      const allProductIds = [
-        PRODUCT_EXTENDED_PRAYER,
-        PRODUCT_PREMIUM_THEMES,
-        ...Object.values(THEME_PRODUCTS),
-      ];
-      const [info, prods] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getProducts(allProductIds),
-      ]);
-      setIapCustomerInfo(info);
-      setIapProducts(prods);
-    } catch (e) { console.warn('[IAP] load error:', e?.message); }
-  };
-
-  const doIapPurchase = async (productId, onSuccess) => {
-    if (!rcAvailable || !Purchases) return;
-    setIapPurchasing(true);
-    try {
-      const product = iapProducts.find(p => p.identifier === productId);
-      if (!product) throw new Error('Product not found — check your App Store / Play Store setup.');
-      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
-      setIapCustomerInfo(customerInfo);
-      setIapModal(null);
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        showToast('Thank you — enjoy your new feature.', '🙌');
-      }
-    } catch (e) {
-      if (!e?.userCancelled) showModal({ icon: '😔', title: 'Purchase failed', message: e?.message ?? 'Please try again.' });
-    } finally {
-      setIapPurchasing(false);
-    }
-  };
-
-  const doIapRestore = async () => {
-    if (!rcAvailable || !Purchases) return;
-    setIapPurchasing(true);
-    try {
-      const info = await Purchases.restorePurchases();
-      setIapCustomerInfo(info);
-      showToast('Your purchases have been restored.', '✅');
-      setIapModal(null);
-    } catch (e) { showModal({ icon: '😔', title: 'Restore failed', message: e?.message ?? 'Please try again.' }); }
-    finally { setIapPurchasing(false); }
-  };
-
-  const getIapPrice = (productId) =>
-    iapProducts.find(p => p.identifier === productId)?.priceString ?? null;
-  
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [latestVersion, setLatestVersion] = useState(null);
@@ -1261,8 +1215,8 @@ function App() {
         setCurrentScreen('home');
         setTimeout(() => {
           // Reset prayer modal state to prevent it from showing as overlay
-          setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-          
+          clearPrayerModal();
+
           // Pass available prayer IDs for navigation, or empty array if none
           const prayerIds = communityPrayers.map(p => p.id);
           setDetailScreenProps({
@@ -1283,7 +1237,7 @@ function App() {
     setPendingNotificationRequestId(null);
     setCurrentScreen('home');
     setTimeout(() => {
-      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      clearPrayerModal();
       const prayerIds = communityPrayers.map(p => p.id);
       setDetailScreenProps({ requestId: requestId, prayerIds: prayerIds, currentIndex: -1 });
       setShowDetailScreen(true);
@@ -1329,8 +1283,7 @@ function App() {
         }
       }).catch(e => console.warn('[Boot] Community cache read failed:', e?.message));
       setDisplayedCount(PRAYERS_PAGE_SIZE);
-      setRefreshingCommunity(true);
-      loadCommunityPrayers(true);
+      loadCommunityPrayers(true); // loadCommunityPrayers(true) sets refreshingCommunity internally
     }
   }, [currentScreen, currentUser, showChurchOnly]);
 
@@ -1467,197 +1420,10 @@ function App() {
   }, [langVersion]);
 
   // ───────────────────────────────────────────────────────────────────────────
+  // loadCommunityPrayers, onRefreshCommunity — moved to hooks/usePrayers.js
 
-  const loadCommunityPrayers = async (showRefreshIndicator = false) => {
-    console.log('🔄 loadCommunityPrayers called - User ID:', currentUser?.id, 'Church Filter:', showChurchOnly);
-    try {
-      if (showRefreshIndicator) {
-        setRefreshingCommunity(true);
-      }
-      
-      // Use the actual logged in user's ID from production API
-      const userId = currentUser?.isGuest ? '0' : currentUser?.id;
-      
-      if (!userId) {
-        console.log('⚠️ No user ID available, skipping community load');
-        return;
-      }
-      
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-      
-      const requestPayload = {
-        userId: userId.toString(),
-        tz: timezone,
-        filterByChurch: currentUser?.isGuest ? false : showChurchOnly,
-        lang: userLang,
-      };
-      
-      const data = await apiGetCommunityWall(requestPayload);
-      {
-        const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
-        console.log('📱 Community API Response: Loaded', prayerCount, 'prayers');
-        
-        // Handle direct array response from getCommunityWall
-        const prayersArray = Array.isArray(data) ? data : [];
-        
-        if (prayersArray.length > 0) {
-          const communityPrayers = prayersArray.map(request => {
-            // Debug picture field - use request_picture for the prayer's image
-            if (request.request_picture) {
-              // Image found for prayer (logging suppressed)
-            }
-            
-            return {
-              id: request.request_id,
-              title: request.request_title || request.prayer_title || 'Prayer Request',
-              content: request.request_text,
-              author: request.real_name || request.user_name || 'Anonymous',
-              isPublic: true,
-              prayedFor: false,
-              timestamp: request.timestamp,
-              date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
-              category: request.category_name,
-              prayer_title: request.prayer_title,
-              other_person: request.other_person,
-              picture: request.request_picture, // Use request_picture for the prayer's image
-              user_id: request.user_id,
-              fk_prayer_id: request.fk_prayer_id,
-              allow_comments: request.allow_comments,
-              use_alias: request.use_alias,
-              prayer_count: request.prayer_count || 0,
-              prayed_by_names: request.prayed_by_names || [],
-              prayed_by_people: request.prayed_by_people || [],
-              user_has_prayed: request.user_has_prayed || false,
-              church_id: request.church_id
-            };
-          });
-          
-          console.log('📱 Parsed community prayers:', communityPrayers.length, 'items');
-          setCommunityPrayers(communityPrayers);
-          setDisplayedCount(PRAYERS_PAGE_SIZE);
-          // Cache for instant display on next launch
-          AsyncStorage.setItem(STORAGE_KEYS.COMMUNITY_CACHE, JSON.stringify(communityPrayers)).catch(() => {});
-        } else {
-          console.log('📱 No community prayers found in response');
-          setCommunityPrayers([]);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Failed to load community prayers:', error.message);
-      showModal({ icon: '⚠️', title: 'Load Error', message: `Could not load community prayers: ${error.message}` });
-      
-      // Fallback to sample data for testing
-      setCommunityPrayers([
-        { id: 1, title: 'Prayer for healing', content: 'Please pray for my grandmother\'s recovery', author: 'Sarah', isPublic: true, prayedFor: false, date: 'Today' },
-        { id: 2, title: 'Job search guidance', content: 'Seeking divine guidance in finding new employment', author: 'Michael', isPublic: true, prayedFor: false, date: 'Today' },
-      ]);
-    } finally {
-      if (showRefreshIndicator) {
-        setRefreshingCommunity(false);
-      }
-    }
-  };
-
-  const onRefreshCommunity = async () => {
-    await loadCommunityPrayers(true);
-  };
-
-  // Check for stored user authentication on app start
-  const checkStoredAuth = async () => {
-    console.log('[Boot] Reading cached session...');
-    try {
-      const userData = await storage.getItem(STORAGE_KEYS.USER_SESSION);
-      if (userData) {
-        let parsedUserData;
-        try {
-          parsedUserData = JSON.parse(userData);
-        } catch (parseErr) {
-          console.warn('[Boot] Session JSON corrupt — clearing and forcing re-login:', parseErr.message);
-          await storage.removeItem(STORAGE_KEYS.USER_SESSION);
-          return; // falls through to finally → setIsCheckingAuth(false) → login screen
-        }
-        // Validate minimum required fields before trusting the session
-        if (!parsedUserData || !parsedUserData.id) {
-          console.warn('[Boot] Session missing required fields — clearing');
-          await storage.removeItem(STORAGE_KEYS.USER_SESSION);
-          return;
-        }
-        console.log('[Boot] Session found for user', parsedUserData.id, '—', parsedUserData.firstName);
-        setCurrentUser(parsedUserData);
-
-        // Re-register push notification token on every launch (token can rotate between sessions).
-        // Delayed 2 s so it doesn't compete with boot-path storage I/O.
-        // setupNotifications is idempotent: it checks permission status before requesting.
-        setTimeout(() => {
-          NotificationService.setupNotifications(parsedUserData.id)
-            .catch(e => console.warn('[Boot] Push token renewal error:', e?.message));
-        }, 2000);
-
-        // Refresh profile from server to get latest data (church, faith rank, etc.)
-        setTimeout(async () => {
-          try {
-            console.log('[Boot] Background profile refresh starting...');
-            const data = await apiGetUser(parsedUserData.id);
-            const userArray = Array.isArray(data) ? data : (data.result || []);
-            if (userArray.length > 0) {
-              const user = userArray[0];
-              const refreshedUser = {
-                ...parsedUserData,
-                firstName: user.real_name || parsedUserData.firstName,
-                lastName: user.last_name || parsedUserData.lastName,
-                churchId: user.church_id || parsedUserData.churchId,
-                churchName: user.church_name || parsedUserData.churchName,
-                title: user.user_title,
-                about: user.user_about,
-                picture: user.picture || user.profile_picture_url || parsedUserData.picture,
-                faith_points: user.faith_points || 0,
-                faith_rank: user.faith_rank || null,
-                prayer_count: parseInt(user.prayer_count, 10) || 0,
-                request_count: parseInt(user.request_count, 10) || 0,
-                rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
-                auth_provider: user.auth_provider || parsedUserData.auth_provider || 'email',
-                has_password: user.has_password ?? parsedUserData.has_password ?? true,
-              };
-              console.log('[Boot] Profile refreshed from server. Church:', refreshedUser.churchName, 'Faith pts:', refreshedUser.faith_points);
-              setCurrentUser(refreshedUser);
-              await saveUserToStorage(refreshedUser);
-            }
-          } catch (e) {
-            console.warn('[Boot] Background profile refresh failed:', e.message);
-          }
-        }, 0);
-      } else {
-        console.log('[Boot] No cached session — redirecting to login');
-      }
-    } catch (error) {
-      console.warn('[Boot] Error reading session storage:', error.message);
-    } finally {
-      try {
-        const onboardingDone = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE);
-        if (!onboardingDone) setShowOnboarding(true);
-      } catch (_) {}
-      console.log('[Boot] Auth check complete — app ready');
-      setIsCheckingAuth(false);
-    }
-  };
-
-  // Save user data to storage after login
-  const saveUserToStorage = async (userData) => {
-    try {
-      await storage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(userData));
-    } catch (error) {
-      console.warn('[Storage] Error saving user session:', error.message);
-    }
-  };
-
-  // Clear user data from storage on logout
-  const clearUserFromStorage = async () => {
-    try {
-      await storage.removeItem(STORAGE_KEYS.USER_SESSION);
-    } catch (error) {
-      console.warn('[Storage] Error clearing user session:', error.message);
-    }
-  };
+  // loadCommunityPrayers, onRefreshCommunity — moved to hooks/usePrayers.js
+  // checkStoredAuth, saveUserToStorage, clearUserFromStorage — moved to hooks/useAuth.js
 
   // Handle user login and save to storage
   const goToRegister = () => { setAuthInitMode('register'); setCurrentUser(null); };
@@ -1679,32 +1445,13 @@ function App() {
     });
   };
 
+  // handleLogin — thin wrapper; auth/storage/notification setup lives in hooks/useAuth.js
   const handleLogin = async (userData) => {
-    setCurrentUser(userData);
-    await saveUserToStorage(userData);
-    setShowMyRequestsOnly(false); // Always land on All tab so feed loads immediately
-    setCurrentScreen('home'); // Explicitly navigate to home after login
-    
-    // Set up push notifications for the logged-in user
-    if (userData && userData.id) {
-      console.log('Setting up push notifications for user:', userData.id);
-      
-      // Set up notifications in the background (non-blocking)
-      NotificationService.setupNotifications(userData.id)
-        .then(success => {
-          if (success) {
-            console.log('✅ Push notifications configured successfully');
-          } else {
-            console.log('⚠️ Push notifications setup skipped or failed');
-          }
-        })
-        .catch(error => {
-          console.error('Error setting up push notifications:', error);
-        });
-    }
+    await _authHandleLogin(userData);
+    setShowMyRequestsOnly(false);
+    setCurrentScreen('home');
   };
 
-  // Handle user logout and clear storage
   // Report a prayer/content — confirms first, then removes from local feed and notifies backend
   const handleReportContent = (prayer) => {
     showModal({
@@ -1748,37 +1495,18 @@ function App() {
     } catch (_) {}
   };
 
+  // handleLogout — thin wrapper; auth/storage/notification cleanup lives in hooks/useAuth.js
   const handleLogout = () => {
-    console.log('🚪 Logout button pressed - user:', currentUser?.firstName);
-    
-    try {
-      // Clean up notification listeners (with error handling)
-      try {
-        NotificationService.cleanup();
-      } catch (notifError) {
-        console.log('Notification cleanup error (non-blocking):', notifError);
-      }
-      
-      // Reset all state synchronously
-      setAuthScreen('login');
-      setCommunityPrayers([]);
-      setPrayers([]);
-      setCurrentScreen('home');
-      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-      setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
-      
-      // Clear storage (async but don't await - let it run in background)
-      clearUserFromStorage().catch(err => console.log('Storage clear error:', err));
-      
-      // Set currentUser to null LAST to trigger re-render with login screen
-      setCurrentUser(null);
-      
-      console.log('✅ Logout complete - should show Sign In screen now');
-    } catch (error) {
-      console.log('❌ Logout error:', error);
-      // Force logout even if there's an error
-      setCurrentUser(null);
-    }
+    _authHandleLogout({
+      onBeforeLogout: () => {
+        setAuthScreen('login');
+        setCommunityPrayers([]);
+        setPrayers([]);
+        setCurrentScreen('home');
+        clearPrayerModal();
+        setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
+      },
+    });
   };
 
   // Open any user's public profile from anywhere in the app
@@ -1820,97 +1548,7 @@ function App() {
     }
   };
 
-  const refreshUserProfile = async () => {
-    if (!currentUser?.id) {
-      console.log('No user ID available for refreshing profile');
-      return;
-    }
-
-    try {
-      console.log('🔄 Refreshing user profile data');
-      const data = await apiGetUser(currentUser.id.toString());
-      console.log('📥 User profile loaded successfully');
-      
-      // API returns direct array: [{user_id, church_id, church_name, ...}]
-      const userArray = Array.isArray(data) ? data : (data.result || []);
-      
-      if (userArray.length > 0) {
-        const user = userArray[0];
-        
-        // Update current user with fresh data from API (preserve counts if backend doesn't return them)
-        const updatedUser = {
-          ...currentUser,
-          firstName: user.real_name,
-          lastName: user.last_name,
-          churchId: user.church_id,
-          churchName: user.church_name,
-          title: user.user_title,
-          about: user.user_about,
-          picture: user.picture || user.profile_picture_url,
-          faith_points: user.faith_points || currentUser.faith_points || 0,
-          faith_rank: user.faith_rank || currentUser.faith_rank || null,
-          prayer_count: parseInt(user.prayer_count, 10) || currentUser.prayer_count || 0,
-          request_count: parseInt(user.request_count, 10) || currentUser.request_count || 0,
-          rosary_count: parseInt(user.rosary_count, 10) || currentUser.rosary_count || 0,
-        };
-        
-        console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
-        setCurrentUser(updatedUser);
-        await saveUserToStorage(updatedUser);
-      }
-    } catch (error) {
-      console.log('Error refreshing user profile:', error.message);
-    }
-  };
-
-  const loadUserPrayers = async () => {
-    if (!currentUser?.id) {
-      console.log('No user ID available for loading prayers');
-      return;
-    }
-
-    try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-      
-      const data = await apiGetMyRequests(currentUser.id.toString(), userLang, timezone);
-      const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
-      console.log('📱 User Prayers API Response: Loaded', prayerCount, 'prayers');
-      
-      // Handle direct array response or wrapped response
-      const prayersArray = Array.isArray(data) ? data : (data.result || []);
-      if (prayersArray.length > 0) {
-          const userPrayers = prayersArray.map(request => ({
-            id: request.request_id,
-            title: request.request_title || 'Prayer Request',
-            content: request.request_text,
-            author: request.real_name || request.user_name || 'You',
-            date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
-            isPublic: request.fk_user_id === null, // If fk_user_id is null, it's public
-            prayedFor: false,
-            timestamp: request.timestamp,
-            category: request.category_name,
-            prayer_title: request.prayer_title,
-            other_person: request.other_person,
-            picture: request.request_picture, // Use request_picture for the prayer's image
-            user_id: request.user_id || currentUser?.id, // Mine tab = always current user's prayers
-            fk_prayer_id: request.fk_prayer_id,
-            allow_comments: request.allow_comments,
-            use_alias: request.use_alias,
-            is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
-            active: request.active ?? 1,
-          }));
-          
-          console.log('📱 Parsed prayers:', userPrayers.length, 'items');
-          setPrayers(userPrayers);
-        } else {
-          console.log('📱 No prayers found in response');
-          setPrayers([]); // Set empty array if no prayers found
-        }
-    } catch (error) {
-      // Set empty prayers array on error instead of fallback data
-      setPrayers([]);
-    }
-  };
+  // refreshUserProfile, loadUserPrayers — moved to hooks/useAuth.js and hooks/usePrayers.js
 
   const doAddPrayer = async (contentOverride) => {
     // Set loading state
@@ -2114,94 +1752,16 @@ function App() {
     }
   };
 
-  const generatePrayer = async (prayerRequest) => {
-    if (currentUser?.isGuest) { showGuestPrompt(); return; }
-    try {
-      setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length));
-      setPrayerModal({
-        visible: true,
-        prayer: prayerRequest,
-        generatedPrayer: '',
-        loading: true
-      });
-      setAmenReady(false);
-      clearTimeout(amenTimerRef.current);
-      amenTimerRef.current = setTimeout(() => setAmenReady(true), 5000);
-      
-      // Beautiful slide-up animation!
-      Animated.parallel([
-        Animated.spring(modalSlideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 8,
-        }),
-        Animated.timing(modalOpacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+  // generatePrayer — thin wrapper: hook handles state, App.js handles animation callbacks
+  const generatePrayer = (prayerRequest) => _generatePrayer(prayerRequest, {
+    onSetBgIndex: () => setPrayerBgIndex(Math.floor(Math.random() * prayerBgImages.length)),
+    onOpenModal: () => Animated.parallel([
+      Animated.spring(modalSlideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }),
+      Animated.timing(modalOpacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start(),
+  });
 
-      // Single call — backend returns extended prayer if exists, standard otherwise
-      const data = await apiGetPrayer(prayerRequest.id, userLang).catch(() => null);
-
-      let prayerText = null;
-
-      if (data?.error === 0 && data?.prayerText) {
-        prayerText = markdownToHtml(data.prayerText);
-        if (data.isExtended) {
-          setExtendedPrayer(prayerText); // hide Generate button — already has extended prayer
-        }
-      }
-
-      // Fallback for very old requests with no prayer at all
-      if (!prayerText) {
-        prayerText = userLang === 'es'
-          ? `Padre Celestial, te encomendamos a ${prayerRequest.author} a Tu amoroso cuidado y pedimos Tu bendición sobre esta petición de oración.\n\nOtorga a ${prayerRequest.author} Tu paz, guía y fortaleza en esta situación. Que Tu voluntad se cumpla en su vida según Tu perfecto plan.\n\nPor Cristo Nuestro Señor. Amén.`
-          : `Heavenly Father, we lift up ${prayerRequest.author} to Your loving care and ask for Your blessing upon their prayer request.\n\nGrant ${prayerRequest.author} Your peace, guidance, and strength in this situation. May Your will be accomplished in their life according to Your perfect plan.\n\nThrough Christ our Lord. Amen.`;
-      }
-
-      setPrayerModal(prev => ({
-        ...prev,
-        generatedPrayer: prayerText,
-        loading: false
-      }));
-
-    } catch (error) {
-      console.error('Error generating prayer:', error);
-      const errorMsg = userLang === 'es'
-        ? 'Lo sentimos, no podemos generar una oración en este momento. Por favor tómate un momento para orar con tu corazón por esta petición.'
-        : 'We apologize, but we are unable to generate a prayer at this time. Please take a moment to offer your own heartfelt prayer for this request.';
-      setPrayerModal(prev => ({
-        ...prev,
-        loading: false,
-        generatedPrayer: errorMsg
-      }));
-    }
-  };
-
-  const fetchExtendedPrayer = async (prayerId, { silent = false } = {}) => {
-    if (!prayerId) return;
-    if (!silent) setLoadingExtendedPrayer(true);
-    setExtendedPrayer('generating'); // hide the button immediately while AI generates
-    try {
-      const data = await apiGetDetailedPrayer(prayerId, userLang);
-      if (data.error === 0 && data.result) {
-        // Replace the prayer text in place — extended prayer becomes the new prayer
-        const extText = markdownToHtml(data.result);
-        setExtendedPrayer(extText); // flag to hide the Generate button
-        setPrayerModal(prev => ({ ...prev, generatedPrayer: extText }));
-      } else if (!silent) {
-        showModal({ icon: '🙏', title: 'Extended Prayer', message: 'Could not load the extended prayer. Please try again.' });
-      }
-    } catch (e) {
-      console.log('[ExtendedPrayer] error:', e.message);
-      if (!silent) showModal({ icon: '⚠️', title: 'Error', message: 'Could not load the extended prayer.' });
-    } finally {
-      if (!silent) setLoadingExtendedPrayer(false);
-    }
-  };
+  // fetchExtendedPrayer — moved to hooks/usePrayers.js (imported via prayersHook destructuring)
 
   const closePrayerModal = () => {
     // Cancel any pending ad callback/retry so it doesn't fire on a different screen
@@ -2240,7 +1800,7 @@ function App() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
+      clearPrayerModal(); // owned by usePrayers hook
       setAmenReady(false);
       clearTimeout(amenTimerRef.current);
       
@@ -2325,8 +1885,8 @@ Through Christ our Lord. Amen.`;
     const prayerIds = filtered.map(p => p.id);
     
     // Reset prayer modal state to prevent it from showing as overlay
-    setPrayerModal({ visible: false, prayer: null, generatedPrayer: '', loading: false });
-    
+    clearPrayerModal();
+
     // Set props and show the detail screen
     setDetailScreenProps({
       requestId: prayer.id,
@@ -2528,16 +2088,8 @@ Through Christ our Lord. Amen.`;
     }
   };
   
-  // Record swipe prayer to backend (fire and forget)
-  const recordSwipePrayer = async (prayer) => {
-    try {
-      await apiPrayFor({ userId: currentUser?.id, requestId: prayer.id });
-      console.log('Prayer recorded via swipe for request:', prayer.id);
-    } catch (error) {
-      console.log('Failed to record swipe prayer:', error.message);
-    }
-  };
-  
+  // recordSwipePrayer — moved to hooks/usePrayers.js (imported via prayersHook destructuring)
+
   // Touch event handlers for swipe detection
   const handleTouchStart = (e) => {
     touchStartX.current = e.nativeEvent.pageX;
@@ -2798,90 +2350,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     });
   };
 
-  // Standalone pray-for-request (used by Prayer Walk — no modal, no animation)
-  const prayForRequest = async (prayerId) => {
-    if (currentUser?.isGuest) { showGuestPrompt(); return; }
-    try {
-      const data = await apiPrayFor({ userId: currentUser?.id, requestId: prayerId });
-      if (data?.new_badge) showBadgeCelebration(data.new_badge);
-    } catch (e) {
-      console.log('prayForRequest error:', e.message);
-    }
-    setCommunityPrayers(prev =>
-      prev.map(p => p.id === prayerId
-        ? { ...p, user_has_prayed: true, prayer_count: (p.prayer_count || 0) + 1 }
-        : p
-      )
-    );
-    if (currentUser) {
-      setCurrentUser(u => ({ ...u, faith_points: (u.faith_points || 0) + 1 }));
-    }
-    // Trigger review every 5th prayer action
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEYS.PRAY_ACTION_COUNT);
-      const count = (raw ? parseInt(raw, 10) : 0) + 1;
-      await AsyncStorage.setItem(STORAGE_KEYS.PRAY_ACTION_COUNT, String(count));
-      if (count % 5 === 0) maybeRequestReview();
-    } catch (_) {}
+  // ── Wire UI callbacks into the prayers hook ref ─────────────────────────────
+  // Must run on every render (after all callbacks are defined above) so the hook
+  // always reads the latest closure. Object assignment is cheap; no useEffect needed.
+  prayerCallbacksRef.current = {
+    onBadgeCelebration: showBadgeCelebration,
+    onLevelUp:          (rank) => setShowLevelUp(rank),
+    onPrayerAnimation:  triggerPrayerAnimation,
+    onPlaySound:        playHeavenlyChime,
+    onReview:           maybeRequestReview,
+    onGuestPrompt:      showGuestPrompt,
   };
 
-  const markAsPrayed = () => {
-    const prayer = prayerModal.prayer;
-    if (!prayer) return;
-
-    // Silent faith point cap: track recent prayer times, suppress points if > 10 in 10 min
-    const now = Date.now();
-    recentPrayerTimesRef.current = recentPrayerTimesRef.current.filter(t => now - t < 10 * 60 * 1000);
-    const withinCap = recentPrayerTimesRef.current.length < 10;
-    recentPrayerTimesRef.current.push(now);
-
-    // Optimistic local state update immediately
-    setCommunityPrayers(prevPrayers =>
-      prevPrayers.map(p =>
-        p.id === prayer.id
-          ? {
-              ...p,
-              prayedFor: true,
-              user_has_prayed: true,
-              prayer_count: (p.prayer_count || 0) + 1,
-              prayed_by_names: [...(p.prayed_by_names || []), currentUser?.firstName || currentUser?.email || 'You'],
-              prayed_by_people: [...(p.prayed_by_people || []), { name: currentUser?.firstName || currentUser?.email || 'You', picture: currentUser?.picture || null, faith_points: (currentUser?.faith_points || 0) }]
-            }
-          : p
-      )
-    );
-
-    // Fire API fire-and-forget — don't await, don't block UI
-    const prayPayload = { userId: currentUser?.id, requestId: prayer.id };
-    apiPrayFor(prayPayload)
-      .then(data => { if (data?.new_badge) showBadgeCelebration(data.new_badge); })
-      .catch(e => console.log('prayFor error:', e.message));
-
-    // Refresh faith points in background after a delay (skip if over rapid-prayer cap)
-    if (currentUser && withinCap) {
-      const oldPoints = currentUser.faith_points || 0;
-      const oldRank = getFaithRank(oldPoints, currentUser.faith_rank);
-      setTimeout(async () => {
-        try {
-          const data = await apiGetUser(currentUser.id);
-          const userArray = Array.isArray(data) ? data : (data.result || []);
-          if (userArray.length > 0) {
-            const u = userArray[0];
-            const newRank = getFaithRank(u.faith_points || 0, u.faith_rank || null);
-            setCurrentUser(prev => ({ ...prev, faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null }));
-            if (newRank.level > oldRank.level) { setShowLevelUp(newRank); playHeavenlyChime(); }
-          }
-        } catch (e) { console.log('Error refreshing faith points:', e.message); }
-      }, 2000);
-    }
-
-    // Play confetti animation, then close — closePrayerModal returns to same detail screen if opened from one
-    triggerPrayerAnimation();
-    setTimeout(() => {
+  // markAsPrayed — thin wrapper: hook handles data, App.js handles UI (close modal + points)
+  const markAsPrayed = () => _markAsPrayed({
+    onAmenComplete: () => {
       closePrayerModal();
       showFloatingPoints('+1 pt 🙏');
-    }, 900); // Just long enough for confetti to shine ✨
-  };
+    },
+  });
 
   // Open Edit Prayer Screen (reuses new prayer form)
   const handleEditPrayer = (prayer) => {
@@ -2988,79 +2475,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     ]).start(() => setToast({ visible: false, message: '' }));
   };
 
-  // Load user's answered prayers
-  const loadAnsweredPrayers = async () => {
-    if (!currentUser?.id) return;
-    setLoadingAnswered(true);
-    try {
-      const data = await apiGetAnsweredPrayers(currentUser.id, userLang);
-      const arr = Array.isArray(data) ? data : (data.result || []);
-      setAnsweredPrayers(arr.map(r => ({
-        id: r.request_id,
-        title: r.request_title || 'Prayer Request',
-        content: r.request_text || '',
-        date: r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '',
-        answered_message: r.answered_message || '',
-        answeredAt: r.answered_at || '',
-      })));
-    } catch (e) {
-      console.log('Error loading answered prayers:', e);
-    } finally {
-      setLoadingAnswered(false);
-    }
-  };
+  // loadAnsweredPrayers, submitTestimony — moved to hooks/usePrayers.js (imported via prayersHook destructuring)
 
   // Open the testimony modal for a prayer
   const handleMarkAnswered = (prayer) => {
     setAnsweredModal({ visible: true, prayer, text: '', isLoading: false });
-  };
-
-  // Submit the answered testimony to the API
-  const submitTestimony = () => {
-    if (!answeredModal.prayer || !answeredModal.text.trim() || answeredModal.isLoading) return;
-
-    const prayerId = answeredModal.prayer.id;
-    const answeredMessage = answeredModal.text.trim();
-
-    // Optimistic update — close modal and update feed immediately
-    setAnsweredModal({ visible: false, prayer: null, text: '', isLoading: false });
-    setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: true } : p));
-    setCommunityPrayers(prev => prev.filter(p => p.id !== prayerId));
-    playHeavenlyChime();
-    showToast('Your testimony has been shared! 🙌 Notifying everyone who prayed for you...', '🙌');
-
-    // Fire request in background — no await
-    apiMarkAnswered({
-      request_id: prayerId,
-      user_id: currentUser?.id,
-      answered_message: answeredMessage,
-    })
-      .then(data => data)
-      .then(data => {
-        console.log('📥 markPrayerAnswered response:', JSON.stringify(data));
-        const isSuccess = data.error === 0 || data.success === true || (data.result && !String(data.result).toLowerCase().includes('fail'));
-        if (isSuccess) {
-          const notified = data.notified || data.pushCount || 0;
-          setTimeout(() => maybeRequestReview(), 3000);
-          if (data.new_badge) showBadgeCelebration(data.new_badge);
-          if (notified > 0) {
-            const peopleWord = notified === 1 ? 'person' : 'people';
-            const verbWord = notified === 1 ? 'has' : 'have';
-            showToast(`${notified} ${peopleWord} who prayed for you ${verbWord} been notified.`, '🔔');
-          }
-        } else {
-          // Revert optimistic update on failure
-          const errMsg = data.result || data.message || data.error || 'Failed to share testimony';
-          setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: false } : p));
-          showModal({ icon: '⚠️', title: 'Could not share testimony', message: String(errMsg) });
-        }
-      })
-      .catch(e => {
-        console.log('📥 markPrayerAnswered error:', e?.message);
-        // Revert optimistic update on network error
-        setPrayers(prev => prev.map(p => p.id === prayerId ? { ...p, is_answered: false } : p));
-        showModal({ icon: '📶', title: 'Error', message: 'Could not reach the server. Your testimony may not have been saved — please try again.' });
-      });
   };
 
   // Fetch all churches for the dropdown

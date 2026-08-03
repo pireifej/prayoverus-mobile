@@ -1,16 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Buffer } from 'buffer';
 import { Platform, Alert } from 'react-native';
-
-// Base64 encoding that works in both web and React Native
-const base64Encode = (str) => {
-  if (typeof btoa !== "undefined") {
-    return btoa(str);
-  } else {
-    return Buffer.from(str, "utf-8").toString("base64");
-  }
-};
+import { apiRegisterFCMToken } from './services/api';
 
 // Configure how notifications are displayed when the app is in foreground
 Notifications.setNotificationHandler({
@@ -97,31 +88,12 @@ class NotificationService {
       console.log('User ID:', userId);
       console.log('Token:', token);
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          userId: userId.toString(),
-          fcmToken: token,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0) {
-          console.log('✅ Token registered successfully:', data);
-          return true;
-        } else {
-          console.error('❌ Backend returned error:', data.result || data.message);
-          return false;
-        }
+      const data = await apiRegisterFCMToken(userId, token);
+      if (data.error === 0) {
+        console.log('✅ Token registered successfully:', data);
+        return true;
       } else {
-        const errorText = await response.text();
-        console.error('❌ Failed to register token:', response.status, errorText);
+        console.error('❌ Backend returned error:', data.result || data.message);
         return false;
       }
     } catch (error) {

@@ -12,26 +12,22 @@ class AppErrorBoundary extends Component {
   }
   componentDidCatch(error, info) {
     console.error('🔴 AppErrorBoundary caught a render crash:', error?.message, info?.componentStack);
-    // Clear ALL persistent storage so "Try Again" starts from a clean state.
-    // Keeps the full key list in sync with STORAGE_KEYS (defined later in the file)
-    // so a corrupt-data crash doesn't loop infinitely.
+    // Clear all persistent storage so the "Try Again" retry starts from a clean state.
+    // If corrupt cached data caused the crash, this prevents an infinite crash loop.
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const { STORAGE_KEYS: SK } = require('./utils/storage');
       AsyncStorage.multiRemove([
-        // Auth & session
-        'userSession',
-        // Feed cache
-        'communityPrayers_cache',
-        // Daily limits
-        '@daily_post_tracker',
-        // User prefs / gates
-        '@blocked_users',
-        '@review_state',
-        '@open_dates',
-        '@eula_accepted',
-        '@language_pref',
-        '@onboarding_done',
-        '@pray_action_count',
+        SK.USER_SESSION,
+        SK.COMMUNITY_CACHE,
+        SK.DAILY_POST_TRACKER,
+        SK.BLOCKED_USERS,
+        SK.REVIEW_STATE,
+        SK.OPEN_DATES,
+        SK.EULA_ACCEPTED,
+        SK.LANGUAGE_PREF,
+        SK.ONBOARDING_DONE,
+        SK.PRAY_ACTION_COUNT,
       ]).catch(() => {});
     } catch (_) {}
   }
@@ -71,7 +67,6 @@ import NotificationService from './NotificationService';
 import PrayerDetailScreen from './PrayerDetailScreen';
 import RosaryScreen from './RosaryScreen';
 import GroupRosaryScreen from './GroupRosaryScreen';
-import { Buffer } from 'buffer';
 import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
@@ -79,7 +74,7 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 import OnboardingCarousel from './OnboardingCarousel';
 import t, { lang as userLang, setLang, translateRank } from './i18n';
-import { base64Encode, getFaithRank, FAITH_RANKS, isNewerVersion, markdownToHtml } from './utils/helpers';
+import { getFaithRank, FAITH_RANKS, isNewerVersion, markdownToHtml } from './utils/helpers';
 import { storage, STORAGE_KEYS } from './utils/storage';
 import HtmlText from './components/HtmlText';
 import PrayerHandsLoader from './components/PrayerHandsLoader';
@@ -87,24 +82,38 @@ import AnimatedButton from './components/AnimatedButton';
 import PrayerOptionsMenu from './components/PrayerOptionsMenu';
 import { showToast, showModal } from './AppModals';
 import {
+  apiHeaders,
   apiGetUser,
-  apiGetBadgeDefinitions,
-  apiGetUserBadges,
-  apiGetAppVersion,
+  apiGetMyRequests,
+  apiGetCommunityWall,
   apiGetDailyDevotional,
   apiGetPrayer,
   apiGetDetailedPrayer,
+  apiGetPrayerByRequestId,
+  apiGetBadgeDefinitions,
+  apiGetUserBadges,
+  apiGetAppVersion,
+  apiReportContent,
+  apiBlockUser,
+  apiGetUserRequests,
+  apiGetPrayedFor,
   apiPrayFor,
   apiMarkAnswered,
   apiGetAnsweredPrayers,
+  apiEditPrayer,
+  apiDeletePrayer,
   apiGetAllChurches,
   apiGetUsersByChurch,
   apiUpdateUser,
   apiUploadProfilePicture,
   apiChangePassword,
   apiChangeEmail,
-  apiBlockUser,
-  apiReportContent,
+  apiDeleteUser,
+  apiSubmitHelp,
+  apiCheckContent,
+  apiCreatePrayer,
+  apiCreatePrayerWithImage,
+  apiEditPrayerWithImage,
 } from './services/api';
 
 // ── Global unhandled-rejection / error safety net ─────────────────────────
@@ -1318,7 +1327,7 @@ function App() {
             }
           } catch (_) {}
         }
-      });
+      }).catch(e => console.warn('[Boot] Community cache read failed:', e?.message));
       setDisplayedCount(PRAYERS_PAGE_SIZE);
       setRefreshingCommunity(true);
       loadCommunityPrayers(true);
@@ -1349,33 +1358,42 @@ function App() {
   };
 
   const fetchDailyDevotional = async () => {
-    try {
-      const DB_TODAY_KEY = `@db_today_date_${userLang}`;
-      const DB_CACHE_KEY = `@db_today_data_${userLang}`;
-      const DB_HISTORY_KEY = `@db_history_${userLang}`;
+    const DB_TODAY_KEY = `@db_today_date_${userLang}`;
+    const DB_CACHE_KEY = `@db_today_data_${userLang}`;
+    const DB_HISTORY_KEY = `@db_history_${userLang}`;
 
-      const today = new Date().toDateString();
-      const [lastDate, cachedStr, historyStr] = await Promise.all([
+    const today = new Date().toDateString();
+    let lastDate = null, cachedStr = null, historyStr = null;
+    try {
+      [lastDate, cachedStr, historyStr] = await Promise.all([
         AsyncStorage.getItem(DB_TODAY_KEY),
         AsyncStorage.getItem(DB_CACHE_KEY),
         AsyncStorage.getItem(DB_HISTORY_KEY),
       ]);
+    } catch (e) { console.warn('[Boot] Daily Bread cache read error:', e?.message); }
 
-      const history = historyStr ? JSON.parse(historyStr) : [];
+    let history = [];
+    try {
+      history = historyStr ? JSON.parse(historyStr) : [];
       setPastDevotionals(history);
+    } catch (e) {
+      console.warn('[Boot] Daily Bread history parse error:', e?.message);
+      setPastDevotionals([]);
+    }
 
-      // Show cached version immediately for fast display
-      if (lastDate === today && cachedStr) {
+    // Show cached version immediately for fast display
+    if (lastDate === today && cachedStr) {
+      try {
         const cached = JSON.parse(cachedStr);
         setDailyDevotional(cached);
         setSelectedDevotional(cached);
+      } catch (e) {
+        console.warn('[Boot] Daily Bread cache parse error — will use fresh data:', e?.message);
       }
+    }
 
+    try {
       // Always fetch from API to check if a newer article was generated today
-      const dbHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-      };
       let data = await apiGetDailyDevotional(userLang);
 
       // If the language-specific devotional isn't available, fall back to English
@@ -1386,7 +1404,9 @@ function App() {
       // API returns {error:0, result:{...}} on success, {error:1} when empty
       const raw = data?.result;
       if (data && data.error === 0 && raw && raw.title) {
-        const cached = cachedStr ? JSON.parse(cachedStr) : null;
+        let cachedForCompare = null;
+        try { cachedForCompare = cachedStr ? JSON.parse(cachedStr) : null; } catch (_) {}
+        const cached = cachedForCompare;
         const cachedCreatedAt = cached?.createdAt || '';
         const freshCreatedAt = raw.created_at || '';
 
@@ -1465,7 +1485,6 @@ function App() {
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/getCommunityWall';
       const requestPayload = {
         userId: userId.toString(),
         tz: timezone,
@@ -1473,24 +1492,8 @@ function App() {
         lang: userLang,
       };
       
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload),
-        timeout: 10000,
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
+      const data = await apiGetCommunityWall(requestPayload);
+      {
         const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
         console.log('📱 Community API Response: Loaded', prayerCount, 'prayers');
         
@@ -1538,8 +1541,6 @@ function App() {
           console.log('📱 No community prayers found in response');
           setCommunityPrayers([]);
         }
-      } else {
-        throw new Error(`API returned ${response.status}`);
       }
     } catch (error) {
       console.error('❌ Failed to load community prayers:', error.message);
@@ -1808,21 +1809,9 @@ function App() {
     setMemberFeedLoading(true);
     setMemberFeedData([]);
     try {
-      const endpoint = type === 'requests'
-        ? 'https://shouldcallpaul.replit.app/getUserRequests'
-        : 'https://shouldcallpaul.replit.app/getPrayedFor';
-      const body = type === 'requests'
-        ? { targetUserId: member.id, userId: currentUser?.id, lang: userLang }
-        : { userId: member.id, lang: userLang };
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
+      const data = type === 'requests'
+        ? await apiGetUserRequests(member.id, currentUser?.id, userLang)
+        : await apiGetPrayedFor(member.id, userLang);
       setMemberFeedData(Array.isArray(data) ? data : (data.result || []));
     } catch (e) {
       console.log('⚠️ loadMemberFeed error:', e?.message);
@@ -1838,54 +1827,36 @@ function App() {
     }
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/getUser';
-      const requestPayload = {
-        userId: currentUser.id.toString()
-      };
-      
       console.log('🔄 Refreshing user profile data');
+      const data = await apiGetUser(currentUser.id.toString());
+      console.log('📥 User profile loaded successfully');
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
-      });
+      // API returns direct array: [{user_id, church_id, church_name, ...}]
+      const userArray = Array.isArray(data) ? data : (data.result || []);
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📥 User profile loaded successfully');
+      if (userArray.length > 0) {
+        const user = userArray[0];
         
-        // API returns direct array: [{user_id, church_id, church_name, ...}]
-        const userArray = Array.isArray(data) ? data : (data.result || []);
+        // Update current user with fresh data from API (preserve counts if backend doesn't return them)
+        const updatedUser = {
+          ...currentUser,
+          firstName: user.real_name,
+          lastName: user.last_name,
+          churchId: user.church_id,
+          churchName: user.church_name,
+          title: user.user_title,
+          about: user.user_about,
+          picture: user.picture || user.profile_picture_url,
+          faith_points: user.faith_points || currentUser.faith_points || 0,
+          faith_rank: user.faith_rank || currentUser.faith_rank || null,
+          prayer_count: parseInt(user.prayer_count, 10) || currentUser.prayer_count || 0,
+          request_count: parseInt(user.request_count, 10) || currentUser.request_count || 0,
+          rosary_count: parseInt(user.rosary_count, 10) || currentUser.rosary_count || 0,
+        };
         
-        if (userArray.length > 0) {
-          const user = userArray[0];
-          
-          // Update current user with fresh data from API (preserve counts if backend doesn't return them)
-          const updatedUser = {
-            ...currentUser,
-            firstName: user.real_name,
-            lastName: user.last_name,
-            churchId: user.church_id,
-            churchName: user.church_name,
-            title: user.user_title,
-            about: user.user_about,
-            picture: user.picture || user.profile_picture_url,
-            faith_points: user.faith_points || currentUser.faith_points || 0,
-            faith_rank: user.faith_rank || currentUser.faith_rank || null,
-            prayer_count: parseInt(user.prayer_count, 10) || currentUser.prayer_count || 0,
-            request_count: parseInt(user.request_count, 10) || currentUser.request_count || 0,
-            rosary_count: parseInt(user.rosary_count, 10) || currentUser.rosary_count || 0,
-          };
-          
-          console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
-          setCurrentUser(updatedUser);
-          await saveUserToStorage(updatedUser);
-        }
+        console.log('✅ User profile refreshed. First:', user.real_name, 'Last:', user.last_name, 'Church:', user.church_name, 'Faith:', user.faith_points);
+        setCurrentUser(updatedUser);
+        await saveUserToStorage(updatedUser);
       }
     } catch (error) {
       console.log('Error refreshing user profile:', error.message);
@@ -1901,37 +1872,13 @@ function App() {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/getMyRequests';
-      const requestPayload = {
-        tz: timezone,
-        userId: currentUser.id.toString(),
-        lang: userLang,
-      };
+      const data = await apiGetMyRequests(currentUser.id.toString(), userLang, timezone);
+      const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
+      console.log('📱 User Prayers API Response: Loaded', prayerCount, 'prayers');
       
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const prayerCount = Array.isArray(data) ? data.length : (data.result?.length || 0);
-        console.log('📱 User Prayers API Response: Loaded', prayerCount, 'prayers');
-        
-        // Handle direct array response or wrapped response
-        const prayersArray = Array.isArray(data) ? data : (data.result || []);
-        
-        if (prayersArray.length > 0) {
+      // Handle direct array response or wrapped response
+      const prayersArray = Array.isArray(data) ? data : (data.result || []);
+      if (prayersArray.length > 0) {
           const userPrayers = prayersArray.map(request => ({
             id: request.request_id,
             title: request.request_title || 'Prayer Request',
@@ -1959,9 +1906,6 @@ function App() {
           console.log('📱 No prayers found in response');
           setPrayers([]); // Set empty array if no prayers found
         }
-      } else {
-        throw new Error(`API returned ${response.status}`);
-      }
     } catch (error) {
       // Set empty prayers array on error instead of fallback data
       setPrayers([]);
@@ -2021,18 +1965,9 @@ function App() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const apiAuth = process.env.EXPO_PUBLIC_API_AUTH;
-      const response = await fetch('https://shouldcallpaul.replit.app/checkPrayerContent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + apiAuth,
-        },
-        body: JSON.stringify({ requestText: text }),
-        signal: controller.signal,
-      });
+      const result = await apiCheckContent({ requestText: text }, controller.signal);
       clearTimeout(timeout);
-      return await response.json();
+      return result;
     } catch (e) {
       console.log('⚠️ Prayer content check skipped:', e?.message);
       return { flagged: false, suggestion: null };
@@ -2109,14 +2044,9 @@ function App() {
       }
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-      const endpoint = 'https://shouldcallpaul.replit.app/createRequestAndPrayer';
+      let data;
       
-      let requestBody;
-      let headers = {
-        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-      };
-      
-      // If there's an image, use FormData, otherwise use JSON
+      // If there's an image, use FormData (multipart), otherwise use JSON
       if (prayerImage) {
         const formData = new FormData();
         formData.append('requestText', prayer.content);
@@ -2126,17 +2056,8 @@ function App() {
         formData.append('sendEmail', prayer.isSilent ? 'false' : 'true');
         formData.append('idempotencyKey', idempotencyKey);
         formData.append('lang', userLang);
-        // Add myChurchOnly flag when checkbox is checked (isPublic = false)
-        if (!prayer.isPublic) {
-          formData.append('myChurchOnly', 'true');
-        }
-        // Test posts: mobile app already suppresses sendEmail; backend should
-        // also skip any push notification dispatch when this is set
-        if (prayer.isSilent) {
-          formData.append('isTest', 'true');
-        }
-        
-        // Add image to FormData
+        if (!prayer.isPublic) formData.append('myChurchOnly', 'true');
+        if (prayer.isSilent) formData.append('isTest', 'true');
         const uriParts = prayerImage.split('.');
         const fileExtension = uriParts[uriParts.length - 1];
         formData.append('image', {
@@ -2144,10 +2065,8 @@ function App() {
           type: `image/${fileExtension}`,
           name: `prayer.${fileExtension}`,
         });
-        
-        requestBody = formData;
-        console.log('📱 MOBILE APP API CALL (with image):');
-        console.log('POST ' + endpoint);
+        console.log('📱 savePrayerToAPI (with image)');
+        data = await apiCreatePrayerWithImage(formData, idempotencyKey);
       } else {
         const requestPayload = {
           requestText: prayer.content,
@@ -2157,31 +2076,12 @@ function App() {
           sendEmail: prayer.isSilent ? "false" : "true",
           idempotencyKey: idempotencyKey,
           lang: userLang,
-          // Add myChurchOnly flag when checkbox is checked (isPublic = false)
           ...((!prayer.isPublic) && { myChurchOnly: true }),
-          // Test posts: mobile app already suppresses sendEmail; backend should
-          // also skip any push notification dispatch when this is set
           ...(prayer.isSilent && { isTest: true })
         };
-        
-        headers['Content-Type'] = 'application/json';
-        requestBody = JSON.stringify(requestPayload);
-        
-        console.log('📱 MOBILE APP API CALL:');
-        console.log('POST ' + endpoint);
-        console.log(JSON.stringify(requestPayload, null, 2));
+        console.log('📱 savePrayerToAPI:', JSON.stringify(requestPayload, null, 2));
+        data = await apiCreatePrayer(requestPayload);
       }
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'X-Idempotency-Key': idempotencyKey,
-        },
-        body: requestBody
-      });
-      
-      const data = await response.json();
       console.log('📥 API Response:', JSON.stringify(data, null, 2));
       
       // Check for success: API returns { success: true, ... } on success
@@ -2384,16 +2284,7 @@ function App() {
     setDetailGeneratedPrayer({ text: '', loading: true, collapsed: true });
     
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ requestId: requestId, lang: userLang }),
-      });
+      const data = await apiGetPrayerByRequestId(requestId, userLang);
 
       // Guard: only update state if this is still the prayer we're viewing
       if (fetchingPrayerIdRef.current !== requestId) {
@@ -2401,12 +2292,9 @@ function App() {
         return;
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.prayerText) {
-          setDetailGeneratedPrayer({ text: data.prayerText, loading: false, collapsed: true });
-          return;
-        }
+      if (data.error === 0 && data.prayerText) {
+        setDetailGeneratedPrayer({ text: data.prayerText, loading: false, collapsed: true });
+        return;
       }
     } catch (error) {
       console.log('Failed to fetch prayer for detail view:', error.message);
@@ -2643,19 +2531,7 @@ Through Christ our Lord. Amen.`;
   // Record swipe prayer to backend (fire and forget)
   const recordSwipePrayer = async (prayer) => {
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/prayFor';
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          userId: currentUser?.id,
-          requestId: prayer.id
-        })
-      });
+      await apiPrayFor({ userId: currentUser?.id, requestId: prayer.id });
       console.log('Prayer recorded via swipe for request:', prayer.id);
     } catch (error) {
       console.log('Failed to record swipe prayer:', error.message);
@@ -2783,7 +2659,6 @@ Through Christ our Lord. Amen.`;
     }
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/contact';
       const content = `Message: ${helpForm.message}
 
 Contact Details:
@@ -2793,34 +2668,14 @@ Phone: ${helpForm.phone || 'Not provided'}
 
 User ID: ${currentUser?.id || 'Not logged in'}`;
 
-      const requestPayload = {
+      await apiSubmitHelp({
         subject: "Pray Over Us Contact Form Submission",
         to: "prayoverus@gmail.com",
         content: content
-      };
-      
-      // Clean debug output - endpoint and payload ONLY
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
       });
-      
-      if (response.ok) {
-        showToast('Your message has been sent successfully!', '✉️');
-        setHelpForm({ message: '', name: '', email: '', phone: '' });
-        setCurrentScreen('home');
-      } else {
-        throw new Error(`API returned ${response.status}`);
-      }
+      showToast('Your message has been sent successfully!', '✉️');
+      setHelpForm({ message: '', name: '', email: '', phone: '' });
+      setCurrentScreen('home');
     } catch (error) {
       showModal({ icon: '⚠️', title: 'Error', message: 'Failed to send message. Please try again later.' });
       console.log('Contact form error:', error.message);
@@ -3059,30 +2914,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setEditPrayerModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/editRequest';
-      const requestPayload = {
+      const data = await apiEditPrayer({
         requestId: editPrayerModal.prayer.id,
         userId: currentUser?.id,
         requestText: editPrayerModal.content.trim()
-      };
-
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
+      {
         if (data.error === 0) {
           // Update local state
           setCommunityPrayers(prevPrayers =>
@@ -3102,13 +2940,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           
           setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
           showToast('Prayer request updated successfully', '✅');
-        } else if (data.error === 1) {
-          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update prayer' });
         } else {
           showModal({ icon: '⚠️', title: 'Error', message: data.result || data.message || 'Failed to update prayer' });
         }
-      } else {
-        throw new Error('Server error');
       }
     } catch (error) {
       showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to update prayer request. Please try again.' });
@@ -3120,27 +2954,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Delete prayer - calls deleteRequestById endpoint
   const handleDeletePrayer = async (prayer) => {
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/deleteRequestById';
-      const requestPayload = {
-        request_id: prayer.id,
-        userId: currentUser?.id,
-      };
-
-      console.log('📱 MOBILE APP API CALL:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
-      });
-
-      const data = await response.json();
+      const data = await apiDeletePrayer(prayer.id, currentUser?.id);
       console.log('📥 Delete API Response:', JSON.stringify(data, null, 2));
       
       // Check for success: API returns { success: true } or { error: 0 }
@@ -3549,7 +3363,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
             <TouchableOpacity
               onPress={async () => {
-                try { await AsyncStorage.setItem('@eula_accepted', '1'); } catch (_) {}
+                try { await AsyncStorage.setItem(STORAGE_KEYS.EULA_ACCEPTED, '1'); } catch (_) {}
                 setEulaAccepted(true);
               }}
               style={{ backgroundColor: '#2563eb', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 14 }}
@@ -3571,7 +3385,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   if (showOnboarding && !currentUser) {
     return (
       <OnboardingCarousel onDone={async () => {
-        try { await AsyncStorage.setItem('@onboarding_done', '1'); } catch (_) {}
+        try { await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_DONE, '1'); } catch (_) {}
         setShowOnboarding(false);
       }} />
     );
@@ -5075,22 +4889,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             style: 'destructive',
             onPress: async () => {
               try {
-                const endpoint = 'https://shouldcallpaul.replit.app/deleteUser';
-                const requestPayload = {
-                  userId: currentUser?.id.toString(),
-                  confirmPhrase: 'DELETE MY ACCOUNT',
-                };
-                const response = await fetch(endpoint, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-                  },
-                  body: JSON.stringify(requestPayload)
-                });
-                if (response.ok) {
-                  const data = await response.json();
+                const data = await apiDeleteUser(currentUser?.id.toString());
+                {
                   if (data.error === 0) {
                     const message = data.result || 'Your account has been deleted.';
                     showModal({
@@ -5103,8 +4903,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     const errorMessage = data.result || data.message || 'Failed to delete account';
                     showModal({ icon: '⚠️', title: 'Error', message: errorMessage });
                   }
-                } else {
-                  showModal({ icon: '⚠️', title: 'Error', message: 'Account deletion service unavailable' });
                 }
               } catch (error) {
                 showModal({ icon: '📶', title: 'Error', message: 'Network error. Please try again.' });
@@ -5157,13 +4955,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 style={[styles.settingsButton, { flex: 1, backgroundColor: userLang === 'en' ? '#1e3a5f' : undefined }]}
-                onPress={async () => { setLang('en'); await AsyncStorage.setItem('@language_pref', 'en'); setLangVersion(v => v + 1); }}
+                onPress={async () => { setLang('en'); await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE_PREF, 'en'); setLangVersion(v => v + 1); }}
               >
                 <Text style={[styles.settingsButtonText, { color: userLang === 'en' ? '#fff' : undefined }]}>🇺🇸 English</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.settingsButton, { flex: 1, backgroundColor: userLang === 'es' ? '#1e3a5f' : undefined }]}
-                onPress={async () => { setLang('es'); await AsyncStorage.setItem('@language_pref', 'es'); setLangVersion(v => v + 1); }}
+                onPress={async () => { setLang('es'); await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE_PREF, 'es'); setLangVersion(v => v + 1); }}
               >
                 <Text style={[styles.settingsButtonText, { color: userLang === 'es' ? '#fff' : undefined }]}>🇲🇽 Español</Text>
               </TouchableOpacity>
@@ -5292,18 +5090,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           (shouldRemovePicture ? ', removePicture' : '') +
           (isNewImage ? ', picture (file)' : ''));
         
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: formData
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          
+        const data = await apiEditPrayerWithImage(formData);
+        {
           if (data.error === 0) {
             // Update local state with new values
             const updatedPrayer = {
@@ -5332,8 +5120,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           } else {
             showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update prayer' });
           }
-        } else {
-          throw new Error('Server error');
         }
       } catch (error) {
         showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to update prayer request. Please try again.' });
@@ -5631,7 +5417,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         onUnlockArchive={() => showRewardedAd(
           () => {
             setArchiveUnlocked(true);
-            AsyncStorage.setItem('archiveUnlocked', 'true');
+            AsyncStorage.setItem(STORAGE_KEYS.ARCHIVE_UNLOCKED, 'true');
           },
           () => showModal({ icon: '📶', title: 'Ad Not Ready', message: 'Please try again in a moment.' })
         )}

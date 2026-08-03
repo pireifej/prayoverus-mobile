@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   ONBOARDING_DONE:     '@onboarding_done',
   ARCHIVE_UNLOCKED:    'archiveUnlocked',
   PRAY_ACTION_COUNT:   '@pray_action_count',
+  REMEMBERED_EMAIL:    'rememberedEmail',
+  ROSARY_FONT_SIZE:    '@rosary_font_size',
 };
 
 // ─── SimpleStorage ────────────────────────────────────────────────────────────

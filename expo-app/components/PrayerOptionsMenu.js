@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Share, Clipboard, StyleSheet } from 'react-native';
 import { showToast, showModal } from '../AppModals';
-import { base64EncodeForMenu } from '../utils/helpers';
+import { apiGetPrayerByRequestId } from '../services/api';
 import t from '../i18n';
-
-const API_BASE = 'https://shouldcallpaul.replit.app';
 
 export default function PrayerOptionsMenu({
   prayer,
@@ -52,25 +50,11 @@ export default function PrayerOptionsMenu({
   const handleCopyPrayerText = async () => {
     setIsCopyingPrayer(true);
     try {
-      const response = await fetch(`${API_BASE}/getPrayerByRequestId`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64EncodeForMenu('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ requestId: prayer.id }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.prayerText) {
-          Clipboard.setString(data.prayerText.replace(/<[^>]*>/g, ''));
-          setMenuVisible(false);
-          showToast(t('copiedPrayer'), '📋');
-        } else {
-          setMenuVisible(false);
-          showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
-        }
+      const data = await apiGetPrayerByRequestId(prayer.id);
+      if (data.error === 0 && data.prayerText) {
+        Clipboard.setString(data.prayerText.replace(/<[^>]*>/g, ''));
+        setMenuVisible(false);
+        showToast(t('copiedPrayer'), '📋');
       } else {
         setMenuVisible(false);
         showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });

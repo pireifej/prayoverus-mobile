@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from './utils/storage';
 
 const FONT_SIZES   = [15, 18, 21, 25, 30];
 const LINE_HEIGHTS = [23, 27, 34, 40, 48];
@@ -173,14 +174,14 @@ export default function RosaryScreen({ onExit, onComplete, currentUser }) {
 
   // ── Load saved font size ──────────────────────────────────────────────────
   useEffect(() => {
-    AsyncStorage.getItem('@rosary_font_size').then(v => {
+    AsyncStorage.getItem(STORAGE_KEYS.ROSARY_FONT_SIZE).then(v => {
       if (v !== null) setFontSizeIdx(parseInt(v));
     }).catch(() => {});
   }, []);
 
   const changeFontSize = (idx) => {
     setFontSizeIdx(idx);
-    AsyncStorage.setItem('@rosary_font_size', String(idx)).catch(() => {});
+    AsyncStorage.setItem(STORAGE_KEYS.ROSARY_FONT_SIZE, String(idx)).catch(() => {});
   };
 
   // ── Nudge animation: play once when praying screen first opens ────────────

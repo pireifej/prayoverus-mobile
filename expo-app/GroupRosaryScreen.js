@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from './utils/storage';
 
 // ─── AdMob ────────────────────────────────────────────────────────────────────
 let BannerAd, BannerAdSize, TestIds;
@@ -212,7 +213,7 @@ export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
 
   // Load saved font size
   useEffect(() => {
-    AsyncStorage.getItem('@rosary_font_size').then(v => {
+    AsyncStorage.getItem(STORAGE_KEYS.ROSARY_FONT_SIZE).then(v => {
       if (v !== null) setFontSizeIdx(parseInt(v));
     }).catch(() => {});
   }, []);
@@ -388,7 +389,7 @@ export default function GroupRosaryScreen({ onExit, currentUser, onComplete }) {
 
   const changeFontSize = (idx) => {
     setFontSizeIdx(idx);
-    AsyncStorage.setItem('@rosary_font_size', String(idx)).catch(() => {});
+    AsyncStorage.setItem(STORAGE_KEYS.ROSARY_FONT_SIZE, String(idx)).catch(() => {});
   };
 
   // ── Render: Entry ──────────────────────────────────────────────────────────

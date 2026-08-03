@@ -9,14 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Base64 encoding — works in both web and React Native environments
-const base64Encode = (str) => {
-  if (typeof btoa !== 'undefined') {
-    return btoa(str);
-  } else {
-    return Buffer.from(str, 'utf-8').toString('base64');
-  }
-};
+import { apiReadDailyBread, apiGetDailyBreadAudio } from './services/api';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.40);
@@ -102,24 +95,14 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     AsyncStorage.getItem(storageKey).then(async (alreadyRead) => {
       if (alreadyRead) return; // already called today
       try {
-        const res = await fetch('https://shouldcallpaul.replit.app/readDailyBread', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: JSON.stringify({ userId, devotionalId: devotional.id || devotional.date }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.streak) setStreak(data.streak);
-          if (data.new_badge && onNewBadge) onNewBadge(data.new_badge);
-          await AsyncStorage.setItem(storageKey, '1');
-        }
+        const data = await apiReadDailyBread(userId, devotional.id || devotional.date);
+        if (data.streak) setStreak(data.streak);
+        if (data.new_badge && onNewBadge) onNewBadge(data.new_badge);
+        await AsyncStorage.setItem(storageKey, '1');
       } catch (e) {
         console.warn('[DailyBread] readDailyBread error:', e?.message);
       }
-    });
+    }).catch(e => console.warn('[DailyBread] Storage read error:', e?.message));
   }, [userId, devotional?.id]);
 
   // Unload audio when leaving the screen
@@ -179,21 +162,14 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
       const cached = await FileSystem.getInfoAsync(localUri);
       if (!cached.exists) {
         // POST to Paul's backend — same Basic Auth as all other APIs, returns MP3 binary directly
-        const res = await fetch('https://shouldcallpaul.replit.app/getDailyBreadAudio', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: JSON.stringify({
-            date,
-            lang: langKey,
-            title: devotional.title || '',
-            content: devotional.content || '',
-            bibleVerse: devotional.bibleVerse || '',
-            verseReference: devotional.verseReference || '',
-            prayer: devotional.prayer || '',
-          }),
+        const res = await apiGetDailyBreadAudio({
+          date,
+          lang: langKey,
+          title: devotional.title || '',
+          content: devotional.content || '',
+          bibleVerse: devotional.bibleVerse || '',
+          verseReference: devotional.verseReference || '',
+          prayer: devotional.prayer || '',
         });
         if (!res.ok) throw new Error(`Audio API returned ${res.status}`);
 

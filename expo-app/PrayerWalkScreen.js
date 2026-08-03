@@ -9,6 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
+import { apiGetPrayerByRequestId, apiGetPrayerAudio, API_BASE } from './services/api';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 
@@ -16,15 +17,6 @@ const { width: SW, height: SH } = Dimensions.get('window');
 const STATUS_H = Platform.OS === 'android' ? (RNStatusBar.currentHeight || 24) : 0;
 const SAFE_TOP = Platform.OS === 'android' ? STATUS_H + 28 : 64;
 const SAFE_BOTTOM = Platform.OS === 'android' ? 64 : 48;
-
-const BASE_URL = 'https://shouldcallpaul.replit.app';
-
-const base64Encode = (str) => {
-  if (typeof btoa !== 'undefined') return btoa(unescape(encodeURIComponent(str)));
-  const { Buffer } = require('buffer');
-  return Buffer.from(str, 'utf-8').toString('base64');
-};
-const AUTH = () => 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
 
 const stripHtml = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -37,15 +29,8 @@ const fallbackPrayer = (prayer) =>
 
 const fetchPrayerText = async (prayer) => {
   try {
-    const res = await fetch(`${BASE_URL}/getPrayerByRequestId`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
-      body: JSON.stringify({ requestId: prayer.id }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.error === 0 && data.prayerText) return stripHtml(data.prayerText);
-    }
+    const data = await apiGetPrayerByRequestId(prayer.id);
+    if (data.error === 0 && data.prayerText) return stripHtml(data.prayerText);
   } catch (_) {}
   return fallbackPrayer(prayer);
 };
@@ -348,11 +333,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
         const prayerText = await fetchPrayerText(prayer);
         const spokenText = buildSpokenText(prayer, prayerText);
 
-        const res = await fetch(`${BASE_URL}/getPrayerAudio`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': AUTH() },
-          body: JSON.stringify({ requestId: prayer.id, text: spokenText }),
-        });
+        const res = await apiGetPrayerAudio(prayer.id, spokenText);
         if (!res.ok) throw new Error(`getPrayerAudio ${res.status}`);
 
         const blob = await res.blob();
@@ -495,7 +476,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
       {/* Prayer picture — translucent so the animations show through */}
       {current?.picture ? (
         <Image
-          source={{ uri: current.picture.startsWith('http') ? current.picture : `${BASE_URL}${current.picture}` }}
+          source={{ uri: current.picture.startsWith('http') ? current.picture : `${API_BASE}${current.picture}` }}
           style={styles.prayerBgImage}
           resizeMode="cover"
           blurRadius={2}

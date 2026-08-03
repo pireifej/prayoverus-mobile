@@ -15,54 +15,20 @@ const getAppleAuth = () => {
 };
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Base64 encoding that works in both web and React Native
-const base64Encode = (str) => {
-  if (typeof btoa !== "undefined") {
-    return btoa(str);
-  } else {
-    return Buffer.from(str, "utf-8").toString("base64");
-  }
-};
+import { SimpleStorage, STORAGE_KEYS } from './utils/storage';
+import {
+  apiHeaders,
+  apiLogin,
+  apiAppleLogin,
+  apiGetAllChurches,
+  apiRequestPasswordReset,
+  apiResetPassword,
+  apiGoogleToken,
+  apiGoogleLogin,
+  apiCreateUser,
+} from './services/api';
 
 WebBrowser.maybeCompleteAuthSession();
-
-// Storage wrapper for web and mobile
-class SimpleStorage {
-  constructor() {
-    this.isWeb = Platform.OS === 'web';
-  }
-
-  async setItem(key, value) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(key, value);
-      }
-    } else {
-      await AsyncStorage.setItem(key, value);
-    }
-  }
-
-  async getItem(key) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.getItem(key);
-      }
-    } else {
-      return await AsyncStorage.getItem(key);
-    }
-    return null;
-  }
-
-  async removeItem(key) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(key);
-      }
-    } else {
-      await AsyncStorage.removeItem(key);
-    }
-  }
-}
 
 const storage = new SimpleStorage();
 
@@ -105,29 +71,7 @@ export function ForgotPasswordScreen({ onBack, onEmailSent }) {
     setLoading(true);
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/requestPasswordReset';
-      const requestPayload = { email: email.trim() };
-
-      console.log('📱 PASSWORD RESET REQUEST:');
-      console.log('POST ' + endpoint);
-      console.log(JSON.stringify(requestPayload, null, 2));
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload)
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      // Try to parse JSON regardless of status code
-      const data = await response.json();
-      console.log('Response data:', JSON.stringify(data, null, 2));
-      
-      // Check if error === 0 (success)
+      const data = await apiRequestPasswordReset(email.trim());
       if (data.error === 0) {
         setSentToEmail(email.trim());
         setEmailSent(true);
@@ -329,79 +273,48 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
     setLoading(true);
 
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/resetPassword';
-      const requestPayload = {
-        token: token,
-        newPassword: newPassword
-      };
-
-      console.log('📱 PASSWORD RESET: POST ' + endpoint);
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0) {
-          // Try to auto-login if we have the email (user went through in-app Forgot Password flow)
-          if (resetEmail && onAutoLogin) {
-            try {
-              const loginRes = await fetch('https://shouldcallpaul.replit.app/login', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-                },
-                body: JSON.stringify({ email: resetEmail, password: newPassword }),
+      const data = await apiResetPassword(token, newPassword);
+      if (data.error === 0) {
+        // Try to auto-login if we have the email (user went through in-app Forgot Password flow)
+        if (resetEmail && onAutoLogin) {
+          try {
+            const loginData = await apiLogin(resetEmail, newPassword);
+            if (loginData.error === 0 && loginData.result?.length > 0) {
+              const u = loginData.result[0];
+              onAutoLogin({
+                id: u.user_id,
+                email: u.email,
+                firstName: u.real_name,
+                userName: u.user_name,
+                title: u.user_title,
+                about: u.user_about,
+                location: u.location,
+                picture: u.picture,
+                active: u.active,
+                timestamp: u.timestamp,
+                churchName: u.church_name,
+                faith_points: u.faith_points || 0,
+                faith_rank: u.faith_rank || null,
+                prayer_count: parseInt(u.prayer_count, 10) || 0,
+                request_count: parseInt(u.request_count, 10) || 0,
               });
-              if (loginRes.ok) {
-                const loginData = await loginRes.json();
-                if (loginData.error === 0 && loginData.result?.length > 0) {
-                  const u = loginData.result[0];
-                  onAutoLogin({
-                    id: u.user_id,
-                    email: u.email,
-                    firstName: u.real_name,
-                    userName: u.user_name,
-                    title: u.user_title,
-                    about: u.user_about,
-                    location: u.location,
-                    picture: u.picture,
-                    active: u.active,
-                    timestamp: u.timestamp,
-                    churchName: u.church_name,
-                    faith_points: u.faith_points || 0,
-                    faith_rank: u.faith_rank || null,
-                    prayer_count: parseInt(u.prayer_count, 10) || 0,
-                    request_count: parseInt(u.request_count, 10) || 0,
-                  });
-                  return; // skip the alert — user is straight in the app
-                }
-              }
-            } catch (_) {
-              // auto-login failed silently — fall through to the alert
+              return; // skip the alert — user is straight in the app
             }
+          } catch (_) {
+            // auto-login failed silently — fall through to the alert
           }
-          // Fallback: no email available or auto-login failed — show banner on login screen
-          setResetDone(true);
-          Animated.parallel([
-            Animated.spring(successScale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 8 }),
-            Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-          ]).start();
-        } else {
-          setResetError(
-            (data.result || 'This reset link has already been used or has expired.') +
-            ' Please go back to Forgot Password and request a new link.'
-          );
         }
+        // Fallback: no email available or auto-login failed — show banner on login screen
+        setResetDone(true);
+        Animated.parallel([
+          Animated.spring(successScale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 8 }),
+          Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        ]).start();
       } else {
-        setResetError('Service unavailable. Please try again later.');
+        setResetError(
+          (data.result || 'This reset link has already been used or has expired.') +
+          ' Please go back to Forgot Password and request a new link.'
+        );
       }
     } catch (error) {
       setResetError('Network error. Please check your connection.');
@@ -653,17 +566,8 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         return;
       }
       // Exchange code via server-side proxy so client_secret stays off the device
-      const tokenRes = await fetchWithTimeout('https://shouldcallpaul.replit.app/auth/google/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          codeVerifier: codeVerifier || undefined,
-          redirectUri: googleRedirectUri,
-        }),
-      });
-      const userInfo = await tokenRes.json();
-      if (!tokenRes.ok || userInfo.error) {
+      const userInfo = await apiGoogleToken(code, codeVerifier, googleRedirectUri);
+      if (userInfo.error) {
         setLoginError('Google sign-in failed. Please try again.');
         return;
       }
@@ -671,22 +575,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         setLoginError('Could not get email from Google. Please try again.');
         return;
       }
-      const res = await fetchWithTimeout('https://shouldcallpaul.replit.app/googleLogin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          email: userInfo.email,
-          google_id: userInfo.id,
-          first_name: userInfo.given_name || '',
-          last_name: userInfo.family_name || '',
-          picture: userInfo.picture || '',
-        }),
-      }, 15000);
-      const data = await res.json();
+      const data = await apiGoogleLogin({
+        email: userInfo.email,
+        google_id: userInfo.id,
+        first_name: userInfo.given_name || '',
+        last_name: userInfo.family_name || '',
+        picture: userInfo.picture || '',
+      });
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
         setGoogleLoading(false); // clear overlay before onLogin unmounts this component
@@ -727,22 +622,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     try {
       setAppleLoading(true);
       setLoginError('');
-      const res = await fetch('https://shouldcallpaul.replit.app/appleLogin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          apple_user_id: credential.user,
-          email: resolvedEmail,
-          first_name: credential.fullName?.givenName || '',
-          last_name: credential.fullName?.familyName || '',
-          identity_token: credential.identityToken || '',
-        }),
+      const data = await apiAppleLogin({
+        apple_user_id: credential.user,
+        email: resolvedEmail,
+        first_name: credential.fullName?.givenName || '',
+        last_name: credential.fullName?.familyName || '',
+        identity_token: credential.identityToken || '',
       });
-      const data = await res.json();
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
         setPendingAppleCredential(null);
@@ -866,7 +752,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
   useEffect(() => {
     const loadSavedEmail = async () => {
       try {
-        const savedEmail = await storage.getItem('rememberedEmail');
+        const savedEmail = await storage.getItem(STORAGE_KEYS.REMEMBERED_EMAIL);
         if (savedEmail) {
           setEmail(savedEmail);
           setRememberMe(true);
@@ -886,19 +772,10 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     const fetchChurches = async () => {
       if (isRegistering && churches.length === 0) {
         try {
-          const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.error === 0 && data.churches) {
-              setChurches(data.churches);
-              console.log('✅ Loaded', data.churches.length, 'churches');
-            }
+          const data = await apiGetAllChurches();
+          if (data.error === 0 && data.churches) {
+            setChurches(data.churches);
+            console.log('✅ Loaded', data.churches.length, 'churches');
           }
         } catch (error) {
           console.log('Error loading churches:', error);
@@ -913,11 +790,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     setRememberMe(checked);
     if (checked && email) {
       // Save email
-      await storage.setItem('rememberedEmail', email);
+      await storage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
       console.log('💾 Saved email for Remember Me:', email);
     } else {
       // Clear saved email
-      await storage.removeItem('rememberedEmail');
+      await storage.removeItem(STORAGE_KEYS.REMEMBERED_EMAIL);
       console.log('🗑️ Cleared saved email from Remember Me');
     }
   };
@@ -972,59 +849,31 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       }
 
       // Try to login with Facebook email
-      const endpoint = 'https://shouldcallpaul.replit.app/login';
-      const requestPayload = {
-        email: userData.email,
-        password: `fb_${userData.id}` // Use Facebook ID as password
-      };
-      
-      console.log('📱 FACEBOOK LOGIN ATTEMPT:');
-      console.log('POST ' + endpoint);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0 && data.result && data.result.length > 0) {
-          // User exists, log them in
-          const user = data.result[0];
-          const userDataFormatted = {
-            id: user.user_id,
-            email: user.email,
-            firstName: user.real_name,
-            userName: user.user_name,
-            title: user.user_title,
-            about: user.user_about,
-            location: user.location,
-            picture: user.picture,
-            active: user.active,
-            timestamp: user.timestamp,
-            churchName: user.church_name,
-            faith_points: user.faith_points || 0,
-            faith_rank: user.faith_rank || null,
-            prayer_count: parseInt(user.prayer_count, 10) || 0,
-            request_count: parseInt(user.request_count, 10) || 0,
-            auth_provider: user.auth_provider || 'facebook',
-            has_password: user.has_password ?? false,
-          };
-          
-          console.log('Facebook login successful for user:', userDataFormatted.firstName);
-          onLogin(userDataFormatted);
-          // No popup needed - user sees the app loaded successfully!
-          
-        } else {
-          // User doesn't exist, create account
-          await createFacebookAccount(userData, accessToken);
-        }
+      const data = await apiLogin(userData.email, `fb_${userData.id}`);
+      if (data.error === 0 && data.result && data.result.length > 0) {
+        // User exists, log them in
+        const user = data.result[0];
+        const userDataFormatted = {
+          id: user.user_id,
+          email: user.email,
+          firstName: user.real_name,
+          userName: user.user_name,
+          title: user.user_title,
+          about: user.user_about,
+          location: user.location,
+          picture: user.picture,
+          active: user.active,
+          timestamp: user.timestamp,
+          churchName: user.church_name,
+          faith_points: user.faith_points || 0,
+          faith_rank: user.faith_rank || null,
+          prayer_count: parseInt(user.prayer_count, 10) || 0,
+          request_count: parseInt(user.request_count, 10) || 0,
+          auth_provider: user.auth_provider || 'facebook',
+          has_password: user.has_password ?? false,
+        };
+        console.log('Facebook login successful for user:', userDataFormatted.firstName);
+        onLogin(userDataFormatted);
       } else {
         // User doesn't exist, create account
         await createFacebookAccount(userData, accessToken);
@@ -1046,12 +895,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/createUser';
-      const requestPayload = {
+      const data = await apiCreateUser({
         email: facebookData.email,
         password: `fb_${facebookData.id}`,
-        firstName: firstName,
-        lastName: lastName,
+        firstName,
+        lastName,
         gender: null,
         placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q",
         phone: null,
@@ -1059,34 +907,15 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
         command: "createUser",
         jsonpCallback: "afterCreateUser",
         tz: timezone,
-        env: "prod"
-      };
-      
-      console.log('📱 CREATING FACEBOOK USER: POST ' + endpoint);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
+        env: "prod",
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0) {
-          Alert.alert('Success', 'Account created! Logging you in...', [
-            { text: 'OK', onPress: () => handleFacebookLogin(accessToken) }
-          ]);
-        } else {
-          const errorMessage = data.result || data.message || 'Failed to create account';
-          Alert.alert('Error', errorMessage);
-        }
+      if (data.error === 0) {
+        Alert.alert('Success', 'Account created! Logging you in...', [
+          { text: 'OK', onPress: () => handleFacebookLogin(accessToken) }
+        ]);
       } else {
-        Alert.alert('Error', 'Failed to create Facebook account');
+        const errorMessage = data.result || data.message || 'Failed to create account';
+        Alert.alert('Error', errorMessage);
       }
       
     } catch (error) {
@@ -1119,57 +948,24 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       // Use default picture for now - image upload can be added later
       const pictureFileName = 'defaultUser.png';
       
-      const endpoint = 'https://shouldcallpaul.replit.app/createUser';
-      const requestPayload = {
-        email: email,
-        password: password,
-        firstName: firstName,
-        lastName: lastName,
-        gender: gender,
-        placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q", // Default location
-        phone: phone,
+      const data = await apiCreateUser({
+        email, password, firstName, lastName, gender,
+        placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q",
+        phone,
         picture: pictureFileName,
         church_id: selectedChurch ? selectedChurch.church_id : null,
         custom_church_name: showCustomChurch && customChurch.trim() ? customChurch.trim() : null,
         command: "createUser",
         jsonpCallback: "afterCreateUser",
         tz: timezone,
-        env: "prod"
-      };
-      
-      console.log('📱 MOBILE APP API CALL: POST ' + endpoint);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload)
+        env: "prod",
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0) {
-          // Auto-login immediately — no need to re-enter credentials
-          handleLogin();
-          
-        } else {
-          // Show actual error message from API
-          const errorMessage = data.result || data.message || 'Failed to create account. Please try again.';
-          Alert.alert('Error', errorMessage);
-        }
+      if (data.error === 0) {
+        // Auto-login immediately — no need to re-enter credentials
+        handleLogin();
       } else {
-        // Try to get error message from response body
-        try {
-          const errorData = await response.json();
-          const errorMessage = errorData.result || errorData.message || 'Account creation service unavailable';
-          Alert.alert('Error', errorMessage);
-        } catch {
-          Alert.alert('Error', 'Account creation service unavailable');
-        }
+        const errorMessage = data.result || data.message || 'Failed to create account. Please try again.';
+        Alert.alert('Error', errorMessage);
       }
       
     } catch (error) {
@@ -1189,74 +985,39 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     setLoading(true);
     
     try {
-      const endpoint = 'https://shouldcallpaul.replit.app/login';
-      const requestPayload = {
-        email: email,
-        password: password
-      };
-      
-      console.log('📱 MOBILE APP API CALL: POST ' + endpoint);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify(requestPayload),
-        timeout: 10000,
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0 && data.result && data.result.length > 0) {
-          const user = data.result[0];
-          const userData = {
-            id: user.user_id,
-            email: user.email,
-            firstName: user.real_name,
-            userName: user.user_name,
-            title: user.user_title,
-            about: user.user_about,
-            location: user.location,
-            picture: user.picture,
-            active: user.active,
-            timestamp: user.timestamp,
-            churchId: user.church_id,
-            churchName: user.church_name,
-            faith_points: user.faith_points || 0,
-            faith_rank: user.faith_rank || null,
-            prayer_count: parseInt(user.prayer_count, 10) || 0,
-            request_count: parseInt(user.request_count, 10) || 0,
-            auth_provider: user.auth_provider || 'email',
-            has_password: user.has_password ?? true,
-          };
-          
-          console.log('Login successful for user:', userData.firstName, 'ID:', userData.id, 'Church:', user.church_name, 'Faith:', user.faith_points);
-          
-          // Save email if Remember Me is checked
-          if (rememberMe) {
-            try {
-              await storage.setItem('rememberedEmail', email);
-              console.log('💾 Email saved for Remember Me on login');
-            } catch (error) {
-              console.log('Error saving email:', error);
-            }
-          } else {
-            console.log('ℹ️ Remember Me not checked - email not saved');
-          }
-          
-          onLogin(userData);
-          // No popup needed - user sees the app loaded successfully!
-          
-        } else {
-          const errorMessage = data.result || data.message || 'Invalid email or password';
-          setLoginError(errorMessage);
+      const data = await apiLogin(email, password);
+      if (data.error === 0 && data.result && data.result.length > 0) {
+        const user = data.result[0];
+        const userData = {
+          id: user.user_id,
+          email: user.email,
+          firstName: user.real_name,
+          userName: user.user_name,
+          title: user.user_title,
+          about: user.user_about,
+          location: user.location,
+          picture: user.picture,
+          active: user.active,
+          timestamp: user.timestamp,
+          churchId: user.church_id,
+          churchName: user.church_name,
+          faith_points: user.faith_points || 0,
+          faith_rank: user.faith_rank || null,
+          prayer_count: parseInt(user.prayer_count, 10) || 0,
+          request_count: parseInt(user.request_count, 10) || 0,
+          auth_provider: user.auth_provider || 'email',
+          has_password: user.has_password ?? true,
+        };
+        console.log('Login successful for user:', userData.firstName, 'ID:', userData.id);
+        if (rememberMe) {
+          try {
+            await storage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
+          } catch (_) {}
         }
+        onLogin(userData);
       } else {
-        setLoginError('Login service unavailable. Please try again.');
+        const errorMessage = data.result || data.message || 'Invalid email or password';
+        setLoginError(errorMessage);
       }
       
     } catch (error) {

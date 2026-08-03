@@ -1,39 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getRelativeTime, Avatar, resolveAvatarUri } from './utils';
 
-const FAITH_RANKS = [
-  { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
-  { level: 1,  title: 'New Believer',        minPoints: 1,     icon: '🕊️' },
-  { level: 2,  title: 'Seed Planter',        minPoints: 20,    icon: '🌿' },
-  { level: 3,  title: 'Growing in Faith',    minPoints: 50,    icon: '📖' },
-  { level: 4,  title: 'Prayer Partner',      minPoints: 100,   icon: '🤝' },
-  { level: 5,  title: 'Faithful Friend',     minPoints: 150,   icon: '💛' },
-  { level: 6,  title: 'Prayer Leader',       minPoints: 250,   icon: '📿' },
-  { level: 7,  title: 'Devoted Believer',    minPoints: 350,   icon: '✝️' },
-  { level: 8,  title: 'Prayer Champion',     minPoints: 500,   icon: '🏆' },
-  { level: 9,  title: 'Faithful Servant',    minPoints: 750,   icon: '⭐' },
-  { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
-];
-
-const getFaithRank = (points, backendRank) => {
-  if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
-    return {
-      level: backendRank.level,
-      title: backendRank.title,
-      icon: backendRank.icon || '🛡️',
-      minPoints: backendRank.min_points || 0,
-    };
-  }
-  const p = points || 0;
-  let rank = FAITH_RANKS[0];
-  for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
-    if (p >= FAITH_RANKS[i].minPoints) {
-      rank = FAITH_RANKS[i];
-      break;
-    }
-  }
-  return rank;
-};
+import { getFaithRank, FAITH_RANKS } from './utils/helpers';
+import { apiHeaders, apiGetRequestById } from './services/api';
 import { 
   View, 
   Text, 
@@ -70,30 +39,6 @@ const SWIPE_THRESHOLD = 80;
 
 const API_BASE_URL = 'https://shouldcallpaul.replit.app';
 
-// Base64 encode for Basic Auth
-const base64Encode = (str) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  for (let i = 0; i < str.length; i += 3) {
-    const byte1 = str.charCodeAt(i);
-    const byte2 = str.charCodeAt(i + 1);
-    const byte3 = str.charCodeAt(i + 2);
-    const enc1 = byte1 >> 2;
-    const enc2 = ((byte1 & 3) << 4) | (byte2 >> 4);
-    const enc3 = ((byte2 & 15) << 2) | (byte3 >> 6);
-    const enc4 = byte3 & 63;
-    if (isNaN(byte2)) {
-      output += chars.charAt(enc1) + chars.charAt(enc2) + '==';
-    } else if (isNaN(byte3)) {
-      output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + '=';
-    } else {
-      output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
-    }
-  }
-  return output;
-};
-
-const API_AUTH = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
 
 const AnimatedButton = ({ children, style, onPress, disabled, ...props }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -296,28 +241,13 @@ export default function PrayerDetailScreen({
       
       console.log('📍 Fetching prayer by ID:', id);
       
-      const response = await fetch(`${API_BASE_URL}/getRequestById`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': API_AUTH,
-        },
-        body: JSON.stringify(payload),
-      });
-      
+      const data = await apiGetRequestById(id, userId, timezone, lang);
+
       // Clear timeout on successful response
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
       }
-      
-      if (!response.ok) {
-        const responseText = await response.text();
-        throw new Error(`Failed to fetch prayer: ${response.status}`);
-      }
-      
-      const data = await response.json();
       console.log('📍 Got response for prayer ID:', id);
       
       // API returns { error: 0, request: {...} } format
@@ -417,13 +347,7 @@ export default function PrayerDetailScreen({
     const prefetch = async (id) => {
       if (!id || prayerCacheRef.current[id]) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/getRequestById`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': API_AUTH },
-          body: JSON.stringify({ requestId: id, userId, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York', lang }),
-        });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiGetRequestById(id, userId, Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York', lang);
         if (data.error === 0 && data.request) {
           const r = data.request;
           prayerCacheRef.current[id] = {

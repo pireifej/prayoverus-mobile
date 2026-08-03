@@ -5111,22 +5111,14 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <View style={styles.headerTopRow}>
                 <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.profileLink} data-testid="link-profile">
                   <View style={[styles.profileRingWrapper, { borderColor: ringColor }]}>
-                    {currentUser.picture ? (
-                      <Image
-                        source={{ uri: currentUser.picture.startsWith('http') ? currentUser.picture : `https://shouldcallpaul.replit.app/${currentUser.picture}` }}
-                        style={styles.headerProfilePicture}
-                      />
-                    ) : currentUser.avatar_emoji ? (
-                      <View style={[styles.headerProfilePicture, { backgroundColor: '#1e3a5f', alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ fontSize: 22 }}>{currentUser.avatar_emoji}</Text>
-                      </View>
-                    ) : (
-                      <View style={[styles.headerProfilePicture, { backgroundColor: '#1e3a5f', alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ fontSize: 18, color: '#fff', fontWeight: '700' }}>
-                          {(currentUser.firstName?.[0] || '?').toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
+                    <Avatar
+                      picUri={resolveAvatarUri(currentUser.picture)}
+                      name={currentUser.firstName || ''}
+                      lastName={currentUser.lastName || ''}
+                      emoji={currentUser.avatar_emoji}
+                      size={38}
+                      style={styles.headerProfilePicture}
+                    />
                   </View>
                 </TouchableOpacity>
                 <View style={styles.headerGreetingBlock}>

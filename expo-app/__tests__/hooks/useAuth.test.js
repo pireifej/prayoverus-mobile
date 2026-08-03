@@ -33,6 +33,7 @@ jest.mock('../../utils/storage', () => {
     setItem: jest.fn((key, value) => { mockStorageData[key] = value; return Promise.resolve(); }),
     getItem: jest.fn(key => Promise.resolve(mockStorageData[key] ?? null)),
     removeItem: jest.fn(key => { delete mockStorageData[key]; return Promise.resolve(); }),
+    multiRemove: jest.fn(keys => { keys.forEach(k => delete mockStorageData[k]); return Promise.resolve(); }),
   };
   return { storage, STORAGE_KEYS };
 });
@@ -150,8 +151,10 @@ describe('useAuth — handleLogin', () => {
 });
 
 describe('useAuth — handleLogout', () => {
-  it('sets currentUser to null and removes the session from storage', async () => {
+  it('sets currentUser to null and clears all user-specific keys from storage', async () => {
     mockStorageData[STORAGE_KEYS.USER_SESSION] = JSON.stringify(VALID_USER);
+    mockStorageData[STORAGE_KEYS.COMMUNITY_CACHE] = '[]';
+    mockStorageData[STORAGE_KEYS.BLOCKED_USERS] = '[]';
     const { result } = renderHook(() => useAuth());
 
     // Seed currentUser
@@ -166,7 +169,20 @@ describe('useAuth — handleLogout', () => {
     });
 
     expect(result.current.currentUser).toBeNull();
-    expect(storage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER_SESSION);
+    // multiRemove must be called with all user-specific keys so shared devices
+    // don't expose one person's data to the next user of the app.
+    expect(storage.multiRemove).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        STORAGE_KEYS.USER_SESSION,
+        STORAGE_KEYS.COMMUNITY_CACHE,
+        STORAGE_KEYS.BLOCKED_USERS,
+        STORAGE_KEYS.DAILY_POST_TRACKER,
+        STORAGE_KEYS.REVIEW_STATE,
+        STORAGE_KEYS.OPEN_DATES,
+        STORAGE_KEYS.PRAY_ACTION_COUNT,
+        STORAGE_KEYS.REMEMBERED_EMAIL,
+      ]),
+    );
   });
 
   it('calls onBeforeLogout if provided so other hooks can reset their state first', async () => {

@@ -30,9 +30,21 @@ export function useAuth() {
 
   const clearUserFromStorage = async () => {
     try {
-      await storage.removeItem(STORAGE_KEYS.USER_SESSION);
+      // Clear all user-specific keys so shared devices don't expose one
+      // person's data to the next user who opens the app.
+      // This mirrors the key set that AppErrorBoundary already clears on crash.
+      await storage.multiRemove([
+        STORAGE_KEYS.USER_SESSION,
+        STORAGE_KEYS.COMMUNITY_CACHE,
+        STORAGE_KEYS.DAILY_POST_TRACKER,
+        STORAGE_KEYS.BLOCKED_USERS,
+        STORAGE_KEYS.REVIEW_STATE,
+        STORAGE_KEYS.OPEN_DATES,
+        STORAGE_KEYS.PRAY_ACTION_COUNT,
+        STORAGE_KEYS.REMEMBERED_EMAIL,
+      ]);
     } catch (error) {
-      console.warn('[Storage] Error clearing user session:', error.message);
+      console.warn('[Storage] Error clearing user data on logout:', error.message);
     }
   };
 

@@ -49,6 +49,16 @@ export class SimpleStorage {
       await AsyncStorage.removeItem(key);
     }
   }
+
+  async multiRemove(keys) {
+    if (this.isWeb) {
+      if (typeof localStorage !== 'undefined') {
+        keys.forEach(k => localStorage.removeItem(k));
+      }
+    } else {
+      await AsyncStorage.multiRemove(keys);
+    }
+  }
 }
 
 export const storage = new SimpleStorage();

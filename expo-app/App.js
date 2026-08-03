@@ -12,6 +12,19 @@ class AppErrorBoundary extends Component {
   }
   componentDidCatch(error, info) {
     console.error('🔴 AppErrorBoundary caught a render crash:', error?.message, info?.componentStack);
+    // Clear all persistent storage so the "Try Again" retry starts from a clean state.
+    // If corrupt cached data caused the crash, this prevents an infinite crash loop.
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      AsyncStorage.multiRemove([
+        'userSession',
+        'communityPrayers_cache',
+        '@daily_post_tracker',
+        '@blocked_users',
+        '@review_state',
+        '@open_dates',
+      ]).catch(() => {});
+    } catch (_) {}
   }
   render() {
     if (this.state.hasError) {
@@ -57,7 +70,33 @@ import DailyBreadScreen from './DailyBreadScreen';
 import PrayerWalkScreen from './PrayerWalkScreen';
 import OnboardingCarousel from './OnboardingCarousel';
 import t, { lang as userLang, setLang, translateRank } from './i18n';
+import { base64Encode, getFaithRank, FAITH_RANKS, isNewerVersion, markdownToHtml } from './utils/helpers';
+import { storage, STORAGE_KEYS } from './utils/storage';
+import HtmlText from './components/HtmlText';
+import PrayerHandsLoader from './components/PrayerHandsLoader';
+import AnimatedButton from './components/AnimatedButton';
+import PrayerOptionsMenu from './components/PrayerOptionsMenu';
 import { showToast, showModal } from './AppModals';
+import {
+  apiGetUser,
+  apiGetBadgeDefinitions,
+  apiGetUserBadges,
+  apiGetAppVersion,
+  apiGetDailyDevotional,
+  apiGetPrayer,
+  apiGetDetailedPrayer,
+  apiPrayFor,
+  apiMarkAnswered,
+  apiGetAnsweredPrayers,
+  apiGetAllChurches,
+  apiGetUsersByChurch,
+  apiUpdateUser,
+  apiUploadProfilePicture,
+  apiChangePassword,
+  apiChangeEmail,
+  apiBlockUser,
+  apiReportContent,
+} from './services/api';
 
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
@@ -91,61 +130,6 @@ try {
 // App build tag — dynamically built from expo-updates + constants
 const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
 
-// Faith Rank System - tiered Christian ranking based on faith_points
-const FAITH_RANKS = [
-  { level: 0,  title: 'Newcomer',            minPoints: 0,     icon: '🌱' },
-  { level: 1,  title: 'New Believer',        minPoints: 1,     icon: '🕊️' },
-  { level: 2,  title: 'Seed Planter',        minPoints: 20,    icon: '🌿' },
-  { level: 3,  title: 'Growing in Faith',    minPoints: 50,    icon: '📖' },
-  { level: 4,  title: 'Prayer Partner',      minPoints: 100,   icon: '🤝' },
-  { level: 5,  title: 'Faithful Friend',     minPoints: 150,   icon: '💛' },
-  { level: 6,  title: 'Prayer Leader',       minPoints: 250,   icon: '📿' },
-  { level: 7,  title: 'Devoted Believer',    minPoints: 350,   icon: '✝️' },
-  { level: 8,  title: 'Prayer Champion',     minPoints: 500,   icon: '🏆' },
-  { level: 9,  title: 'Faithful Servant',    minPoints: 750,   icon: '⭐' },
-  { level: 10, title: 'Prayer Warrior',      minPoints: 1000,  icon: '👑' },
-];
-
-const getFaithRank = (pointsOrRankObj, backendRank) => {
-  if (backendRank && typeof backendRank === 'object' && backendRank.level !== undefined) {
-    const nr = backendRank.next_rank || backendRank.nextRank || null;
-    const actualPoints = (typeof pointsOrRankObj === 'number' && pointsOrRankObj > 0) ? pointsOrRankObj : (backendRank.points || 0);
-    const currentMin = backendRank.min_points || 0;
-    const nextMin = nr ? (nr.min_points || nr.minPoints || 0) : 0;
-    let progress;
-    if (!nr) {
-      progress = 1;
-    } else if (nextMin > currentMin) {
-      progress = Math.min((actualPoints - currentMin) / (nextMin - currentMin), 1);
-    } else {
-      progress = backendRank.progress != null ? backendRank.progress : 1;
-    }
-    return {
-      level: backendRank.level,
-      title: backendRank.title,
-      icon: backendRank.icon || '🛡️',
-      minPoints: currentMin,
-      points: actualPoints,
-      nextRank: nr ? { level: nr.level, title: nr.title, icon: nr.icon, minPoints: nextMin } : null,
-      progress: Math.max(0, progress),
-      maxPoints: nr ? nextMin : 1,
-      name: backendRank.title,
-    };
-  }
-  const p = (typeof pointsOrRankObj === 'number' ? pointsOrRankObj : 0) || 0;
-  let rank = FAITH_RANKS[0];
-  for (let i = FAITH_RANKS.length - 1; i >= 0; i--) {
-    if (p >= FAITH_RANKS[i].minPoints) {
-      rank = FAITH_RANKS[i];
-      break;
-    }
-  }
-  const nextRank = FAITH_RANKS.find(r => r.level === rank.level + 1);
-  const progress = nextRank
-    ? (p - rank.minPoints) / (nextRank.minPoints - rank.minPoints)
-    : 1;
-  return { ...rank, points: p, nextRank, progress: Math.min(progress, 1), maxPoints: nextRank ? nextRank.minPoints : 1, name: rank.title };
-};
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
 const ADS_ENABLED = false; // ← set to true to re-enable all ads
@@ -198,620 +182,6 @@ const REWARDED_AD_UNIT_ID = isAdMobAvailable && TestIds
 const STATUS_BAR_HEIGHT = Constants.statusBarHeight ?? (Platform.OS === 'android' ? 24 : 44);
 const BOTTOM_INSET = Platform.OS === 'android' ? 50 : 34;
 
-// Base64 encoding that works in both web and React Native
-const base64Encode = (str) => {
-  if (typeof btoa !== 'undefined') {
-    // Web environment
-    return btoa(str);
-  } else {
-    // React Native environment
-    return Buffer.from(str, 'utf-8').toString('base64');
-  }
-};
-
-class SimpleStorage {
-  constructor() {
-    this.isWeb = Platform.OS === 'web';
-  }
-
-  async setItem(key, value) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(key, value);
-      }
-    } else {
-      await AsyncStorage.setItem(key, value);
-    }
-  }
-
-  async getItem(key) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.getItem(key);
-      }
-    } else {
-      return await AsyncStorage.getItem(key);
-    }
-    return null;
-  }
-
-  async removeItem(key) {
-    if (this.isWeb) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(key);
-      }
-    } else {
-      await AsyncStorage.removeItem(key);
-    }
-  }
-}
-
-const storage = new SimpleStorage();
-
-// Component to render HTML with proper formatting in React Native
-// Convert markdown bold (**text**) to HTML <strong> tags for HtmlText rendering
-function markdownToHtml(text) {
-  if (!text) return text;
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-}
-
-function HtmlText({ html, style }) {
-  if (!html) return null;
-  
-  // Split by HTML tags and process each part
-  const parts = [];
-  let currentIndex = 0;
-  const regex = /<(\/?)(\w+)([^>]*)>/g;
-  let match;
-  let key = 0;
-  
-  const tagStack = [];
-  let lastIndex = 0;
-  
-  // Parse HTML and create Text components with proper styling
-  const elements = [];
-  let tempHtml = html;
-  
-  // Replace <br> with newlines
-  tempHtml = tempHtml.replace(/<br\s*\/?>/gi, '\n');
-  
-  // Split by strong tags and process
-  const strongRegex = /<strong>(.*?)<\/strong>/gi;
-  const splits = [];
-  let lastIdx = 0;
-  
-  tempHtml.replace(strongRegex, (match, content, offset) => {
-    // Add text before the tag
-    if (offset > lastIdx) {
-      splits.push({ text: tempHtml.substring(lastIdx, offset), bold: false });
-    }
-    // Add bold text
-    splits.push({ text: content, bold: true });
-    lastIdx = offset + match.length;
-  });
-  
-  // Add remaining text
-  if (lastIdx < tempHtml.length) {
-    splits.push({ text: tempHtml.substring(lastIdx), bold: false });
-  }
-  
-  // Decode HTML entities
-  const decodeHtml = (text) => {
-    return text
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'");
-  };
-  
-  return (
-    <Text style={style} selectable={true}>
-      {splits.map((part, index) => (
-        <Text key={index} style={part.bold ? { fontWeight: 'bold' } : {}}>
-          {decodeHtml(part.text)}
-        </Text>
-      ))}
-    </Text>
-  );
-}
-
-// Animated Prayer Hands Component
-function PrayerHandsLoader() {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-  
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '20deg'],
-  });
-  
-  return (
-    <Animated.Text style={[styles.prayerHandsAnimation, { transform: [{ rotate }] }]}>
-      🙏
-    </Animated.Text>
-  );
-}
-
-// Animated Button Component with bounce effect
-function AnimatedButton({ children, onPress, style, disabled, ...props }) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      friction: 3,
-    }).start();
-  };
-  
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 3,
-      tension: 40,
-    }).start();
-  };
-  
-  return (
-    <TouchableOpacity
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.9}
-      {...props}
-    >
-      <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
-        {children}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
-
-// Helper function for base64 encoding (used by PrayerOptionsMenu)
-const base64EncodeForMenu = (str) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  for (let i = 0; i < str.length; i += 3) {
-    const chr1 = str.charCodeAt(i);
-    const chr2 = str.charCodeAt(i + 1);
-    const chr3 = str.charCodeAt(i + 2);
-    const enc1 = chr1 >> 2;
-    const enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-    const enc3 = isNaN(chr2) ? 64 : ((chr2 & 15) << 2) | (chr3 >> 6);
-    const enc4 = isNaN(chr3) ? 64 : chr3 & 63;
-    output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
-  }
-  return output;
-};
-
-// Prayer Options Menu Component - Three dots menu for edit/delete/share
-function PrayerOptionsMenu({ prayer, currentUserId, onEdit, onDelete, onMarkAnswered, onShare, onReport, onBlock, isProfileSection = false }) {
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
-  
-  // Check if current user owns this prayer
-  const isOwner = prayer.user_id && currentUserId && 
-    (prayer.user_id.toString() === currentUserId.toString());
-  
-  const handleShare = async () => {
-    setMenuVisible(false);
-    const shareUrl = `https://prayoverus.com/index.html?requestId=${prayer.id}`;
-    
-    // Directly open native share sheet
-    try {
-      await Share.share({
-        message: `🙏 Please pray for this intention:\n\n${shareUrl}`,
-        url: shareUrl, // iOS uses this URL directly
-        title: 'Share Prayer Request',
-      });
-    } catch (error) {
-      // User cancelled share - this is normal, no need to show error
-      if (error.message !== 'User did not share') {
-        console.log('Share error:', error);
-      }
-    }
-  };
-  
-  const handleCopyRequestText = () => {
-    setMenuVisible(false);
-    const textToCopy = prayer.title 
-      ? `${prayer.title}\n\n${prayer.content}` 
-      : prayer.content;
-    Clipboard.setString(textToCopy);
-    showToast(t('copiedRequest'), '📋');
-  };
-  
-  const handleCopyPrayerText = async () => {
-    setIsCopyingPrayer(true);
-    try {
-      const endpoint = 'https://shouldcallpaul.replit.app/getPrayerByRequestId';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64EncodeForMenu('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ requestId: prayer.id }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.prayerText) {
-          // Strip HTML tags from prayer text
-          const plainText = data.prayerText.replace(/<[^>]*>/g, '');
-          Clipboard.setString(plainText);
-          setMenuVisible(false);
-          showToast(t('copiedPrayer'), '📋');
-        } else {
-          setMenuVisible(false);
-          showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
-        }
-      } else {
-        setMenuVisible(false);
-        showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
-      }
-    } catch (error) {
-      console.log('Error fetching prayer text:', error);
-      setMenuVisible(false);
-      showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
-    } finally {
-      setIsCopyingPrayer(false);
-    }
-  };
-  
-  const handleEdit = () => {
-    setMenuVisible(false);
-    if (onEdit) onEdit(prayer);
-  };
-  
-  const handleDelete = () => {
-    setMenuVisible(false);
-    setDeleteConfirmVisible(true);
-  };
-  
-  const confirmDelete = () => {
-    setDeleteConfirmVisible(false);
-    if (onDelete) onDelete(prayer);
-  };
-  
-  return (
-    <View style={optionsMenuStyles.container}>
-      <TouchableOpacity 
-        style={optionsMenuStyles.menuButton}
-        onPress={() => setMenuVisible(true)}
-        data-testid={`button-options-${prayer.id}`}
-      >
-        <Text style={optionsMenuStyles.menuDots}>⋮</Text>
-      </TouchableOpacity>
-      
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity 
-          style={optionsMenuStyles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={optionsMenuStyles.menuContainer}>
-            <View style={optionsMenuStyles.menuHeader}>
-              <Text style={optionsMenuStyles.menuTitle}>Options</Text>
-            </View>
-            
-            {/* Share - Always visible */}
-            <TouchableOpacity 
-              style={optionsMenuStyles.menuItem}
-              onPress={handleShare}
-              data-testid={`button-share-${prayer.id}`}
-            >
-              <Text style={optionsMenuStyles.menuIcon}>🔗</Text>
-              <Text style={optionsMenuStyles.menuItemText}>{t('sharePrayerMenu')}</Text>
-            </TouchableOpacity>
-            
-            {/* Copy Request Text - Always visible */}
-            <TouchableOpacity 
-              style={optionsMenuStyles.menuItem}
-              onPress={handleCopyRequestText}
-              data-testid={`button-copy-request-${prayer.id}`}
-            >
-              <Text style={optionsMenuStyles.menuIcon}>📋</Text>
-              <Text style={optionsMenuStyles.menuItemText}>{t('copyRequestText')}</Text>
-            </TouchableOpacity>
-            
-            {/* Copy Prayer Text - Always visible */}
-            <TouchableOpacity 
-              style={optionsMenuStyles.menuItem}
-              onPress={handleCopyPrayerText}
-              disabled={isCopyingPrayer}
-              data-testid={`button-copy-prayer-${prayer.id}`}
-            >
-              <Text style={optionsMenuStyles.menuIcon}>{isCopyingPrayer ? '⏳' : '🙏'}</Text>
-              <Text style={optionsMenuStyles.menuItemText}>
-                {isCopyingPrayer ? t('loadingPrayers') : t('copyPrayerText')}
-              </Text>
-            </TouchableOpacity>
-            
-            {/* Edit - Owner only */}
-            {isOwner && (
-              <TouchableOpacity 
-                style={optionsMenuStyles.menuItem}
-                onPress={handleEdit}
-                data-testid={`button-edit-${prayer.id}`}
-              >
-                <Text style={optionsMenuStyles.menuIcon}>✏️</Text>
-                <Text style={optionsMenuStyles.menuItemText}>{t('edit') || 'Edit'}</Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* Prayer Answered - Owner only, hidden if already answered */}
-            {isOwner && !prayer.is_answered && (
-              <TouchableOpacity
-                style={optionsMenuStyles.menuItem}
-                onPress={() => { setMenuVisible(false); if (onMarkAnswered) onMarkAnswered(prayer); }}
-                data-testid={`button-answered-${prayer.id}`}
-              >
-                <Text style={optionsMenuStyles.menuIcon}>🙌</Text>
-                <Text style={[optionsMenuStyles.menuItemText, { color: '#16a34a' }]}>{t('prayerAnsweredMenu')}</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Delete - Owner only */}
-            {isOwner && (
-              <TouchableOpacity 
-                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
-                onPress={handleDelete}
-                data-testid={`button-delete-${prayer.id}`}
-              >
-                <Text style={optionsMenuStyles.menuIcon}>🗑️</Text>
-                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>{t('deleteMenuItem')}</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Report Content - Non-owners only */}
-            {!isOwner && onReport && (
-              <TouchableOpacity
-                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
-                onPress={() => { setMenuVisible(false); onReport(prayer); }}
-                data-testid={`button-report-${prayer.id}`}
-              >
-                <Text style={optionsMenuStyles.menuIcon}>🚩</Text>
-                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Report Content</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Block User - Non-owners only */}
-            {!isOwner && onBlock && (
-              <TouchableOpacity
-                style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemDanger]}
-                onPress={() => { setMenuVisible(false); onBlock(prayer); }}
-                data-testid={`button-block-${prayer.id}`}
-              >
-                <Text style={optionsMenuStyles.menuIcon}>🚫</Text>
-                <Text style={[optionsMenuStyles.menuItemText, optionsMenuStyles.menuItemTextDanger]}>Block User</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Cancel */}
-            <TouchableOpacity 
-              style={[optionsMenuStyles.menuItem, optionsMenuStyles.menuItemCancel]}
-              onPress={() => setMenuVisible(false)}
-            >
-              <Text style={optionsMenuStyles.menuItemTextCancel}>{t('cancelMenuItem')}</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-      
-      {/* Custom Delete Confirmation Modal */}
-      <Modal
-        visible={deleteConfirmVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setDeleteConfirmVisible(false)}
-      >
-        <View style={optionsMenuStyles.modalOverlay}>
-          <View style={optionsMenuStyles.deleteConfirmContainer}>
-            <Text style={optionsMenuStyles.deleteConfirmIcon}>🗑️</Text>
-            <Text style={optionsMenuStyles.deleteConfirmTitle}>{t('deletePrayerTitle')}</Text>
-            <Text style={optionsMenuStyles.deleteConfirmMessage}>
-              {t('deleteConfirmMsg')}
-            </Text>
-            <View style={optionsMenuStyles.deleteConfirmButtons}>
-              <TouchableOpacity 
-                style={optionsMenuStyles.cancelButton}
-                onPress={() => setDeleteConfirmVisible(false)}
-              >
-                <Text style={optionsMenuStyles.cancelButtonText}>{t('cancelMenuItem')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={optionsMenuStyles.deleteButton}
-                onPress={confirmDelete}
-              >
-                <Text style={optionsMenuStyles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
-// Styles for the options menu
-const optionsMenuStyles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-  },
-  menuButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuDots: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#666',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    width: '80%',
-    maxWidth: 300,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  menuHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuIcon: {
-    fontSize: 18,
-    marginRight: 12,
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  menuItemDanger: {
-    borderBottomWidth: 0,
-  },
-  menuItemTextDanger: {
-    color: '#dc3545',
-  },
-  menuItemCancel: {
-    backgroundColor: '#f8f9fa',
-    justifyContent: 'center',
-    borderBottomWidth: 0,
-  },
-  menuItemTextCancel: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    width: '100%',
-  },
-  // Delete confirmation modal styles
-  deleteConfirmContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    width: '85%',
-    maxWidth: 340,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  deleteConfirmIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  deleteConfirmTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  deleteConfirmMessage: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  deleteConfirmButtons: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  deleteButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#dc3545',
-    borderWidth: 2,
-    borderColor: '#dc3545',
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-});
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -1048,10 +418,9 @@ function App() {
     });
   };
 
-  // Fetch all badge definitions from server (no auth needed)
+  // Fetch all badge definitions from server
   const fetchBadgeDefinitions = async () => {
-    const res = await fetch('https://shouldcallpaul.replit.app/getBadgeDefinitions');
-    const data = await res.json();
+    const data = await apiGetBadgeDefinitions();
     return (data.error === 0 ? data.badges : null) || [];
   };
 
@@ -1061,9 +430,7 @@ function App() {
     try {
       const [defsData, earnedData] = await Promise.all([
         fetchBadgeDefinitions(),
-        fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
-          headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
-        }).then(r => r.json()),
+        apiGetUserBadges(currentUser.id),
       ]);
       const defs = Object.fromEntries(defsData.map(d => [d.badge_key, d]));
       const earned = Array.isArray(earnedData) ? earnedData : (earnedData.result || earnedData.badges || []);
@@ -1078,9 +445,7 @@ function App() {
     try {
       const [definitions, earnedData] = await Promise.all([
         fetchBadgeDefinitions(),
-        fetch(`https://shouldcallpaul.replit.app/getUserBadges?userId=${currentUser.id}`, {
-          headers: { 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
-        }).then(r => r.json()),
+        apiGetUserBadges(currentUser.id),
       ]);
       const earnedRaw = Array.isArray(earnedData) ? earnedData : (earnedData.result || earnedData.badges || []);
       const earnedMap = Object.fromEntries(earnedRaw.map(b => [b.badge_key, b]));
@@ -1278,24 +643,27 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        const accepted = await AsyncStorage.getItem('@eula_accepted');
+        const accepted = await AsyncStorage.getItem(STORAGE_KEYS.EULA_ACCEPTED);
         if (!accepted) setEulaAccepted(false);
-      } catch (_) {}
+      } catch (e) { console.warn('[Boot] EULA pref load error:', e?.message); }
       try {
-        const raw = await AsyncStorage.getItem('@blocked_users');
+        const raw = await AsyncStorage.getItem(STORAGE_KEYS.BLOCKED_USERS);
         if (raw) setBlockedUserIds(new Set(JSON.parse(raw)));
-      } catch (_) {}
+      } catch (e) { console.warn('[Boot] Blocked-users load error:', e?.message); }
     })();
   }, []);
 
   // Load saved language preference
   useEffect(() => {
-    AsyncStorage.getItem('@language_pref').then(saved => {
-      if (saved && saved !== userLang) {
-        setLang(saved);
-        setLangVersion(v => v + 1);
-      }
-    });
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE_PREF);
+        if (saved && saved !== userLang) {
+          setLang(saved);
+          setLangVersion(v => v + 1);
+        }
+      } catch (e) { console.warn('[Boot] Language pref load error:', e?.message); }
+    })();
   }, []);
 
   // ── In-App Review helper ──────────────────────────────────────────────────
@@ -1306,7 +674,7 @@ function App() {
     try {
       const isAvailable = await StoreReview.isAvailableAsync();
       if (!isAvailable) return;
-      const raw = await AsyncStorage.getItem('@review_state');
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.REVIEW_STATE);
       const state = raw ? JSON.parse(raw) : { promptCount: 0, lastPromptDate: null };
       if (state.promptCount >= 3) return;
       if (state.lastPromptDate) {
@@ -1314,7 +682,7 @@ function App() {
         if (daysSince < 30) return;
       }
       await StoreReview.requestReview();
-      await AsyncStorage.setItem('@review_state', JSON.stringify({
+      await AsyncStorage.setItem(STORAGE_KEYS.REVIEW_STATE, JSON.stringify({
         promptCount: (state.promptCount || 0) + 1,
         lastPromptDate: new Date().toISOString(),
       }));
@@ -1325,11 +693,11 @@ function App() {
   const trackOpenAndMaybeReview = async () => {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const raw = await AsyncStorage.getItem('@open_dates');
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.OPEN_DATES);
       const dates = raw ? JSON.parse(raw) : [];
       if (!dates.includes(today)) {
         dates.push(today);
-        await AsyncStorage.setItem('@open_dates', JSON.stringify(dates));
+        await AsyncStorage.setItem(STORAGE_KEYS.OPEN_DATES, JSON.stringify(dates));
       }
       if (dates.length === 3) await maybeRequestReview();
     } catch (_) {}
@@ -1368,43 +736,16 @@ function App() {
   const checkForAppUpdate = async () => {
     try {
       const currentVersion = Constants.expoConfig?.version || '1.0.0';
-      console.log('📱 Current app version:', currentVersion);
-      
-      const response = await fetch('https://shouldcallpaul.replit.app/api/app-version', {
-        headers: {
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const serverVersion = data.version;
-        console.log('📱 Latest version from server:', serverVersion);
-        
-        if (serverVersion && isNewerVersion(serverVersion, currentVersion)) {
-          console.log('📱 Update available!');
-          setLatestVersion(serverVersion);
-          setShowUpdateModal(true);
-        }
+      const data = await apiGetAppVersion();
+      const serverVersion = data.version;
+      if (serverVersion && isNewerVersion(serverVersion, currentVersion)) {
+        console.log('📱 Update available:', serverVersion);
+        setLatestVersion(serverVersion);
+        setShowUpdateModal(true);
       }
     } catch (error) {
-      console.log('Version check failed:', error.message);
+      console.log('📱 Version check failed:', error.message);
     }
-  };
-  
-  // Compare version strings (e.g., "1.0.21" > "1.0.20")
-  const isNewerVersion = (latest, current) => {
-    const latestParts = latest.split('.').map(Number);
-    const currentParts = current.split('.').map(Number);
-    
-    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
-      const latestPart = latestParts[i] || 0;
-      const currentPart = currentParts[i] || 0;
-      
-      if (latestPart > currentPart) return true;
-      if (latestPart < currentPart) return false;
-    }
-    return false;
   };
   
   // Open app store for update
@@ -1537,7 +878,7 @@ function App() {
   const loadDailyPostCount = async () => {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const raw = await AsyncStorage.getItem('@daily_post_tracker');
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.DAILY_POST_TRACKER);
       if (raw) {
         const { count, date } = JSON.parse(raw);
         if (date === today) {
@@ -1549,12 +890,12 @@ function App() {
           setDailyPostCount(0);
           dailyPostCountRef.current = 0;
           setDailyPostDate(today);
-          await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: 0, date: today }));
+          await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: 0, date: today }));
         }
       } else {
         const today2 = new Date().toISOString().slice(0, 10);
         setDailyPostDate(today2);
-        await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: 0, date: today2 }));
+        await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: 0, date: today2 }));
       }
     } catch (e) { console.warn('[DailyPost] load error:', e?.message); }
   };
@@ -1566,7 +907,7 @@ function App() {
     setDailyPostCount(newCount);
     setDailyPostDate(today);
     try {
-      await AsyncStorage.setItem('@daily_post_tracker', JSON.stringify({ count: newCount, date: today }));
+      await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: newCount, date: today }));
     } catch (e) { console.warn('[DailyPost] save error:', e?.message); }
   };
 
@@ -1928,7 +1269,7 @@ function App() {
   useEffect(() => {
     if (currentUser && (currentScreen === 'home' || currentScreen === 'community')) {
       // Show cached prayers immediately while fresh data loads in background
-      AsyncStorage.getItem('communityPrayers_cache').then(cached => {
+      AsyncStorage.getItem(STORAGE_KEYS.COMMUNITY_CACHE).then(cached => {
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
@@ -1995,21 +1336,11 @@ function App() {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
       };
-      let res = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional', {
-        method: 'POST',
-        headers: dbHeaders,
-        body: JSON.stringify({ lang: userLang }),
-      });
-      let data = await res.json();
+      let data = await apiGetDailyDevotional(userLang);
 
       // If the language-specific devotional isn't available, fall back to English
       if ((!data || data.error !== 0 || !data.result?.title) && userLang !== 'en') {
-        const fallbackRes = await fetch('https://shouldcallpaul.replit.app/getDailyDevotional', {
-          method: 'POST',
-          headers: dbHeaders,
-          body: JSON.stringify({ lang: 'en' }),
-        });
-        data = await fallbackRes.json();
+        data = await apiGetDailyDevotional('en');
       }
 
       // API returns {error:0, result:{...}} on success, {error:1} when empty
@@ -2192,80 +1523,71 @@ function App() {
 
   // Check for stored user authentication on app start
   const checkStoredAuth = async () => {
+    console.log('[Boot] Reading cached session...');
     try {
-      const userData = await storage.getItem('userSession');
+      const userData = await storage.getItem(STORAGE_KEYS.USER_SESSION);
       if (userData) {
         let parsedUserData;
         try {
           parsedUserData = JSON.parse(userData);
         } catch (parseErr) {
-          console.log('🔴 Stored session JSON is corrupt — clearing and forcing re-login:', parseErr.message);
-          await storage.removeItem('userSession');
+          console.warn('[Boot] Session JSON corrupt — clearing and forcing re-login:', parseErr.message);
+          await storage.removeItem(STORAGE_KEYS.USER_SESSION);
           return; // falls through to finally → setIsCheckingAuth(false) → login screen
         }
         // Validate minimum required fields before trusting the session
         if (!parsedUserData || !parsedUserData.id) {
-          console.log('🔴 Stored session missing required fields — clearing');
-          await storage.removeItem('userSession');
+          console.warn('[Boot] Session missing required fields — clearing');
+          await storage.removeItem(STORAGE_KEYS.USER_SESSION);
           return;
         }
-        console.log('Found stored user session:', parsedUserData.firstName, 'ID:', parsedUserData.id);
+        console.log('[Boot] Session found for user', parsedUserData.id, '—', parsedUserData.firstName);
         setCurrentUser(parsedUserData);
-        
+
         // Refresh profile from server to get latest data (church, faith rank, etc.)
         setTimeout(async () => {
           try {
-            const endpoint = 'https://shouldcallpaul.replit.app/getUser';
-            const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-              },
-              body: JSON.stringify({ userId: parsedUserData.id.toString() })
-            });
-            if (response.ok) {
-              const data = await response.json();
-              const userArray = Array.isArray(data) ? data : (data.result || []);
-              if (userArray.length > 0) {
-                const user = userArray[0];
-                const refreshedUser = {
-                  ...parsedUserData,
-                  firstName: user.real_name || parsedUserData.firstName,
-                  lastName: user.last_name || parsedUserData.lastName,
-                  churchId: user.church_id || parsedUserData.churchId,
-                  churchName: user.church_name || parsedUserData.churchName,
-                  title: user.user_title,
-                  about: user.user_about,
-                  picture: user.picture || user.profile_picture_url || parsedUserData.picture,
-                  faith_points: user.faith_points || 0,
-                  faith_rank: user.faith_rank || null,
-                  prayer_count: parseInt(user.prayer_count, 10) || 0,
-                  request_count: parseInt(user.request_count, 10) || 0,
-                  rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
-                  auth_provider: user.auth_provider || parsedUserData.auth_provider || 'email',
-                  has_password: user.has_password ?? parsedUserData.has_password ?? true,
-                };
-                console.log('✅ Session refreshed from server. Church:', refreshedUser.churchName, 'Faith:', refreshedUser.faith_points);
-                setCurrentUser(refreshedUser);
-                await saveUserToStorage(refreshedUser);
-              }
+            console.log('[Boot] Background profile refresh starting...');
+            const data = await apiGetUser(parsedUserData.id);
+            const userArray = Array.isArray(data) ? data : (data.result || []);
+            if (userArray.length > 0) {
+              const user = userArray[0];
+              const refreshedUser = {
+                ...parsedUserData,
+                firstName: user.real_name || parsedUserData.firstName,
+                lastName: user.last_name || parsedUserData.lastName,
+                churchId: user.church_id || parsedUserData.churchId,
+                churchName: user.church_name || parsedUserData.churchName,
+                title: user.user_title,
+                about: user.user_about,
+                picture: user.picture || user.profile_picture_url || parsedUserData.picture,
+                faith_points: user.faith_points || 0,
+                faith_rank: user.faith_rank || null,
+                prayer_count: parseInt(user.prayer_count, 10) || 0,
+                request_count: parseInt(user.request_count, 10) || 0,
+                rosary_count: parseInt(user.rosary_count, 10) || parsedUserData.rosary_count || 0,
+                auth_provider: user.auth_provider || parsedUserData.auth_provider || 'email',
+                has_password: user.has_password ?? parsedUserData.has_password ?? true,
+              };
+              console.log('[Boot] Profile refreshed from server. Church:', refreshedUser.churchName, 'Faith pts:', refreshedUser.faith_points);
+              setCurrentUser(refreshedUser);
+              await saveUserToStorage(refreshedUser);
             }
           } catch (e) {
-            console.log('Background profile refresh failed:', e.message);
+            console.warn('[Boot] Background profile refresh failed:', e.message);
           }
         }, 0);
       } else {
-        console.log('No stored user session found');
+        console.log('[Boot] No cached session — redirecting to login');
       }
     } catch (error) {
-      console.log('Error checking stored auth:', error.message);
+      console.warn('[Boot] Error reading session storage:', error.message);
     } finally {
       try {
-        const onboardingDone = await AsyncStorage.getItem('@onboarding_done');
+        const onboardingDone = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE);
         if (!onboardingDone) setShowOnboarding(true);
       } catch (_) {}
+      console.log('[Boot] Auth check complete — app ready');
       setIsCheckingAuth(false);
     }
   };
@@ -2273,20 +1595,18 @@ function App() {
   // Save user data to storage after login
   const saveUserToStorage = async (userData) => {
     try {
-      await storage.setItem('userSession', JSON.stringify(userData));
-      console.log('User session saved to persistent storage');
+      await storage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(userData));
     } catch (error) {
-      console.log('Error saving user to storage:', error.message);
+      console.warn('[Storage] Error saving user session:', error.message);
     }
   };
 
   // Clear user data from storage on logout
   const clearUserFromStorage = async () => {
     try {
-      await storage.removeItem('userSession');
-      console.log('User session cleared from persistent storage');
+      await storage.removeItem(STORAGE_KEYS.USER_SESSION);
     } catch (error) {
-      console.log('Error clearing user from storage:', error.message);
+      console.warn('[Storage] Error clearing user session:', error.message);
     }
   };
 
@@ -2349,14 +1669,7 @@ function App() {
           onPress: async () => {
             showToast('Content reported. Thank you for helping keep our community safe.', '🛡️');
             try {
-              await fetch('https://shouldcallpaul.replit.app/reportContent', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-                },
-                body: JSON.stringify({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() }),
-              });
+              await apiReportContent({ requestId: prayer.id, reportedBy: currentUser?.id, reportedAt: new Date().toISOString() });
             } catch (_) {}
           },
         },
@@ -2374,7 +1687,7 @@ function App() {
     updatedBlocked.add(String(userId));
     setBlockedUserIds(updatedBlocked);
     try {
-      await AsyncStorage.setItem('@blocked_users', JSON.stringify([...updatedBlocked]));
+      await AsyncStorage.setItem(STORAGE_KEYS.BLOCKED_USERS, JSON.stringify([...updatedBlocked]));
     } catch (_) {}
 
     // 3. Show user-facing confirmation
@@ -2382,14 +1695,7 @@ function App() {
 
     // 4. Notify moderation team (fire-and-forget)
     try {
-      await fetch('https://shouldcallpaul.replit.app/blockUser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ blockerId: currentUser?.id, blockedId: userId }),
-      });
+      await apiBlockUser(currentUser?.id, userId);
     } catch (_) {}
   };
 
@@ -2889,15 +2195,8 @@ function App() {
         }),
       ]).start();
 
-      const authHeader = 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc');
-      const payload = { requestId: prayerRequest.id, lang: userLang };
-
       // Single call — backend returns extended prayer if exists, standard otherwise
-      const data = await fetch('https://shouldcallpaul.replit.app/getPrayer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        body: JSON.stringify(payload),
-      }).then(r => r.json()).catch(() => null);
+      const data = await apiGetPrayer(prayerRequest.id, userLang).catch(() => null);
 
       let prayerText = null;
 
@@ -2939,15 +2238,7 @@ function App() {
     if (!silent) setLoadingExtendedPrayer(true);
     setExtendedPrayer('generating'); // hide the button immediately while AI generates
     try {
-      const res = await fetch('https://shouldcallpaul.replit.app/getDetailedPrayerByRequestId', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ requestId: prayerId, lang: userLang }),
-      });
-      const data = await res.json();
+      const data = await apiGetDetailedPrayer(prayerId, userLang);
       if (data.error === 0 && data.result) {
         // Replace the prayer text in place — extended prayer becomes the new prayer
         const extText = markdownToHtml(data.result);
@@ -3608,18 +2899,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   const prayForRequest = async (prayerId) => {
     if (currentUser?.isGuest) { showGuestPrompt(); return; }
     try {
-      const res = await fetch('https://shouldcallpaul.replit.app/prayFor', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ userId: currentUser?.id, requestId: prayerId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.new_badge) showBadgeCelebration(data.new_badge);
-      }
+      const data = await apiPrayFor({ userId: currentUser?.id, requestId: prayerId });
+      if (data?.new_badge) showBadgeCelebration(data.new_badge);
     } catch (e) {
       console.log('prayForRequest error:', e.message);
     }
@@ -3634,9 +2915,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     }
     // Trigger review every 5th prayer action
     try {
-      const raw = await AsyncStorage.getItem('@pray_action_count');
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.PRAY_ACTION_COUNT);
       const count = (raw ? parseInt(raw, 10) : 0) + 1;
-      await AsyncStorage.setItem('@pray_action_count', String(count));
+      await AsyncStorage.setItem(STORAGE_KEYS.PRAY_ACTION_COUNT, String(count));
       if (count % 5 === 0) maybeRequestReview();
     } catch (_) {}
   };
@@ -3669,17 +2950,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
     // Fire API fire-and-forget — don't await, don't block UI
     const prayPayload = { userId: currentUser?.id, requestId: prayer.id };
-    fetch('https://shouldcallpaul.replit.app/prayFor', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-      },
-      body: JSON.stringify(prayPayload)
-    }).then(res => res.ok ? res.json() : null).then(data => {
-      if (data?.new_badge) showBadgeCelebration(data.new_badge);
-    }).catch(e => console.log('prayFor error:', e.message));
+    apiPrayFor(prayPayload)
+      .then(data => { if (data?.new_badge) showBadgeCelebration(data.new_badge); })
+      .catch(e => console.log('prayFor error:', e.message));
 
     // Refresh faith points in background after a delay (skip if over rapid-prayer cap)
     if (currentUser && withinCap) {
@@ -3687,20 +2960,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       const oldRank = getFaithRank(oldPoints, currentUser.faith_rank);
       setTimeout(async () => {
         try {
-          const res = await fetch('https://shouldcallpaul.replit.app/getUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc') },
-            body: JSON.stringify({ userId: currentUser.id.toString() })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const userArray = Array.isArray(data) ? data : (data.result || []);
-            if (userArray.length > 0) {
-              const u = userArray[0];
-              const newRank = getFaithRank(u.faith_points || 0, u.faith_rank || null);
-              setCurrentUser(prev => ({ ...prev, faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null }));
-              if (newRank.level > oldRank.level) { setShowLevelUp(newRank); playHeavenlyChime(); }
-            }
+          const data = await apiGetUser(currentUser.id);
+          const userArray = Array.isArray(data) ? data : (data.result || []);
+          if (userArray.length > 0) {
+            const u = userArray[0];
+            const newRank = getFaithRank(u.faith_points || 0, u.faith_rank || null);
+            setCurrentUser(prev => ({ ...prev, faith_points: u.faith_points || 0, faith_rank: u.faith_rank || null }));
+            if (newRank.level > oldRank.level) { setShowLevelUp(newRank); playHeavenlyChime(); }
           }
         } catch (e) { console.log('Error refreshing faith points:', e.message); }
       }, 2000);
@@ -3865,27 +3131,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     if (!currentUser?.id) return;
     setLoadingAnswered(true);
     try {
-      const res = await fetch('https://shouldcallpaul.replit.app/getAnsweredPrayers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ userId: currentUser.id.toString(), lang: userLang }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const arr = Array.isArray(data) ? data : (data.result || []);
-        setAnsweredPrayers(arr.map(r => ({
-          id: r.request_id,
-          title: r.request_title || 'Prayer Request',
-          content: r.request_text || '',
-          date: r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '',
-          answered_message: r.answered_message || '',
-          answeredAt: r.answered_at || '',
-        })));
-      }
+      const data = await apiGetAnsweredPrayers(currentUser.id, userLang);
+      const arr = Array.isArray(data) ? data : (data.result || []);
+      setAnsweredPrayers(arr.map(r => ({
+        id: r.request_id,
+        title: r.request_title || 'Prayer Request',
+        content: r.request_text || '',
+        date: r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '',
+        answered_message: r.answered_message || '',
+        answeredAt: r.answered_at || '',
+      })));
     } catch (e) {
       console.log('Error loading answered prayers:', e);
     } finally {
@@ -3913,20 +3168,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     showToast('Your testimony has been shared! 🙌 Notifying everyone who prayed for you...', '🙌');
 
     // Fire request in background — no await
-    fetch('https://shouldcallpaul.replit.app/markPrayerAnswered', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-      },
-      body: JSON.stringify({
-        request_id: prayerId,
-        user_id: currentUser?.id,
-        answered_message: answeredMessage,
-      }),
+    apiMarkAnswered({
+      request_id: prayerId,
+      user_id: currentUser?.id,
+      answered_message: answeredMessage,
     })
-      .then(res => res.json())
+      .then(data => data)
       .then(data => {
         console.log('📥 markPrayerAnswered response:', JSON.stringify(data));
         const isSuccess = data.error === 0 || data.success === true || (data.result && !String(data.result).toLowerCase().includes('fail'));
@@ -3957,19 +3204,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   // Fetch all churches for the dropdown
   const fetchChurches = async () => {
     try {
-      const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.churches) {
-          setChurches(data.churches);
-          console.log('Loaded', data.churches.length, 'churches');
-        }
+      const data = await apiGetAllChurches();
+      if (data.error === 0 && data.churches) {
+        setChurches(data.churches);
       }
     } catch (error) {
       console.log('Error fetching churches:', error);
@@ -3980,17 +3217,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   const loadCommunityChurches = async () => {
     setLoadingChurches(true);
     try {
-      const response = await fetch('https://shouldcallpaul.replit.app/getAllChurches', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.churches) {
-          setCommunityChurches(data.churches);
-        }
+      const data = await apiGetAllChurches();
+      if (data.error === 0 && data.churches) {
+        setCommunityChurches(data.churches);
       }
     } catch (error) {
       console.log('Error loading community churches:', error);
@@ -4002,21 +3231,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setLoadingMembers(true);
     setCommunityMembers([]);
     try {
-      const response = await fetch('https://shouldcallpaul.replit.app/getUsersByChurch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({ churchId })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setCommunityMembers(data);
-        } else if (data.users && Array.isArray(data.users)) {
-          setCommunityMembers(data.users);
-        }
+      const data = await apiGetUsersByChurch(churchId);
+      if (Array.isArray(data)) {
+        setCommunityMembers(data);
+      } else if (data.users && Array.isArray(data.users)) {
+        setCommunityMembers(data.users);
       }
     } catch (error) {
       console.log('Error loading church members:', error);
@@ -4053,49 +3272,31 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setIsSavingProfile(true);
     
     try {
-      // Call updateUser API with correct parameter names
-      const response = await fetch('https://shouldcallpaul.replit.app/updateUser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          real_name: profileForm.firstName,
-          last_name: profileForm.lastName,
-          user_title: profileForm.title,
-          user_about: profileForm.about,
-          church_id: profileForm.churchId
-        })
+      const data = await apiUpdateUser({
+        userId: currentUser.id,
+        real_name: profileForm.firstName,
+        last_name: profileForm.lastName,
+        user_title: profileForm.title,
+        user_about: profileForm.about,
+        church_id: profileForm.churchId,
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.error === 0 && data.user) {
-          // Update current user with values from API response
-          const updatedUser = {
-            ...currentUser,
-            firstName: profileForm.firstName,
-            lastName: profileForm.lastName,
-            title: data.user.user_title,
-            about: data.user.user_about,
-            churchId: profileForm.churchId,
-            churchName: profileForm.churchName,
-            avatar_emoji: profileForm.avatar_emoji,
-          };
-          
-          setCurrentUser(updatedUser);
-          await saveUserToStorage(updatedUser);
-          
-          console.log('Profile updated successfully:', data.result);
-          showToast('Profile updated successfully!', '✅');
-          setIsEditingProfile(false);
-        } else {
-          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update profile' });
-        }
+      if (data.error === 0 && data.user) {
+        const updatedUser = {
+          ...currentUser,
+          firstName: profileForm.firstName,
+          lastName: profileForm.lastName,
+          title: data.user.user_title,
+          about: data.user.user_about,
+          churchId: profileForm.churchId,
+          churchName: profileForm.churchName,
+          avatar_emoji: profileForm.avatar_emoji,
+        };
+        setCurrentUser(updatedUser);
+        await saveUserToStorage(updatedUser);
+        showToast('Profile updated successfully!', '✅');
+        setIsEditingProfile(false);
       } else {
-        showModal({ icon: '⚠️', title: 'Error', message: 'Failed to update profile' });
+        showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to update profile' });
       }
     } catch (error) {
       console.log('Error saving profile:', error);
@@ -4179,35 +3380,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
       console.log('📱 Uploading profile picture for user:', currentUser.id);
 
-      const response = await fetch('https://shouldcallpaul.replit.app/uploadProfilePicture', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-        },
-        body: formData,
-      });
+      const data = await apiUploadProfilePicture(formData);
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.error === 0 && data.profile_picture_url) {
-          // Update current user with new profile picture
-          const updatedUser = {
-            ...currentUser,
-            picture: data.profile_picture_url,
-          };
-          
-          setCurrentUser(updatedUser);
-          await saveUserToStorage(updatedUser);
-          
-          console.log('✅ Profile picture uploaded:', data.profile_picture_url);
-          showToast('Profile picture updated!', '📸');
-        } else {
-          showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to upload profile picture' });
-        }
+      if (data.error === 0 && data.profile_picture_url) {
+        const updatedUser = { ...currentUser, picture: data.profile_picture_url };
+        setCurrentUser(updatedUser);
+        await saveUserToStorage(updatedUser);
+        showToast('Profile picture updated!', '📸');
       } else {
-        const errorData = await response.json();
-        showModal({ icon: '⚠️', title: 'Error', message: errorData.result || 'Failed to upload profile picture' });
+        showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to upload profile picture' });
       }
     } catch (error) {
       console.log('Error uploading profile picture:', error);
@@ -4829,19 +4010,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (cpNew !== cpConfirm) { setCpError(t('passwordsDoNotMatch')); return; }
       setCpLoading(true);
       try {
-        const res = await fetch('https://shouldcallpaul.replit.app/changePassword', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: JSON.stringify({
-            userId: currentUser.id,
-            currentPassword: cpCurrent,
-            newPassword: cpNew,
-          }),
-        });
-        const data = await res.json();
+        const data = await apiChangePassword({ userId: currentUser.id, currentPassword: cpCurrent, newPassword: cpNew });
         if (data.error === 0) {
           setCpDone(true);
         } else {
@@ -5003,15 +4172,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       if (ceNew === currentUser.email) { setCeError('This is already your current email address.'); return; }
       setCeLoading(true);
       try {
-        const res = await fetch('https://shouldcallpaul.replit.app/updateEmail', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + base64Encode('shouldcallpaul_admin:rA$b2p&!x9P#sYc'),
-          },
-          body: JSON.stringify({ userId: currentUser.id, newEmail: ceNew }),
-        });
-        const data = await res.json();
+        const data = await apiChangeEmail({ userId: currentUser.id, newEmail: ceNew });
         if (data.error === 0) {
           setCurrentUser(prev => ({ ...prev, email: ceNew }));
           await saveUserToStorage({ ...currentUser, email: ceNew });

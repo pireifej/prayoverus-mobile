@@ -34,12 +34,12 @@ const postPublic = async (path, body) => {
 };
 
 // ─── Auth / User ──────────────────────────────────────────────────────────────
-export const apiRequestPasswordReset = (email)                  => postPublic('/requestPasswordReset', { email });
-export const apiResetPassword        = (token, newPassword)     => postPublic('/resetPassword',        { token, newPassword });
+export const apiRequestPasswordReset = (email)                  => post('/requestPasswordReset', { email });
+export const apiResetPassword        = (token, newPassword)     => post('/resetPassword',        { token, newPassword });
 export const apiGoogleToken          = (code, codeVerifier, redirectUri) =>
-  postPublic('/auth/google/token', { code, codeVerifier: codeVerifier || undefined, redirectUri });
-export const apiGoogleLogin          = (payload)                => postPublic('/googleLogin',           payload);
-export const apiCreateUser           = (payload)                => postPublic('/createUser',            payload);
+  post('/auth/google/token', { code, codeVerifier: codeVerifier || undefined, redirectUri });
+export const apiGoogleLogin          = (payload)                => post('/googleLogin',           payload);
+export const apiCreateUser           = (payload)                => post('/createUser',            payload);
 export const apiGetRequestById       = (requestId, userId, tz, lang) =>
   post('/getRequestById', { requestId, userId, tz, lang });
 export const apiGetUser         = (userId)   => post('/getUser',          { userId: String(userId) });
@@ -109,8 +109,8 @@ export const apiGetAppVersion = () =>
     .then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
 
 // ─── Auth endpoints (used from UserAuth.js) ───────────────────────────────────
-export const apiLogin = (email, password) => postPublic('/login', { email, password });
-export const apiAppleLogin = (payload) => postPublic('/appleLogin', payload);
+export const apiLogin = (email, password) => post('/login', { email, password });
+export const apiAppleLogin = (payload) => post('/appleLogin', payload);
 
 // ─── Push Notifications ──────────────────────────────────────────────────────
 export const apiRegisterFCMToken = (userId, fcmToken) =>

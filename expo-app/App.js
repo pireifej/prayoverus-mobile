@@ -2833,9 +2833,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
   if (viewingMember) {
     const member = viewingMember;
     const memberRank = getFaithRank(member.faith_points || 0, member.faith_rank);
-    const profilePicUri = member.picture 
-      ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
-      : null;
+    const profilePicUri = resolveAvatarUri(member.picture);
     return (
       <View style={styles.container}>
         <StatusBar style="light" />
@@ -3020,9 +3018,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           ) : (
             communityMembers.map((member) => {
               const rank = getFaithRank(member.faith_points || 0, member.faith_rank);
-              const picUri = member.picture 
-                ? (member.picture.startsWith('http') ? member.picture : `https://shouldcallpaul.replit.app/${member.picture}`)
-                : null;
+              const picUri = resolveAvatarUri(member.picture);
               return (
                 <TouchableOpacity 
                   key={member.id} 
@@ -3855,9 +3851,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       );
     }
     const rank = getFaithRank(currentUser.faith_points, currentUser.faith_rank);
-    const myProfilePicUri = currentUser.picture
-      ? (currentUser.picture.startsWith('http') ? currentUser.picture : `https://shouldcallpaul.replit.app/${currentUser.picture}`)
-      : null;
+    const myProfilePicUri = resolveAvatarUri(currentUser.picture);
     return (
       <View style={styles.container}>
         <StatusBar style="light" />

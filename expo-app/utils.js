@@ -59,10 +59,17 @@ function getAvatarColor(name = '') {
 }
 
 export function Avatar({ picUri, name = '', lastName = '', emoji, size = 44, style }) {
+  const [imgError, setImgError] = React.useState(false);
   const base = { width: size, height: size, borderRadius: size / 2 };
 
-  if (picUri) {
-    return <Image source={{ uri: picUri }} style={[base, style]} />;
+  if (picUri && !imgError) {
+    return (
+      <Image
+        source={{ uri: picUri }}
+        style={[base, style]}
+        onError={() => setImgError(true)}
+      />
+    );
   }
 
   if (emoji) {

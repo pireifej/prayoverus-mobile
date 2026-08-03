@@ -92,17 +92,30 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     if (!userId || !devotional) return;
     const today = new Date().toISOString().split('T')[0];
     const storageKey = `readDailyBread_${today}`;
-    AsyncStorage.getItem(storageKey).then(async (alreadyRead) => {
-      if (alreadyRead) return; // already called today
+    (async () => {
+      let alreadyRead = null;
+      try {
+        alreadyRead = await AsyncStorage.getItem(storageKey);
+      } catch (e) {
+        console.warn('[DailyBread] Storage read error:', e?.message);
+        // Treat a corrupt/unreadable cache key as "not yet read" so the API call still fires
+      }
+      if (alreadyRead) return;
       try {
         const data = await apiReadDailyBread(userId, devotional.id || devotional.date);
         if (data.streak) setStreak(data.streak);
         if (data.new_badge && onNewBadge) onNewBadge(data.new_badge);
-        await AsyncStorage.setItem(storageKey, '1');
+        // Only mark as read after a successful API response — a failure leaves the
+        // marker unset so the next app open can retry and still earn the streak/badge.
+        try {
+          await AsyncStorage.setItem(storageKey, '1');
+        } catch (writeErr) {
+          console.warn('[DailyBread] Storage write error:', writeErr?.message);
+        }
       } catch (e) {
         console.warn('[DailyBread] readDailyBread error:', e?.message);
       }
-    }).catch(e => console.warn('[DailyBread] Storage read error:', e?.message));
+    })();
   }, [userId, devotional?.id]);
 
   // Unload audio when leaving the screen
@@ -110,7 +123,24 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     return () => { soundRef.current?.unloadAsync(); };
   }, []);
 
-  if (!devotional) return null;
+  if (!devotional) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+        <StatusBar style="light" />
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
+          {lang === 'es' ? 'No se pudo cargar el devocional.' : "Today's devotional couldn't be loaded."}
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
+          {lang === 'es'
+            ? 'Es posible que los datos guardados estén dañados. Por favor, regresa e intenta de nuevo.'
+            : 'The cached data may be corrupt. Please go back and try again.'}
+        </Text>
+        <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
+          <Text style={styles.topBtnText}>← Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, IMAGE_HEIGHT],
@@ -171,7 +201,7 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           verseReference: devotional.verseReference || '',
           prayer: devotional.prayer || '',
         });
-        if (!res.ok) throw new Error(`Audio API returned ${res.status}`);
+        // apiGetDailyBreadAudio already throws on non-2xx; res is guaranteed ok here
 
         // Response is raw MP3 binary — convert via FileReader (async, won't freeze UI)
         const blob = await res.blob();

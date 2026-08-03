@@ -5890,7 +5890,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showsVerticalScrollIndicator={false}
                 >
                   <View style={styles.sanctuaryTextScrim}>
-                    <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
+                    {loadingExtendedPrayer ? (
+                      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+                        <PrayerHandsLoader />
+                        <Text style={{ color: '#fbbf24', marginTop: 14, fontSize: 15, textAlign: 'center', fontStyle: 'italic' }}>
+                          Crafting your extended prayer…
+                        </Text>
+                      </View>
+                    ) : (
+                      <HtmlText html={prayerModal.generatedPrayer} style={styles.sanctuaryPrayerText} />
+                    )}
                   </View>
                 </ScrollView>
                 <View style={styles.sanctuaryFooter}>
@@ -5936,7 +5945,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   contentContainerStyle={styles.galleryScrollContent}
                   showsVerticalScrollIndicator={false}
                 >
-                  <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
+                  {loadingExtendedPrayer ? (
+                    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+                      <PrayerHandsLoader />
+                      <Text style={{ color: '#fbbf24', marginTop: 14, fontSize: 15, textAlign: 'center', fontStyle: 'italic' }}>
+                        Crafting your extended prayer…
+                      </Text>
+                    </View>
+                  ) : (
+                    <HtmlText html={prayerModal.generatedPrayer} style={styles.galleryPrayerText} />
+                  )}
                 </ScrollView>
                 <View style={styles.galleryFooter}>
                   <TouchableOpacity style={[styles.galleryAmenButton, !amenReady && { opacity: 0.35 }]} onPress={amenReady ? markAsPrayed : null} disabled={!amenReady}>
@@ -5953,7 +5971,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   showsVerticalScrollIndicator={false}
                 >
                   <View style={styles.immersiveTextScrim}>
-                    <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                    {loadingExtendedPrayer ? (
+                      <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+                        <PrayerHandsLoader />
+                        <Text style={{ color: '#fbbf24', marginTop: 14, fontSize: 15, textAlign: 'center', fontStyle: 'italic' }}>
+                          Crafting your extended prayer…
+                        </Text>
+                      </View>
+                    ) : (
+                      <HtmlText html={prayerModal.generatedPrayer} style={styles.immersivePrayerText} />
+                    )}
                   </View>
                 </ScrollView>
                 <View style={styles.immersiveFooter}>

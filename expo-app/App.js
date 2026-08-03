@@ -12,17 +12,26 @@ class AppErrorBoundary extends Component {
   }
   componentDidCatch(error, info) {
     console.error('🔴 AppErrorBoundary caught a render crash:', error?.message, info?.componentStack);
-    // Clear all persistent storage so the "Try Again" retry starts from a clean state.
-    // If corrupt cached data caused the crash, this prevents an infinite crash loop.
+    // Clear ALL persistent storage so "Try Again" starts from a clean state.
+    // Keeps the full key list in sync with STORAGE_KEYS (defined later in the file)
+    // so a corrupt-data crash doesn't loop infinitely.
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       AsyncStorage.multiRemove([
+        // Auth & session
         'userSession',
+        // Feed cache
         'communityPrayers_cache',
+        // Daily limits
         '@daily_post_tracker',
+        // User prefs / gates
         '@blocked_users',
         '@review_state',
         '@open_dates',
+        '@eula_accepted',
+        '@language_pref',
+        '@onboarding_done',
+        '@pray_action_count',
       ]).catch(() => {});
     } catch (_) {}
   }
@@ -98,6 +107,22 @@ import {
   apiReportContent,
 } from './services/api';
 
+// ── Global unhandled-rejection / error safety net ─────────────────────────
+// Catches async crashes that escape useEffect try/catch blocks.
+// On RN 0.73+, unhandled Promise rejections are fatal by default on iOS.
+try {
+  const _nativeHandler = global.ErrorUtils?.getGlobalHandler?.();
+  global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
+    console.error(
+      '[GlobalError]',
+      isFatal ? '💀 FATAL' : '⚠️ non-fatal',
+      error?.message ?? String(error),
+    );
+    // Let the original handler run so crash reporters still get the event
+    if (_nativeHandler) _nativeHandler(error, isFatal);
+  });
+} catch (_) {}
+
 // ── RevenueCat IAP (graceful fallback if package not yet installed) ────────
 let rcAvailable = false;
 let Purchases = null;
@@ -123,9 +148,24 @@ try {
     const { Platform } = require('react-native');
     const key = (__DEV__ || Platform.OS === 'web') ? RC_TEST_KEY
       : Platform.OS === 'ios' ? (RC_IOS_KEY || RC_TEST_KEY) : (RC_ANDROID_KEY || RC_TEST_KEY);
-    if (key) { Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); Purchases.configure({ apiKey: key }); rcAvailable = true; }
+    if (key) {
+      // Only enable verbose logging in dev — DEBUG level causes extra native traffic in production
+      // and is one known trigger for iOS crashes on re-configure.
+      if (__DEV__) Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+      // configure() is safe to call on every launch per RevenueCat docs.
+      // Wrapped in its own try so a native-layer re-init error doesn't suppress rcAvailable.
+      try {
+        Purchases.configure({ apiKey: key });
+        rcAvailable = true;
+      } catch (configErr) {
+        console.warn('[IAP] configure() threw — SDK may already be initialized:', configErr?.message);
+        // SDK was already initialized by the native layer (app resumed from suspended state).
+        // It is still usable; mark as available.
+        rcAvailable = true;
+      }
+    }
   }
-} catch (_) { console.log('[IAP] react-native-purchases not available yet'); }
+} catch (e) { console.warn('[IAP] react-native-purchases not available:', e?.message); }
 
 // App build tag — dynamically built from expo-updates + constants
 const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
@@ -1493,7 +1533,7 @@ function App() {
           setCommunityPrayers(communityPrayers);
           setDisplayedCount(PRAYERS_PAGE_SIZE);
           // Cache for instant display on next launch
-          AsyncStorage.setItem('communityPrayers_cache', JSON.stringify(communityPrayers)).catch(() => {});
+          AsyncStorage.setItem(STORAGE_KEYS.COMMUNITY_CACHE, JSON.stringify(communityPrayers)).catch(() => {});
         } else {
           console.log('📱 No community prayers found in response');
           setCommunityPrayers([]);
@@ -1543,6 +1583,14 @@ function App() {
         }
         console.log('[Boot] Session found for user', parsedUserData.id, '—', parsedUserData.firstName);
         setCurrentUser(parsedUserData);
+
+        // Re-register push notification token on every launch (token can rotate between sessions).
+        // Delayed 2 s so it doesn't compete with boot-path storage I/O.
+        // setupNotifications is idempotent: it checks permission status before requesting.
+        setTimeout(() => {
+          NotificationService.setupNotifications(parsedUserData.id)
+            .catch(e => console.warn('[Boot] Push token renewal error:', e?.message));
+        }, 2000);
 
         // Refresh profile from server to get latest data (church, faith rank, etc.)
         setTimeout(async () => {

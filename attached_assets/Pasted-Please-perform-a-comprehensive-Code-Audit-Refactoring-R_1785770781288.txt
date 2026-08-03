@@ -1,0 +1,31 @@
+Please perform a comprehensive Code Audit & Refactoring Review across the entire project. 
+
+IMPORTANT DIRECTIVE: DO NOT MODIFY, EDIT, REFACTOR, OR REMOVE ANY CODE AT THIS STAGE. ONLY ANALYZE AND REPORT.
+
+Perform a thorough dry-run inspection of all files in the codebase and provide a structured SUMMARY OF FINDINGS based on the following criteria:
+
+1. Authentication & Login Functionality Audit:
+   - Carefully inspect the login, registration, and session management logic (specifically Google Sign-In, Apple Sign-In, and standard auth flows).
+   - Identify what broke or caused issues with Google and Apple signing in previous iterations.
+   - Audit all log statements and debug prints within the login and authentication workflows. Look for:
+     * Unhandled auth errors or silent promise rejections.
+     * Verbose logging of sensitive data (tokens, user credentials).
+     * Any misplaced log calls or malformed async/await structures that could interrupt execution or cause login timeouts/failures.
+
+2. Dead Code & Stray Imports:
+   - Identify all unused variables, unreferenced functions, leftover commentary/todos, and orphan files/components.
+   - Highlight any redundant code or obsolete helper functions.
+
+3. Hardcoded Values & Configuration:
+   - Identify any hardcoded API keys, secrets, URLs, endpoint strings, static credentials, or fallback environmental variables that should be modularized or abstracted into environment files (.env / Config).
+
+4. Modularization & Clean Architecture:
+   - Point out large monolithic files or bloated components that need splitting into smaller, single-responsibility modules or custom hooks/services.
+   - Check if folder structure, service layers, and state management follow clear separation of concerns.
+
+5. Apple Guidelines & Best Coding Practices:
+   - Verify compliance with Apple App Review Guidelines (e.g., proper Sign in with Apple implementation, smooth account deletion/logout handling, no placeholder strings/UI, missing error states).
+   - Check for memory leaks, missing cleanup functions (e.g., uncleared timers/listeners), and unhandled promise rejections.
+
+OUTPUT REQUIREMENTS:
+Provide a detailed markdown summary categorized by the 5 points above. For each finding, state the exact file name and line number(s), describe the issue, and recommend the specific fix. Do not make any code changes.

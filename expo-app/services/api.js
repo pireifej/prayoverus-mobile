@@ -3,7 +3,9 @@ import { base64Encode } from '../utils/helpers';
 // ─── API Configuration ────────────────────────────────────────────────────────
 export const API_BASE = 'https://shouldcallpaul.replit.app';
 
-const AUTH_CREDENTIALS = 'shouldcallpaul_admin:rA$b2p&!x9P#sYc';
+// Loaded from the EXPO_PUBLIC_API_AUTH environment secret at build time.
+// Never hardcode credentials here — the bundle is recoverable from the IPA/APK.
+const AUTH_CREDENTIALS = process.env.EXPO_PUBLIC_API_AUTH ?? '';
 
 export const apiHeaders = () => ({
   'Content-Type': 'application/json',

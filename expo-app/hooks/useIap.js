@@ -72,7 +72,10 @@ export function useIap() {
   // ── Purchase / restore ─────────────────────────────────────────────────────
 
   const doIapPurchase = async (productId, onSuccess) => {
-    if (!rcAvailable || !Purchases) return;
+    if (!rcAvailable || !Purchases) {
+      showToast('Purchases are not available on this device.', '⚠️');
+      return;
+    }
     setIapPurchasing(true);
     try {
       const product = iapProducts.find(p => p.identifier === productId);

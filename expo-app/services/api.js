@@ -4,13 +4,15 @@ import { base64Encode } from '../utils/helpers';
 export const API_BASE = 'https://shouldcallpaul.replit.app';
 
 // Loaded from the EXPO_PUBLIC_API_AUTH environment secret at build time.
+// The secret value must be the base64-encoded "user:pass" string — it is
+// used directly in the Authorization header without re-encoding.
 // Never hardcode credentials here — the bundle is recoverable from the IPA/APK.
 const AUTH_CREDENTIALS = process.env.EXPO_PUBLIC_API_AUTH ?? '';
 
 export const apiHeaders = () => ({
   'Content-Type': 'application/json',
   'Accept': 'application/json',
-  'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS),
+  'Authorization': 'Basic ' + AUTH_CREDENTIALS,
 });
 
 // ─── Generic helpers ──────────────────────────────────────────────────────────

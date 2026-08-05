@@ -127,9 +127,6 @@ try {
   });
 } catch (_) {}
 
-// ── RevenueCat IAP — SDK initialization and state live in hooks/useIap.js ──
-// ENTITLEMENT_*, PRODUCT_*, THEME_PRODUCTS are imported from hooks/useIap.js
-
 // App build tag — dynamically built from expo-updates + constants
 const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
 
@@ -297,13 +294,11 @@ function App() {
     ).start();
   }, []);
 
-  // prayers, communityPrayers, displayedCount — owned by usePrayers hook
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false });
   const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
   const [originalPrayerImage, setOriginalPrayerImage] = useState(null); // Track original image for edit mode
-  // prayerModal, amenReady, amenTimerRef — owned by usePrayers hook (see hooks/usePrayers.js)
 
   const prayerLoadingFloat = useRef(new Animated.Value(0)).current;
   const prayerLoadingGlow  = useRef(new Animated.Value(0.4)).current;
@@ -329,7 +324,6 @@ function App() {
     }
   }, [prayerModal.loading]);
 
-  // extendedPrayer, loadingExtendedPrayer, refreshingCommunity — owned by usePrayers hook
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [helpForm, setHelpForm] = useState({
     message: '',
@@ -338,7 +332,6 @@ function App() {
     phone: ''
   });
   const [expandedPrayers, setExpandedPrayers] = useState({});
-  // isCheckingAuth, showOnboarding — owned by useAuth hook (see hooks/useAuth.js)
   const [authInitMode, setAuthInitMode] = useState('login');
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
@@ -377,7 +370,6 @@ function App() {
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
-  // showChurchOnly declared at top of App() before hook calls
   const [communityChurches, setCommunityChurches] = useState([]);
   const [communityMembers, setCommunityMembers] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState(null);
@@ -386,12 +378,10 @@ function App() {
   const [memberFeedType, setMemberFeedType] = useState(null); // 'requests' | 'prayers'
   const [memberFeedData, setMemberFeedData] = useState([]);
   const [memberFeedLoading, setMemberFeedLoading] = useState(false);
-  // eulaAccepted — owned by useAuth hook
   const [blockedUserIds, setBlockedUserIds] = useState(new Set());
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
-  // answeredModal, answeredPrayers, loadingAnswered — owned by usePrayers hook
   const [answeredExpanded, setAnsweredExpanded] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -515,8 +505,6 @@ function App() {
     } catch (e) { console.warn('[AllBadges] load error:', e?.message); }
     finally { setIsLoadingAllBadges(false); }
   };
-
-  // IAP state + functions — owned by useIap hook (see hooks/useIap.js)
 
   // App update checker state
   const [showUpdateModal, setShowUpdateModal] = useState(false);

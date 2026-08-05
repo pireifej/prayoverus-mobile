@@ -1,5 +1,3 @@
-import { base64Encode } from '../utils/helpers';
-
 // ─── API Configuration ────────────────────────────────────────────────────────
 export const API_BASE = 'https://shouldcallpaul.replit.app';
 
@@ -78,7 +76,7 @@ export const apiGetDetailedPrayer = (requestId, lang) =>
 export const apiGetCommunityWall   = (payload) => post('/getCommunityWall',   payload);
 export const apiGetAllChurches     = () =>
   fetch(`${API_BASE}/getAllChurches`, {
-    headers: { 'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS) },
+    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
   }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
 export const apiGetUsersByChurch   = (churchId) => post('/getUsersByChurch',  { churchId });
 
@@ -88,7 +86,7 @@ export const apiGetBadgeDefinitions = () =>
     .then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
 export const apiGetUserBadges = (userId) =>
   fetch(`${API_BASE}/getUserBadges?userId=${userId}`, {
-    headers: { 'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS) },
+    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
   }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
 
 // ─── Daily Devotional ─────────────────────────────────────────────────────────
@@ -154,7 +152,7 @@ export const apiCheckContent = async (payload, signal) => {
 export const apiUploadProfilePicture = async (formData) => {
   const res = await fetch(`${API_BASE}/uploadProfilePicture`, {
     method: 'POST',
-    headers: { 'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS) },
+    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
     body: formData,
   });
   if (!res.ok) throw new Error(`API error ${res.status} on /uploadProfilePicture`);
@@ -166,7 +164,7 @@ export const apiCreatePrayerWithImage = async (formData, idempotencyKey) => {
   const res = await fetch(`${API_BASE}/createRequestAndPrayer`, {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS),
+      'Authorization': 'Basic ' + AUTH_CREDENTIALS,
       ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
     },
     body: formData,
@@ -181,7 +179,7 @@ export const apiEditPrayerWithImage = async (formData) => {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Authorization': 'Basic ' + base64Encode(AUTH_CREDENTIALS),
+      'Authorization': 'Basic ' + AUTH_CREDENTIALS,
     },
     body: formData,
   });

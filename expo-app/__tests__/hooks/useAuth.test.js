@@ -181,6 +181,8 @@ describe('useAuth — handleLogout', () => {
         STORAGE_KEYS.OPEN_DATES,
         STORAGE_KEYS.PRAY_ACTION_COUNT,
         STORAGE_KEYS.REMEMBERED_EMAIL,
+        // Must be cleared so the next user on a shared device cannot inherit archive access.
+        STORAGE_KEYS.ARCHIVE_UNLOCKED,
       ]),
     );
   });

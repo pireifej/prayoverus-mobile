@@ -12,6 +12,11 @@ export const STORAGE_KEYS = {
   OPEN_DATES:          '@open_dates',
   DAILY_POST_TRACKER:  '@daily_post_tracker',
   ONBOARDING_DONE:     '@onboarding_done',
+  // ARCHIVE_UNLOCKED is a per-session, ad-reward unlock — NOT a per-user IAP entitlement.
+  // The user watches a rewarded ad; no server-side receipt is stored or checked.
+  // This key IS included in clearUserFromStorage so that the next person who opens the
+  // app on a shared device cannot inherit archive access after a logout. The in-memory
+  // archiveUnlocked state is also reset to false in App.js's onBeforeLogout callback.
   ARCHIVE_UNLOCKED:    'archiveUnlocked',
   PRAY_ACTION_COUNT:   '@pray_action_count',
   REMEMBERED_EMAIL:    'rememberedEmail',

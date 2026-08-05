@@ -1481,6 +1481,9 @@ function App() {
         setCurrentScreen('home');
         clearPrayerModal();
         setEditPrayerModal({ visible: false, prayer: null, title: '', content: '', isLoading: false });
+        // Reset the archive unlock so the next user on a shared device starts locked.
+        // The persisted AsyncStorage key is cleared by clearUserFromStorage in useAuth.js.
+        setArchiveUnlocked(false);
       },
     });
   };

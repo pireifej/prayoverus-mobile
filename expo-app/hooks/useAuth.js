@@ -42,6 +42,11 @@ export function useAuth() {
         STORAGE_KEYS.OPEN_DATES,
         STORAGE_KEYS.PRAY_ACTION_COUNT,
         STORAGE_KEYS.REMEMBERED_EMAIL,
+        // ARCHIVE_UNLOCKED is an ad-reward unlock with no server-side user entitlement,
+        // but the key is written to storage on unlock and must be cleared here so the
+        // next person who opens the app on a shared device cannot inherit archive access.
+        // The in-memory archiveUnlocked state is reset by App.js's onBeforeLogout callback.
+        STORAGE_KEYS.ARCHIVE_UNLOCKED,
       ]);
     } catch (error) {
       console.warn('[Storage] Error clearing user data on logout:', error.message);

@@ -310,3 +310,96 @@ describe('usePrayers — generatePrayer (modal open)', () => {
     expect(onGuestPrompt).toHaveBeenCalledTimes(1);
   });
 });
+
+// ── Church filter → feed refresh ──────────────────────────────────────────────
+//
+// The hook reads `showChurchOnly` at the moment loadCommunityPrayers() is called.
+// App.js is responsible for calling loadCommunityPrayers() after toggling the
+// filter state.  These tests confirm that the correct filterByChurch value is
+// forwarded to apiGetCommunityWall each time, covering both toggle directions.
+
+describe('usePrayers — church filter forwarded to apiGetCommunityWall', () => {
+  it('passes filterByChurch:false when showChurchOnly is false', async () => {
+    mockApiGetCommunityWall.mockResolvedValue([]);
+
+    const { result } = renderHook(({ showChurchOnly }) =>
+      usePrayers({
+        currentUser:    CURRENT_USER,
+        setCurrentUser: jest.fn(),
+        showChurchOnly,
+        userLang:       'en',
+        callbacksRef:   { current: {} },
+      }),
+      { initialProps: { showChurchOnly: false } },
+    );
+
+    await act(async () => { await result.current.loadCommunityPrayers(); });
+
+    expect(mockApiGetCommunityWall).toHaveBeenCalledTimes(1);
+    expect(mockApiGetCommunityWall).toHaveBeenCalledWith(
+      expect.objectContaining({ filterByChurch: false }),
+    );
+  });
+
+  it('passes filterByChurch:true after the filter is enabled and the feed is reloaded', async () => {
+    mockApiGetCommunityWall.mockResolvedValue([]);
+
+    const { result, rerender } = renderHook(({ showChurchOnly }) =>
+      usePrayers({
+        currentUser:    CURRENT_USER,
+        setCurrentUser: jest.fn(),
+        showChurchOnly,
+        userLang:       'en',
+        callbacksRef:   { current: {} },
+      }),
+      { initialProps: { showChurchOnly: false } },
+    );
+
+    // Initial load with filter off
+    await act(async () => { await result.current.loadCommunityPrayers(); });
+    expect(mockApiGetCommunityWall).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filterByChurch: false }),
+    );
+
+    // Simulate App.js: setShowChurchOnly(true) then loadCommunityPrayers()
+    rerender({ showChurchOnly: true });
+
+    await act(async () => { await result.current.loadCommunityPrayers(); });
+
+    expect(mockApiGetCommunityWall).toHaveBeenCalledTimes(2);
+    expect(mockApiGetCommunityWall).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filterByChurch: true }),
+    );
+  });
+
+  it('passes filterByChurch:false after the filter is disabled and the feed is reloaded', async () => {
+    mockApiGetCommunityWall.mockResolvedValue([]);
+
+    const { result, rerender } = renderHook(({ showChurchOnly }) =>
+      usePrayers({
+        currentUser:    CURRENT_USER,
+        setCurrentUser: jest.fn(),
+        showChurchOnly,
+        userLang:       'en',
+        callbacksRef:   { current: {} },
+      }),
+      { initialProps: { showChurchOnly: true } },
+    );
+
+    // Initial load with filter on
+    await act(async () => { await result.current.loadCommunityPrayers(); });
+    expect(mockApiGetCommunityWall).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filterByChurch: true }),
+    );
+
+    // Simulate App.js: setShowChurchOnly(false) then loadCommunityPrayers()
+    rerender({ showChurchOnly: false });
+
+    await act(async () => { await result.current.loadCommunityPrayers(); });
+
+    expect(mockApiGetCommunityWall).toHaveBeenCalledTimes(2);
+    expect(mockApiGetCommunityWall).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filterByChurch: false }),
+    );
+  });
+});

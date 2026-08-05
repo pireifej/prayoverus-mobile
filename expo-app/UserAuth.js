@@ -86,8 +86,9 @@ export function ForgotPasswordScreen({ onBack, onEmailSent }) {
         Alert.alert('Error', data.result || 'Failed to send reset link');
       }
     } catch (error) {
-      console.log('Catch block error:', error);
-      console.log('Error message:', error.message);
+      // Gate verbose logging behind __DEV__ — production builds must never
+      // log the full error object; it can include request bodies with passwords.
+      if (__DEV__) console.log('Password-reset network error:', error.message);
       Alert.alert('Error', 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
@@ -752,7 +753,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           setRememberMe(true);
         }
       } catch (error) {
-        console.log('Error loading saved email:', error);
+        if (__DEV__) console.log('Error loading saved email:', error.message);
       }
     };
     loadSavedEmail();
@@ -769,7 +770,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
             console.log('✅ Loaded', data.churches.length, 'churches');
           }
         } catch (error) {
-          console.log('Error loading churches:', error);
+          if (__DEV__) console.log('Error loading churches:', error.message);
         }
       }
     };
@@ -866,7 +867,9 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       }
       
     } catch (error) {
-      console.log('Facebook login error:', error);
+      // Do not log the full error object — Facebook access tokens may appear
+      // in network breadcrumbs captured by crash-reporting services.
+      if (__DEV__) console.log('Facebook login error:', error.message);
       Alert.alert('Error', 'Failed to login with Facebook. Please try again.');
     } finally {
       setLoading(false);
@@ -905,7 +908,9 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       }
       
     } catch (error) {
-      console.log('Create Facebook account error:', error);
+      // Do not log the full error object — request body includes a derived
+      // password (fb_<id>) that crash reporters must not capture.
+      if (__DEV__) console.log('Create Facebook account error:', error.message);
       Alert.alert('Error', 'Failed to create account. Please try email signup instead.');
     }
   };

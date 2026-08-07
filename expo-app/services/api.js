@@ -24,18 +24,6 @@ const post = async (path, body) => {
   return res.json();
 };
 
-// Public POST — no Authorization header.
-// Reserved for if/when the server exposes truly unauthenticated endpoints.
-// Currently unused: all endpoints require the Basic Auth API key (see AUTH_CREDENTIALS above).
-const postPublic = async (path, body) => {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
-  return res.json();
-};
 
 // ─── Auth / User ──────────────────────────────────────────────────────────────
 export const apiRequestPasswordReset = (email)                  => post('/requestPasswordReset', { email });
@@ -82,8 +70,9 @@ export const apiGetUsersByChurch   = (churchId) => post('/getUsersByChurch',  { 
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 export const apiGetBadgeDefinitions = () =>
-  fetch(`${API_BASE}/getBadgeDefinitions`)
-    .then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
+  fetch(`${API_BASE}/getBadgeDefinitions`, {
+    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
+  }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
 export const apiGetUserBadges = (userId) =>
   fetch(`${API_BASE}/getUserBadges?userId=${userId}`, {
     headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },

@@ -1,0 +1,51 @@
+[expo-cli] iOS ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (988/988)
+[expo-cli] Android ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (988/988)
+[expo-cli] Android Bundled 35062ms index.js (988 modules)
+[expo-cli] Android ./index.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (988/988)
+[expo-cli] Creating asset map
+[expo-cli] 
+[expo-cli] › Assets (21):
+[expo-cli] assets/angelic-whisper.mp3 (51.5 kB)
+[expo-cli] assets/celestial-bells.mp3 (44.3 kB)
+[expo-cli] assets/cross-hands.png (151 kB)
+[expo-cli] assets/ethereal-ascent.mp3 (41 kB)
+[expo-cli] assets/golden-harp.mp3 (34.7 kB)
+[expo-cli] assets/heavens-gate.mp3 (51.5 kB)
+[expo-cli] assets/morning-star.mp3 (42.7 kB)
+[expo-cli] assets/prayer-bg-1.png (846 kB)
+[expo-cli] assets/prayer-bg-10.png (853 kB)
+[expo-cli] assets/prayer-bg-2.png (964 kB)
+[expo-cli] assets/prayer-bg-3.png (1.02 MB)
+[expo-cli] assets/prayer-bg-4.png (841 kB)
+[expo-cli] assets/prayer-bg-5.png (1 MB)
+[expo-cli] assets/prayer-bg-6.png (930 kB)
+[expo-cli] assets/prayer-bg-7.png (1.59 MB)
+[expo-cli] assets/prayer-bg-8.png (1 MB)
+[expo-cli] assets/prayer-bg-9.png (2.14 MB)
+[expo-cli] assets/radiant-ascent.mp3 (41.8 kB)
+[expo-cli] assets/radiant-sparkle.mp3 (20.9 kB)
+[expo-cli] assets/resonant-cathedral.mp3 (68.2 kB)
+[expo-cli] assets/wind-spirit.mp3 (48.9 kB)
+[expo-cli] 
+[expo-cli] › ios bundles (2):
+[expo-cli] _expo/static/js/ios/index-b97050c547d33aee0997b62729d64d41.hbc (2.66 MB)
+[expo-cli] _expo/static/js/ios/index-b97050c547d33aee0997b62729d64d41.hbc.map (8.28 MB)
+[expo-cli] 
+[expo-cli] › android bundles (2):
+[expo-cli] _expo/static/js/android/index-43a4fddb9e72ddbcc81be529cfbf6aff.hbc (2.66 MB)
+[expo-cli] _expo/static/js/android/index-43a4fddb9e72ddbcc81be529cfbf6aff.hbc.map (8.3 MB)
+[expo-cli] 
+[expo-cli] › Files (2):
+[expo-cli] assetmap.json (8.05 kB)
+[expo-cli] metadata.json (2.89 kB)
+[expo-cli] 
+[expo-cli] Exported: dist
+✔ Exported bundle(s)
+✔ Uploaded assetmap.json 
+✔ Uploaded 2 app bundles
+✔ Uploading assets skipped - no new assets found
+ℹ 22 iOS assets, 22 Android assets (maximum: 2000 total per update). Learn more about asset limits: https://expo.fyi/eas-update-asset-limits
+CommandError: You're currently using the bare workflow, where runtime version policies are not supported. You must set your runtime version manually. For example, define your runtime version as "1.0.0", not {"policy": "appVersion"} in your app config. https://docs.expo.dev/eas-update/runtime-versions
+
+    Error: update command failed.
+~/workspace$ 

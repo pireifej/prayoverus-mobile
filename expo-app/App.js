@@ -54,7 +54,7 @@ class AppErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform, Alert, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as StoreReview from 'expo-store-review';
 import { StatusBar } from 'expo-status-bar';
@@ -1224,6 +1224,19 @@ function App() {
   // Load all badges when badge showcase screen opens
   useEffect(() => {
     if (currentScreen === 'badges') loadAllBadges();
+  }, [currentScreen]);
+
+  // Android hardware back button — navigate back to home from Daily Bread
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (currentScreen === 'dailyBread') {
+        setCurrentScreen('home');
+        return true; // consumed — prevents app exit
+      }
+      return false; // let the system handle it (exits app on home screen)
+    });
+    return () => handler.remove();
   }, [currentScreen]);
 
   // Load user prayers ONLY when entering profile screen

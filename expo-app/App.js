@@ -130,6 +130,10 @@ try {
 // App build tag — dynamically built from expo-updates + constants
 const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
 
+// Skip async startup effects during Jest test runs to prevent unclosed timers
+// and spurious "An update to App inside a test was not wrapped in act()" warnings.
+const IS_TESTING = process.env.NODE_ENV === 'test';
+
 
 // AdMob - conditionally import to support Expo Go (where native modules aren't available)
 const ADS_ENABLED = false; // ← set to true to re-enable all ads
@@ -603,6 +607,7 @@ function App() {
 
   // Configure audio mode for the app
   useEffect(() => {
+    if (IS_TESTING) return;
     (async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -617,10 +622,11 @@ function App() {
   }, []);
 
   // Load IAP data on startup
-  useEffect(() => { loadIapData(); loadDailyPostCount(); }, []);
+  useEffect(() => { if (IS_TESTING) return; loadIapData(); loadDailyPostCount(); }, []);
 
   // Load EULA acceptance and blocked users on startup
   useEffect(() => {
+    if (IS_TESTING) return;
     (async () => {
       try {
         const accepted = await AsyncStorage.getItem(STORAGE_KEYS.EULA_ACCEPTED);
@@ -635,6 +641,7 @@ function App() {
 
   // Load saved language preference
   useEffect(() => {
+    if (IS_TESTING) return;
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE_PREF);
@@ -686,6 +693,7 @@ function App() {
 
   // Check for stored user session on app start
   useEffect(() => {
+    if (IS_TESTING) return;
     checkStoredAuth();
     trackOpenAndMaybeReview();
     
@@ -1933,6 +1941,7 @@ Through Christ our Lord. Amen.`;
 
   // Handle cold-start notification tap (app was fully killed when notification was tapped)
   useEffect(() => {
+    if (IS_TESTING) return;
     (async () => {
       try {
         const response = await Notifications.getLastNotificationResponseAsync();

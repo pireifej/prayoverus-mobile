@@ -17,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "111",
+      "buildNumber": "112",
       "bundleIdentifier": "com.pireifej.prayoverus",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -29,6 +29,7 @@
         "NSPhotoLibraryUsageDescription": "PrayOverUs uses your photo library to let you set a profile picture and add photos to your prayer requests. For example, you can upload a photo of the person you are praying for.",
         "NSPhotoLibraryAddUsageDescription": "PrayOverUs saves photos to your library when you download shared prayer images.",
         "NSCameraUsageDescription": "PrayOverUs uses your camera so you can take a photo to add to your prayer request or set as your profile picture.",
+        "GADDelayAppMeasurementInit": true,
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -43,7 +44,7 @@
       "color": "#2563eb"
     },
     "android": {
-      "versionCode": 111,
+      "versionCode": 112,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#6366f1"

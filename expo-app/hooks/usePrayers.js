@@ -72,6 +72,22 @@ export function usePrayers({
     return () => { clearTimeout(amenTimerRef.current); };
   }, []);
 
+  // ── Auto-reload when the church filter toggles ──────────────────────────────
+  // Skip the initial mount (the caller loads the feed separately on login).
+  // Skip if the user is not yet authenticated.
+  const _churchFilterFirstRun = useRef(true);
+  useEffect(() => {
+    if (_churchFilterFirstRun.current) {
+      _churchFilterFirstRun.current = false;
+      return;
+    }
+    const userId = currentUser?.isGuest ? '0' : currentUser?.id;
+    if (!userId) return;
+    loadCommunityPrayers();
+    // loadCommunityPrayers is recreated each render; only the filter change matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showChurchOnly]);
+
   // ── Extended (AI) prayer state ──────────────────────────────────────────────
   const [extendedPrayer, setExtendedPrayer] = useState(null);
   const [loadingExtendedPrayer, setLoadingExtendedPrayer] = useState(false);

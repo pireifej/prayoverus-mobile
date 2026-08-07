@@ -5239,7 +5239,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <View style={styles.filterSegmentRow}>
           <TouchableOpacity
             style={[styles.filterSegmentBtn, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentBtnActive]}
-            onPress={() => { setShowMyRequestsOnly(false); setShowChurchOnly(false); loadCommunityPrayers(true); }}
+            onPress={() => { setShowMyRequestsOnly(false); setShowChurchOnly(false); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.filterSegmentText, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentTextActive]}>

@@ -1,0 +1,51 @@
+name: EAS Build Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  prebuild-check:
+    name: Expo prebuild validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: expo-app/yarn.lock
+
+      - name: Install dependencies
+        working-directory: expo-app
+        run: yarn install --frozen-lockfile
+
+      - name: Validate EAS config
+        working-directory: expo-app
+        run: npx eas-cli config --non-interactive || true
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Run expo prebuild (Android)
+        working-directory: expo-app
+        # --no-install skips pod install / gradle sync so the job stays fast.
+        # It still runs every config plugin and validates app.json, which is
+        # where most build-breaking misconfigurations hide.
+        run: npx expo prebuild --platform android --clean --no-install
+        env:
+          # Stub secrets so config plugins that read env vars don't abort early.
+          EXPO_PUBLIC_API_AUTH: stub
+          EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: stub
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: stub
+
+      - name: Run expo prebuild (iOS)
+        working-directory: expo-app
+        run: npx expo prebuild --platform ios --clean --no-install
+        env:
+          EXPO_PUBLIC_API_AUTH: stub
+          EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: stub
+          EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: stub

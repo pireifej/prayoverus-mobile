@@ -454,6 +454,7 @@ function App() {
   const [archiveUnlocked, setArchiveUnlocked] = useState(false);
   const [premiumBgTheme, setPremiumBgTheme] = useState(null); // null | 'amber' | 'purple' | 'rose' | 'forest' | 'midnight'
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Badge state
   const [userBadges, setUserBadges] = useState([]);
@@ -4434,11 +4435,74 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Text style={styles.deleteButtonText}>{t('deleteAccount')}</Text>
             </TouchableOpacity>
 
+            {/* Terms of Use — always accessible so reviewers can find it after EULA is accepted */}
+            <TouchableOpacity
+              style={[styles.settingsButton, { marginTop: 12 }]}
+              onPress={() => setShowTermsModal(true)}
+            >
+              <Text style={styles.settingsButtonText}>📋 Terms of Use & Community Standards</Text>
+            </TouchableOpacity>
+
             <Text style={{ textAlign: 'center', color: '#bbb', fontSize: 11, marginTop: 16, marginBottom: 4 }}>
               {APP_BUILD}
             </Text>
           </View>
         </ScrollView>
+
+        {/* Terms of Use modal — viewable any time from Settings */}
+        <Modal visible={showTermsModal} animationType="slide" transparent={false} onRequestClose={() => setShowTermsModal(false)}>
+          <View style={{ flex: 1, backgroundColor: '#0d1f3c' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12, backgroundColor: '#0d1f3c' }}>
+              <TouchableOpacity onPress={() => setShowTermsModal(false)} style={{ marginRight: 16 }}>
+                <Text style={{ fontSize: 16, color: '#60a5fa' }}>✕ Close</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', flex: 1 }}>Terms of Use</Text>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+              <View style={{ backgroundColor: '#1e3a5f', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 12 }}>Terms of Use & Community Standards</Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  By using Pray Over Us, you agree to the following:
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>1. No Objectionable Content. </Text>
+                  You will not post content that is offensive, abusive, harassing, threatening, defamatory, obscene, or otherwise objectionable. There is zero tolerance for content that violates these standards.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>2. No Abusive Behavior. </Text>
+                  You will treat all members of this community with dignity and respect. Harassment, bullying, or targeting of other users is strictly prohibited and will result in immediate removal.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>3. Reporting & Moderation. </Text>
+                  You may flag inappropriate content using the 🚩 Report option on any prayer card. You may block abusive users from their profile. Reported content is reviewed and removed within 24 hours.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>4. Prayer Content Only. </Text>
+                  This platform is for sharing and praying over personal prayer intentions. Content unrelated to faith and prayer may be removed.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 10 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>5. Privacy. </Text>
+                  Do not share private information about others without their consent. User data is handled in accordance with our Privacy Policy.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22 }}>
+                  <Text style={{ color: '#60a5fa', fontWeight: '700' }}>6. Enforcement. </Text>
+                  The Pray Over Us team reserves the right to remove any content and suspend or permanently ban any account that violates these terms at any time without prior notice.
+                </Text>
+              </View>
+              <View style={{ backgroundColor: '#1e3a5f', borderRadius: 16, padding: 20 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 10 }}>🛡️ How to Report & Block</Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22, marginBottom: 8 }}>
+                  <Text style={{ fontWeight: '700', color: '#60a5fa' }}>Flag objectionable content: </Text>
+                  Tap the ••• menu on any prayer card and select 🚩 Report. Our moderation team will be notified and will review within 24 hours.
+                </Text>
+                <Text style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 22 }}>
+                  <Text style={{ fontWeight: '700', color: '#60a5fa' }}>Block a user: </Text>
+                  Tap a member's name or profile to open their profile, then tap Block. You will no longer see content from that user.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   }

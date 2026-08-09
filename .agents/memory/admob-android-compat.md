@@ -1,18 +1,25 @@
 ---
-name: AdMob Android compatibility matrix
-description: Which react-native-google-mobile-ads version works with RN 0.81 + Expo SDK 53 + Kotlin 2.2.20
+name: AdMob Android/iOS compatibility
+description: Version constraints and patches needed for react-native-google-mobile-ads across platforms and RN versions
 ---
 
-**Rule:** Use react-native-google-mobile-ads **v16.0.3** with a config-plugin patch for `currentActivity`.
+# AdMob compatibility notes
 
-**Why:**
-- v16.0.1–v16.0.2: `currentActivity` removed from `ReactContextBaseJavaModule` in RN 0.79+, causes compile error
-- v16.1.0–v16.4.0: use play-services-ads 25.x compiled with newer Kotlin metadata; KGP 2.2.20 + Gradle 8.13 triggers `getJvmDefault()` NoSuchMethodError
-- v16.0.3: uses play-services-ads 24.9.0 (older Kotlin metadata, no getJvmDefault issue) + needs currentActivity patch
+## Android constraint (RN 0.81 + Kotlin 2.1.20)
+- v16.0.3 was originally pinned due to Kotlin 2.2.20 compatibility issues.
+- app.json now uses Kotlin **2.1.20** (not 2.2.20 — memory was recorded inaccurately).
+- `withAdsKotlinFix.js` config plugin applies four Android patches:
+  1. Pins Gradle to 8.13
+  2. Sets `android.suppressUnsupportedCompileSdk=35`
+  3. Pins KSP to `2.0.21-1.0.25`
+  4. Patches `currentActivity` → `reactApplicationContext.currentActivity` in the Kotlin source (no-op if already fixed in newer versions)
 
-**How to apply:**
-- `package.json`: pin `"react-native-google-mobile-ads": "16.0.3"`
-- `withAdsKotlinFix.js` config plugin runs `withCurrentActivityPatch` to replace `val activity = currentActivity` → `val activity = reactApplicationContext.currentActivity` in `ReactNativeGoogleMobileAdsFullScreenAdModule.kt` before Gradle compiles
-- Gradle must be pinned to 8.13 via `withGradleVersionPin` (withDangerousMod using `__dirname`) since EAS pulls 8.14.3 by default which also breaks things
-- `android.overrideVersionCheck=true` in gradle.properties (via withGradleProperties) bypasses AGP's Gradle 8.13 minimum check
-- `withDangerousMod` must use `__dirname` not `config.modResults.projectRoot` — the latter is undefined in EAS prebuild
+**Why:** The plugin handles the "no patch needed" case gracefully, so upgrading AdMob is safe even if the Kotlin patch no longer applies.
+
+## iOS constraint (iOS 26 crash — EXC_BREAKPOINT / _assertionFailure)
+- v16.0.3 causes a Swift `_assertionFailure` crash on iOS 26 in a Swift concurrency cooperative queue at launch.
+- **Fix:** upgrade to **16.4.0** + add `GADDelayAppMeasurementInit: true` to iOS infoPlist in app.json.
+- `GADDelayAppMeasurementInit: true` defers AdMob's Swift async measurement task so it doesn't fire during `application:didFinishLaunchingWithOptions`.
+- Applied in build 112 (v1.0.33).
+
+**How to apply:** When updating AdMob in the future, keep `GADDelayAppMeasurementInit: true` in app.json infoPlist. The withAdsKotlinFix.js plugin can stay as-is — it no-ops if the source patch is already applied upstream.

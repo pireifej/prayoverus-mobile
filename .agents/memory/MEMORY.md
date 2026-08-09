@@ -1,3 +1,4 @@
+- [EAS secrets vs Replit secrets](eas-secrets-vs-replit-secrets.md) — EXPO_PUBLIC_* vars must be in EAS secrets or they bake in empty; OTA from Replit is the emergency fix
 - [Apple Sign-In entitlement crash](apple-signin-crash.md) — static import of expo-apple-authentication crashes on launch if binary lacks entitlement; fixed with lazy getAppleAuth() getter
 - [Fingerprint mismatch rebuild](fingerprint-mismatch-rebuild.md) — native-layer changes require new binary build + submit; pure JS OTAs are safe; always bump version before iOS binary build
 - [OTA breaks native-only features](ota-native-mismatch.md) — OTA updates that import native-only modules crash users on older App Store binaries; fix via counter-OTA targeting that runtime version

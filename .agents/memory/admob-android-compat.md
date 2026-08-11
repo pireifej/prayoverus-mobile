@@ -5,16 +5,19 @@ description: Version constraints and patches needed for react-native-google-mobi
 
 # AdMob compatibility notes
 
-## Android constraint (RN 0.81 + Kotlin 2.1.20)
-- v16.0.3 was originally pinned due to Kotlin 2.2.20 compatibility issues.
-- app.json now uses Kotlin **2.1.20** (not 2.2.20 — memory was recorded inaccurately).
+## Android constraint (AdMob 16.4.0 + Kotlin 2.3.0)
+- AdMob 16.4.0 bundles `play-services-ads 25.4.0` compiled with Kotlin metadata 2.3.0.
+- Building with Kotlin < 2.3.0 produces: "Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0."
+- **Fix:** set `kotlinVersion: "2.3.0"` in app.json (expo-build-properties) and update KSP pin in `withAdsKotlinFix.js` to `"2.3.0-1.0.20"`.
 - `withAdsKotlinFix.js` config plugin applies four Android patches:
   1. Pins Gradle to 8.13
   2. Sets `android.suppressUnsupportedCompileSdk=35`
-  3. Pins KSP to `2.0.21-1.0.25`
-  4. Patches `currentActivity` → `reactApplicationContext.currentActivity` in the Kotlin source (no-op if already fixed in newer versions)
+  3. Pins KSP to `2.3.0-1.0.20`
+  4. Patches `currentActivity` → `reactApplicationContext.currentActivity` in the Kotlin source (no-op if already fixed upstream)
 
-**Why:** The plugin handles the "no patch needed" case gracefully, so upgrading AdMob is safe even if the Kotlin patch no longer applies.
+**Why:** Each AdMob major version bump tends to pull in a newer play-services-ads compiled with a newer Kotlin metadata version. Always check the Kotlin version requirement when upgrading AdMob.
+
+**How to apply:** When upgrading AdMob in future, check what `play-services-ads` version it bundles, find its Kotlin metadata version from the error log, and bump `kotlinVersion` + KSP pin to match.
 
 ## iOS constraint (iOS 26 crash — EXC_BREAKPOINT / _assertionFailure)
 - v16.0.3 causes a Swift `_assertionFailure` crash on iOS 26 in a Swift concurrency cooperative queue at launch.

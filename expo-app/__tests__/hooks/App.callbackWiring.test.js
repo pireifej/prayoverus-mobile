@@ -275,9 +275,10 @@ beforeEach(() => {
   capturedCallbacksRef = null;
   jest.clearAllMocks();
 
-  // Animated.loop in App.js creates infinite requestAnimationFrame loops that
-  // prevent Jest from exiting.  Replace .loop with a no-op for this suite.
-  jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
+  // Animated.loop is already mocked globally by jest.setup.afterenv.js so
+  // every test file that renders <App /> is covered automatically.
+  // The global mock is re-applied by that file's own beforeEach/afterEach pair,
+  // so no per-suite spy is needed here.
 });
 
 afterEach(async () => {

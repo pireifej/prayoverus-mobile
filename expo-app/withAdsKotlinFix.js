@@ -84,47 +84,6 @@ function withKspVersionPin(config) {
   ]);
 }
 
-function withCurrentActivityPatch(config) {
-  return withDangerousMod(config, [
-    'android',
-    (config) => {
-      const ktFile = path.join(
-        __dirname,
-        'node_modules',
-        'react-native-google-mobile-ads',
-        'android',
-        'src',
-        'main',
-        'java',
-        'io',
-        'invertase',
-        'googlemobileads',
-        'ReactNativeGoogleMobileAdsFullScreenAdModule.kt'
-      );
-
-      if (!fs.existsSync(ktFile)) {
-        console.warn('[withCurrentActivityPatch] Kotlin file not found:', ktFile);
-        return config;
-      }
-
-      let src = fs.readFileSync(ktFile, 'utf8');
-
-      if (src.includes('val activity = currentActivity')) {
-        src = src.replaceAll(
-          'val activity = currentActivity',
-          'val activity = reactApplicationContext.currentActivity'
-        );
-        fs.writeFileSync(ktFile, src, 'utf8');
-        console.log('[withCurrentActivityPatch] Patched currentActivity → reactApplicationContext.currentActivity');
-      } else {
-        console.log('[withCurrentActivityPatch] No patch needed (already fixed or different source)');
-      }
-
-      return config;
-    },
-  ]);
-}
-
 function withPlayServicesAdsVersionPin(config) {
   return withProjectBuildGradle(config, (config) => {
     if (config.modResults.language === 'groovy') {
@@ -150,7 +109,6 @@ module.exports = function withAndroidBuildFixes(config) {
   config = withGradleVersionPin(config);
   config = withKotlinJvmDefault(config);
   config = withKspVersionPin(config);
-  config = withCurrentActivityPatch(config);
   config = withPlayServicesAdsVersionPin(config);
   return config;
 };

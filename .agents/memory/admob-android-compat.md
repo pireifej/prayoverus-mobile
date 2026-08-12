@@ -9,11 +9,11 @@ description: Version constraints and patches needed for react-native-google-mobi
 - AdMob 16.4.0 bundles `play-services-ads 25.4.0` compiled with Kotlin metadata 2.3.0.
 - Building with Kotlin < 2.3.0 produces: "Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0."
 - **Fix:** set `kotlinVersion: "2.3.0"` in app.json (expo-build-properties) and update KSP pin in `withAdsKotlinFix.js` to `"2.3.0-1.0.20"`.
-- `withAdsKotlinFix.js` config plugin applies four Android patches:
+- `withAdsKotlinFix.js` config plugin applies three Android patches:
   1. Pins Gradle to 8.13
   2. Sets `android.suppressUnsupportedCompileSdk=35`
   3. Pins KSP to `2.3.0-1.0.20`
-  4. Patches `currentActivity` → `reactApplicationContext.currentActivity` in the Kotlin source (no-op if already fixed upstream)
+- The `withCurrentActivityPatch` function (patched `currentActivity` → `reactApplicationContext.currentActivity`) was removed; upstream fixed this in 16.4.0.
 
 **Why:** Each AdMob major version bump tends to pull in a newer play-services-ads compiled with a newer Kotlin metadata version. Always check the Kotlin version requirement when upgrading AdMob.
 

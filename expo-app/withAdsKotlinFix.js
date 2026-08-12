@@ -1,4 +1,4 @@
-const { withDangerousMod, withGradleProperties } = require('@expo/config-plugins');
+const { withDangerousMod, withGradleProperties, withProjectBuildGradle } = require('@expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
@@ -38,7 +38,7 @@ function withKotlinJvmDefault(config) {
 
     const entries = [
       { key: 'android.suppressUnsupportedCompileSdk', value: '35' },
-      { key: 'android.kotlinVersion', value: '2.3.0' },
+      { key: 'android.kotlinVersion', value: '2.2.20' },
     ];
 
     for (const { key, value } of entries) {
@@ -125,10 +125,32 @@ function withCurrentActivityPatch(config) {
   ]);
 }
 
+function withPlayServicesAdsVersionPin(config) {
+  return withProjectBuildGradle(config, (config) => {
+    if (config.modResults.language === 'groovy') {
+      const marker = '// withPlayServicesAdsVersionPin';
+      if (!config.modResults.contents.includes(marker)) {
+        config.modResults.contents += `
+${marker}
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'com.google.android.gms:play-services-ads:25.2.0'
+        }
+    }
+}
+`;
+      }
+    }
+    return config;
+  });
+}
+
 module.exports = function withAndroidBuildFixes(config) {
   config = withGradleVersionPin(config);
   config = withKotlinJvmDefault(config);
   config = withKspVersionPin(config);
   config = withCurrentActivityPatch(config);
+  config = withPlayServicesAdsVersionPin(config);
   return config;
 };

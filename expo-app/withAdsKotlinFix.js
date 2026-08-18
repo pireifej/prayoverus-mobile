@@ -38,7 +38,7 @@ function withKotlinJvmDefault(config) {
 
     const entries = [
       { key: 'android.suppressUnsupportedCompileSdk', value: '35' },
-      { key: 'android.kotlinVersion', value: '2.2.20' },
+      { key: 'android.kotlinVersion', value: '2.1.20' },
     ];
 
     for (const { key, value } of entries) {

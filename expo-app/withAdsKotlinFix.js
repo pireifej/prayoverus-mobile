@@ -94,7 +94,7 @@ ${marker}
 allprojects {
     configurations.all {
         resolutionStrategy {
-            force 'com.google.android.gms:play-services-ads:25.2.0'
+            force 'com.google.android.gms:play-services-ads:25.0.0'
         }
     }
 }

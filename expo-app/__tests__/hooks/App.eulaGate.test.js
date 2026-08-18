@@ -246,7 +246,8 @@ jest.mock('../../services/api', () => ({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { act, render, cleanup } from '@testing-library/react-native';
+import { act, render, cleanup, fireEvent } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // App must be imported AFTER all jest.mock() calls are hoisted
 let App;
@@ -330,5 +331,29 @@ describe('App.js — EULA gate', () => {
     // user should never see this screen.
     expect(queryByText('🙏 Welcome to Pray Over Us')).toBeNull();
     expect(queryByText('✓ I Agree — Continue')).toBeNull();
+  });
+
+  it('pressing "I Agree — Continue" calls setEulaAccepted(true) and persists the key to AsyncStorage', async () => {
+    const setEulaAccepted = jest.fn();
+
+    mockUseAuthImpl = () => makeAuthStub({ eulaAccepted: false, currentUser: null, setEulaAccepted });
+
+    const { getByText } = render(<App />);
+    await act(async () => {});
+
+    // Button must be present
+    const agreeButton = getByText('✓ I Agree — Continue');
+    expect(agreeButton).toBeTruthy();
+
+    // Press it
+    await act(async () => {
+      fireEvent.press(agreeButton);
+    });
+
+    // setEulaAccepted must have been called with true
+    expect(setEulaAccepted).toHaveBeenCalledWith(true);
+
+    // AsyncStorage.setItem must have been called with the EULA_ACCEPTED key
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith('@eula_accepted', '1');
   });
 });

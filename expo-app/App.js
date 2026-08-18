@@ -1652,31 +1652,33 @@ function App() {
     setIsCheckingContent(false);
 
     // Crisis response — show compassionate banner, do NOT block submission
-    if (check.type === 'crisis' && check.suggestion) {
-      setCrisisBanner(check.suggestion);
+    if (check.type === 'crisis') {
+      setCrisisBanner(check.suggestion || 'If you\'re in crisis, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988.');
       return; // user sees the banner; tapping Post again will bypass this and submit
     }
 
-    if (check.flagged && check.suggestion) {
+    if (check.flagged) {
+      const isSafety = check.type === 'safety';
+      const hasSuggestion = !!check.suggestion;
+
       showModal({
-        icon: '🙏',
-        title: 'A gentle thought...',
-        message: `In your Share a Prayer Request screen, this sounds more like a wish than a prayer. What if you asked for the deeper blessing instead?\n\n"${check.suggestion}"\n\nTapping "Use this wording" will update your text — you can still edit it before posting.`,
+        icon: isSafety ? '💛' : '🙏',
+        title: isSafety ? 'A caring note...' : 'A gentle thought...',
+        message: isSafety
+          ? 'We want to make sure you\'re okay. You can share this as-is, edit it, or reach out to someone you trust.'
+          : hasSuggestion
+            ? 'This sounds more like a wish than a prayer. Here\'s a suggested rephrasing — tap "Use this wording" to apply it, or post as written.'
+            : 'This sounds more like a personal wish than a prayer request. Consider rephrasing it as a prayer before posting.',
+        suggestion: hasSuggestion ? check.suggestion : undefined,
         buttons: [
-          {
+          ...(hasSuggestion ? [{
             label: 'Use this wording',
-            onPress: () => setNewPrayer({ ...newPrayer, content: check.suggestion }),
-          },
+            onPress: () => setNewPrayer(prev => ({ ...prev, content: check.suggestion })),
+          }] : []),
           { label: 'Post as written', onPress: () => proceedToPost(text) },
           {
             label: 'Cancel',
             style: 'cancel',
-            onPress: () => {
-              if (newPrayer.content.trim()) {
-                showToast('Your prayer request has been saved as a draft.', '📝');
-              }
-              setCurrentScreen('home');
-            },
           },
         ],
       });

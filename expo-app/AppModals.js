@@ -10,8 +10,8 @@ export function showToast(message, icon = '✓') {
   if (_triggerToast) _triggerToast({ message, icon });
 }
 
-export function showModal({ icon = '⚠️', title, message, buttons }) {
-  if (_triggerModal) _triggerModal({ icon, title, message, buttons: buttons || [{ label: 'OK' }] });
+export function showModal({ icon = '⚠️', title, message, suggestion, buttons }) {
+  if (_triggerModal) _triggerModal({ icon, title, message, suggestion, buttons: buttons || [{ label: 'OK' }] });
 }
 
 // ─── Toast ───────────────────────────────────────────────────────────────────
@@ -162,11 +162,33 @@ export function AppModal() {
               color: '#475569',
               lineHeight: 22,
               textAlign: 'center',
-              marginBottom: 26,
+              marginBottom: config.suggestion ? 14 : 26,
               paddingHorizontal: 4,
             }}>
               {config.message}
             </Text>
+          ) : null}
+
+          {config.suggestion ? (
+            <View style={{
+              backgroundColor: '#f0f7ff',
+              borderLeftWidth: 3,
+              borderLeftColor: '#2563eb',
+              borderRadius: 10,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              marginBottom: 26,
+              width: '100%',
+            }}>
+              <Text style={{
+                fontSize: 14,
+                color: '#1e3a5f',
+                lineHeight: 21,
+                fontStyle: 'italic',
+              }}>
+                {config.suggestion}
+              </Text>
+            </View>
           ) : null}
 
           <View style={{ width: '100%', gap: 10 }}>

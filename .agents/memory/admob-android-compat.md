@@ -1,28 +1,25 @@
 ---
-name: AdMob Android/iOS compatibility
-description: Version constraints and patches needed for react-native-google-mobile-ads across platforms and RN versions
+name: AdMob Android compatibility
+description: Working rn-google-mobile-ads version, Kotlin, play-services-ads combination for RN 0.81 + Expo SDK 54
 ---
 
-# AdMob compatibility notes
+## Working combination (verified build ✅)
+- `react-native-google-mobile-ads`: **16.3.0**
+- `play-services-ads`: **25.0.0** (forced via `withPlayServicesAdsVersionPin` in `withAdsKotlinFix.js`)
+- `android.kotlinVersion`: **2.1.20** (set via `withKotlinJvmDefault`)
+- Gradle: **8.13** (pinned via `withGradleVersionPin`)
 
-## Android constraint (AdMob 16.4.0 + Kotlin 2.3.0)
-- AdMob 16.4.0 bundles `play-services-ads 25.4.0` compiled with Kotlin metadata 2.3.0.
-- Building with Kotlin < 2.3.0 produces: "Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0."
-- **Fix:** set `kotlinVersion: "2.3.0"` in app.json (expo-build-properties) and update KSP pin in `withAdsKotlinFix.js` to `"2.3.0-1.0.20"`.
-- `withAdsKotlinFix.js` config plugin applies three Android patches:
-  1. Pins Gradle to 8.13
-  2. Sets `android.suppressUnsupportedCompileSdk=35`
-  3. Pins KSP to `2.3.0-1.0.20`
-- The `withCurrentActivityPatch` function (patched `currentActivity` → `reactApplicationContext.currentActivity`) was removed; upstream fixed this in 16.4.0.
+## Why not 16.4.0
+16.4.0 requires `play-services-ads 25.4.0`, which was compiled with Kotlin 2.3.0 metadata. ExpoRootProject caps Kotlin at 2.2.20. No version of play-services-ads below 25.4.0 has the `AgeRestrictedTreatment` API that 16.4.0 uses — so 16.4.0 is incompatible with Expo SDK 54's Kotlin ceiling.
 
-**Why:** Each AdMob major version bump tends to pull in a newer play-services-ads compiled with a newer Kotlin metadata version. Always check the Kotlin version requirement when upgrading AdMob.
+## Why not Kotlin 2.2.x
+KGP 2.2.x removed `jvmDefault` from `KotlinJvmCompilerOptions`. The `io.invertase.gradle.build:1.5` plugin (compiled JAR inside rn-google-mobile-ads) calls `getJvmDefault()` which crashes the post-build Gradle reporter. Use 2.1.20 where `jvmDefault` still exists.
 
-**How to apply:** When upgrading AdMob in future, check what `play-services-ads` version it bundles, find its Kotlin metadata version from the error log, and bump `kotlinVersion` + KSP pin to match.
+## iOS
+16.3.0 bundles iOS SDK `Google-Mobile-Ads-SDK 13.1.0`. The iOS 26 Swift crash is prevented by `GADDelayAppMeasurementInit: true` in `infoPlist` (set in app.json), which works regardless of SDK version. Keep this key.
 
-## iOS constraint (iOS 26 crash — EXC_BREAKPOINT / _assertionFailure)
-- v16.0.3 causes a Swift `_assertionFailure` crash on iOS 26 in a Swift concurrency cooperative queue at launch.
-- **Fix:** upgrade to **16.4.0** + add `GADDelayAppMeasurementInit: true` to iOS infoPlist in app.json.
-- `GADDelayAppMeasurementInit: true` defers AdMob's Swift async measurement task so it doesn't fire during `application:didFinishLaunchingWithOptions`.
-- Applied in build 112 (v1.0.33).
+## Yarn.lock caution
+EAS uses `yarn.lock` (not `package-lock.json`) since both exist. Running `yarn install` inside Replit resolves packages through `http://package-firewall.replit.local/` which produces internal URLs that EAS cannot reach. After any `yarn install`, run: `sed -i 's|http://package-firewall\.replit\.local/npm/|https://registry.npmjs.org/|g' yarn.lock` before committing.
 
-**How to apply:** When updating AdMob in the future, keep `GADDelayAppMeasurementInit: true` in app.json infoPlist. The withAdsKotlinFix.js plugin can stay as-is — it no-ops if the source patch is already applied upstream.
+## app.json
+`expo-build-properties` `kotlinVersion` field must match the value in `withAdsKotlinFix.js`. If they conflict, the config plugin wins (runs later), but the mismatch is confusing. Keep both in sync.

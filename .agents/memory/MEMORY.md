@@ -4,7 +4,7 @@
 - [OTA breaks native-only features](ota-native-mismatch.md) — OTA updates that import native-only modules crash users on older App Store binaries; fix via counter-OTA targeting that runtime version
 - [Play App Signing SHA-1](play-app-signing.md) — Android OAuth must use Play App Signing SHA-1 (not upload key); found at Protected with Play → Play Store protection → Manage Play app signing
 - [OTA Crash Lessons](ota-crash-lessons.md) — module-level code added after binary build causes silent native OTA crashes; audit ALL JS files before every OTA push
-- [AdMob Android compatibility](admob-android-compat.md) — v16.0.3 is the only version compatible with RN 0.81 + Kotlin 2.2.20; needs currentActivity config-plugin patch + Gradle 8.13 pin
+- [AdMob Android compatibility](admob-android-compat.md) — 16.3.0 + play-services-ads 25.0.0 + Kotlin 2.1.20 + Gradle 8.13; yarn.lock Replit firewall URLs break EAS — replace after every yarn install
 - [Modal unmount crash](modal-unmount-crash.md) — never call setState then onLogin while a Modal is visible; the Modal's fade animation crashes when parent unmounts mid-animation. Use a plain View overlay instead of Modal for login loading states.
 - [Notification email change](notification-email-change.md) — prayer support emails replaced with nightly summary; good feature to highlight in future update broadcasts
 - [Second-launch crash after Google login](second-launch-crash.md) — getInitialURL() in a re-running useEffect replays stale OAuth URL; fix: mount-only effect + ignore OAuth URLs + add AppErrorBoundary

@@ -1614,7 +1614,7 @@ function App() {
     }
   };
 
-  // Handle ad gate then post — reused whether user accepted suggestion or posted as-is
+  // Handle the daily-post gate, then submit the request.
   const proceedToPost = async (contentOverride) => {
     if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
       showModal({
@@ -1669,16 +1669,12 @@ function App() {
         message: check.caringNote || 'Please review your prayer request before sharing it.',
         buttons: [
           ...(suggestedWording ? [{
-            label: 'Use this wording',
-            onPress: () => {
-              setNewPrayer(prev => ({ ...prev, content: suggestedWording }));
-              // Submit the accepted wording directly; do not run moderation again.
-              proceedToPost(suggestedWording);
-            },
-          }] : []),
-          ...(canPostAsWritten ? [
-            { label: 'Post as written', onPress: () => proceedToPost(text) },
-          ] : []),
+              label: 'Use suggested prayer',
+              onPress: () => setNewPrayer(prev => ({ ...prev, content: suggestedWording })),
+            }] : []),
+            ...(canPostAsWritten ? [
+              { label: 'Post my original prayer', onPress: () => proceedToPost(text) },
+            ] : []),
           {
             label: 'Cancel',
             style: 'cancel',

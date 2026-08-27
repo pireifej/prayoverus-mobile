@@ -1,0 +1,84 @@
+Please handle the response from POST /checkPrayerContent as follows.
+The content-check endpoint is advisory. A content flag is not a rejection.
+Possible response values:
+1. No flag
+{
+  "flagged": false,
+  "type": null,
+  "suggestion": null
+}
+Action:
+- Submit the original prayer request normally.
+- Do not show the moderation dialog.
+2. Safety flag
+{
+  "flagged": true,
+  "type": "safety",
+  "caringNote": "...",
+  "suggestedWording": "...",
+  "suggestion": "...",
+  "isHardBlock": false,
+  "allowPostAsWritten": true
+}
+Action:
+- Display `caringNote` as the warning or caring message.
+- Display `suggestedWording` as the alternative prayer.
+- “Use this wording” must replace the request text with `suggestedWording` and immediately submit the request.
+- Do not run the content check again after selecting the suggested wording.
+- “Post as written” must submit the original request.
+- Do not treat this response as a posting error.
+3. Material or consumer flag
+The `type` may be either `"material"` or `"material/consumer"`.
+Action:
+- Display `caringNote`.
+- Use `suggestedWording` as the alternative prayer.
+- “Use this wording” replaces the text and immediately submits it.
+- “Post as written” submits the original text.
+- This is not a hard block.
+4. Relationship suggestion flag
+The response may use:
+{
+  "flagged": true,
+  "type": "suggestion"
+}
+Action:
+- Display the caring/alternative wording message.
+- Use `suggestedWording`, or fall back to `suggestion` if `suggestedWording` is unavailable.
+- Submit immediately after the user selects “Use this wording.”
+- Allow “Post as written.”
+5. Crisis flag
+The response may use:
+{
+  "flagged": true,
+  "type": "crisis",
+  "suggestion": "..."
+}
+For crisis responses, `suggestion` is a caring/resource message, not replacement prayer text.
+Action:
+- Display `suggestion` as the caring message.
+- Do not put the crisis-support message into the prayer text field.
+- Do not show “Use this wording” unless a separate replacement field is present.
+- The current backend does not hard-block the request, so handle “Post as written” according to the existing product policy.
+Use this fallback when selecting replacement wording:
+const replacementText =
+  moderationResponse.suggestedWording ||
+  moderationResponse.suggestion;
+Only use that fallback for safety, material, or relationship suggestions—not for crisis responses.
+When the user taps “Use this wording”:
+1. Set the request text to `suggestedWording`.
+2. Immediately call POST /createRequestAndPrayer.
+3. Do not call POST /checkPrayerContent again.
+4. Show the normal success screen after the request is created.
+When the user taps “Post as written”:
+1. Keep the original request text.
+2. Immediately call POST /createRequestAndPrayer.
+3. Show the normal success screen after the request is created.
+Handle actual posting errors separately:
+- `error: 1` with the account-restriction message means the account cannot post.
+- `code: "WEBSITE_DAILY_LIMIT"` means the website daily limit was reached.
+- A result mentioning an email address or URL means the request failed validation.
+- These posting errors should be shown as errors, unlike content flags.
+
+The key distinction is:
+
+flagged: true from /checkPrayerContent means “show guidance and offer choices.” It does not mean “stop the post.”

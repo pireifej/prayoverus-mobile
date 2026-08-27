@@ -342,7 +342,6 @@ function App() {
   const [isPosting, setIsPosting] = useState(false);
   const [isCheckingContent, setIsCheckingContent] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
-  const [crisisBanner, setCrisisBanner] = useState(null); // suggestion text when API returns type==="crisis"
 
   const postLoadingFloat = useRef(new Animated.Value(0)).current;
   const postLoadingGlow  = useRef(new Animated.Value(0.4)).current;
@@ -1639,22 +1638,41 @@ function App() {
       return;
     }
 
-    // If the crisis banner is already showing the user acknowledged it — post now
-    if (crisisBanner) {
-      setCrisisBanner(null);
-      await proceedToPost(text);
-      return;
-    }
-
     // Run AI content check — silently skipped on timeout/error
     setIsCheckingContent(true);
     const check = await checkPrayerContent(text);
     setIsCheckingContent(false);
 
-    // Crisis response — show compassionate banner, do NOT block submission
+    // Crisis response — show a prominent support dialog before offering the
+    // existing option to continue with the original request.
     if (check.type === 'crisis') {
-      setCrisisBanner(check.suggestion || 'If you\'re in crisis, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988.');
-      return; // user sees the banner; tapping Post again will bypass this and submit
+      const crisisMessage = check.suggestion ||
+        check.caringNote ||
+        'If you\'re in crisis, please reach out to the 988 Suicide & Crisis Lifeline by calling or texting 988.';
+      showModal({
+        icon: '💛',
+        title: 'You are not alone',
+        message: crisisMessage,
+        buttons: [
+          {
+            label: 'Call 988',
+            onPress: () => Linking.openURL('tel:988'),
+          },
+          {
+            label: 'Text 741741',
+            onPress: () => Linking.openURL('sms:741741?body=HOME'),
+          },
+          {
+            label: 'Post my original prayer',
+            onPress: () => proceedToPost(text),
+          },
+          {
+            label: 'Cancel',
+            style: 'cancel',
+          },
+        ],
+      });
+      return;
     }
 
     if (check.flagged) {
@@ -1670,7 +1688,11 @@ function App() {
         buttons: [
           ...(suggestedWording ? [{
               label: 'Use suggested prayer',
-              onPress: () => setNewPrayer(prev => ({ ...prev, content: suggestedWording })),
+              onPress: () => {
+                setNewPrayer(prev => ({ ...prev, content: suggestedWording }));
+                // Submit the accepted wording directly; do not run moderation again.
+                proceedToPost(suggestedWording);
+              },
             }] : []),
             ...(canPostAsWritten ? [
               { label: 'Post my original prayer', onPress: () => proceedToPost(text) },
@@ -4698,7 +4720,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               multiline
               numberOfLines={6}
               value={newPrayer.content}
-              onChangeText={(text) => { setNewPrayer({...newPrayer, content: text}); setCrisisBanner(null); }}
+              onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
               editable={!isPosting}
               textAlignVertical="top"
             />
@@ -4789,54 +4811,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
             )}
           </View>
-
-          {/* ── Crisis support banner ── */}
-          {crisisBanner ? (
-            <View style={{
-              marginHorizontal: 16, marginBottom: 12,
-              backgroundColor: '#fffbeb',
-              borderRadius: 14,
-              borderLeftWidth: 4,
-              borderLeftColor: '#f59e0b',
-              padding: 16,
-            }}>
-              <TouchableOpacity
-                onPress={() => setCrisisBanner(null)}
-                style={{ position: 'absolute', top: 10, right: 12, padding: 4 }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text style={{ fontSize: 16, color: '#92400e', fontWeight: '600' }}>✕</Text>
-              </TouchableOpacity>
-              <Text style={{ fontSize: 15, color: '#92400e', fontWeight: '700', marginBottom: 8 }}>
-                💛 You are not alone
-              </Text>
-              <Text style={{ fontSize: 14, color: '#78350f', lineHeight: 21, marginRight: 20 }}>
-                {crisisBanner}
-              </Text>
-              <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL('tel:988')}
-                  style={{
-                    flex: 1, backgroundColor: '#f59e0b', borderRadius: 10,
-                    paddingVertical: 10, alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>📞 Call 988</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 2 }}>Suicide & Crisis Lifeline</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL('sms:741741?body=HOME')}
-                  style={{
-                    flex: 1, backgroundColor: '#fde68a', borderRadius: 10,
-                    paddingVertical: 10, alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: '#92400e', fontWeight: '700', fontSize: 15 }}>💬 Text 741741</Text>
-                  <Text style={{ color: '#b45309', fontSize: 11, marginTop: 2 }}>Crisis Text Line</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : null}
 
           <View style={styles.npPostButtonContainer}>
             <TouchableOpacity 

@@ -1610,7 +1610,7 @@ function App() {
       return result;
     } catch (e) {
       console.log('⚠️ Prayer content check skipped:', e?.message);
-      return { flagged: false, suggestion: null };
+      return { flagged: false, caringNote: null, suggestedWording: null };
     }
   };
 
@@ -1659,23 +1659,21 @@ function App() {
 
     if (check.flagged) {
       const isSafety = check.type === 'safety';
-      const hasSuggestion = !!check.suggestion;
+      const suggestedWording = check.suggestedWording;
+      const canPostAsWritten = check.isHardBlock !== true && check.allowPostAsWritten === true;
 
       showModal({
         icon: isSafety ? '💛' : '🙏',
         title: isSafety ? 'A caring note...' : 'A gentle thought...',
-        message: isSafety
-          ? 'We want to make sure you\'re okay. You can share this as-is, edit it, or reach out to someone you trust.'
-          : hasSuggestion
-            ? 'This sounds more like a wish than a prayer. Here\'s a suggested rephrasing — tap "Use this wording" to apply it, or post as written.'
-            : 'This sounds more like a personal wish than a prayer request. Consider rephrasing it as a prayer before posting.',
-        suggestion: hasSuggestion ? check.suggestion : undefined,
+        message: check.caringNote || 'Please review your prayer request before sharing it.',
         buttons: [
-          ...(hasSuggestion ? [{
+          ...(suggestedWording ? [{
             label: 'Use this wording',
-            onPress: () => setNewPrayer(prev => ({ ...prev, content: check.suggestion })),
+            onPress: () => proceedToPost(suggestedWording),
           }] : []),
-          { label: 'Post as written', onPress: () => proceedToPost(text) },
+          ...(canPostAsWritten ? [
+            { label: 'Post as written', onPress: () => proceedToPost(text) },
+          ] : []),
           {
             label: 'Cancel',
             style: 'cancel',

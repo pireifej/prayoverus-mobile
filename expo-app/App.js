@@ -1610,7 +1610,7 @@ function App() {
       return result;
     } catch (e) {
       console.log('⚠️ Prayer content check skipped:', e?.message);
-      return { flagged: false, caringNote: null, suggestedWording: null };
+      return { flagged: false, caringNote: null, suggestedWording: null, suggestion: null };
     }
   };
 
@@ -1659,7 +1659,8 @@ function App() {
 
     if (check.flagged) {
       const isSafety = check.type === 'safety';
-      const suggestedWording = check.suggestedWording;
+      // New responses use suggestedWording; keep suggestion for older backends.
+      const suggestedWording = check.suggestedWording || check.suggestion;
       const canPostAsWritten = check.isHardBlock !== true && check.allowPostAsWritten === true;
 
       showModal({
@@ -1669,7 +1670,11 @@ function App() {
         buttons: [
           ...(suggestedWording ? [{
             label: 'Use this wording',
-            onPress: () => proceedToPost(suggestedWording),
+            onPress: () => {
+              setNewPrayer(prev => ({ ...prev, content: suggestedWording }));
+              // Submit the accepted wording directly; do not run moderation again.
+              proceedToPost(suggestedWording);
+            },
           }] : []),
           ...(canPostAsWritten ? [
             { label: 'Post as written', onPress: () => proceedToPost(text) },

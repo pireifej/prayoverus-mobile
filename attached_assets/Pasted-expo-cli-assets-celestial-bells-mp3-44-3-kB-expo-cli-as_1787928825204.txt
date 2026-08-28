@@ -1,0 +1,50 @@
+expo-cli] assets/celestial-bells.mp3 (44.3 kB)
+[expo-cli] assets/cross-hands.png (151 kB)
+[expo-cli] assets/ethereal-ascent.mp3 (41 kB)
+[expo-cli] assets/golden-harp.mp3 (34.7 kB)
+[expo-cli] assets/heavens-gate.mp3 (51.5 kB)
+[expo-cli] assets/morning-star.mp3 (42.7 kB)
+[expo-cli] assets/prayer-bg-1.png (846 kB)
+[expo-cli] assets/prayer-bg-10.png (853 kB)
+[expo-cli] assets/prayer-bg-2.png (964 kB)
+[expo-cli] assets/prayer-bg-3.png (1.02 MB)
+[expo-cli] assets/prayer-bg-4.png (841 kB)
+[expo-cli] assets/prayer-bg-5.png (1 MB)
+[expo-cli] assets/prayer-bg-6.png (930 kB)
+[expo-cli] assets/prayer-bg-7.png (1.59 MB)
+[expo-cli] assets/prayer-bg-8.png (1 MB)
+[expo-cli] assets/prayer-bg-9.png (2.14 MB)
+[expo-cli] assets/radiant-ascent.mp3 (41.8 kB)
+[expo-cli] assets/radiant-sparkle.mp3 (20.9 kB)
+[expo-cli] assets/resonant-cathedral.mp3 (68.2 kB)
+[expo-cli] assets/wind-spirit.mp3 (48.9 kB)
+[expo-cli] 
+[expo-cli] › ios bundles (2):
+[expo-cli] _expo/static/js/ios/index-f4ce3f18d2d7c3ed9f83b0d7b9ceae56.hbc (2.66 MB)
+[expo-cli] _expo/static/js/ios/index-f4ce3f18d2d7c3ed9f83b0d7b9ceae56.hbc.map (8.3 MB)
+[expo-cli] 
+[expo-cli] › Files (2):
+[expo-cli] assetmap.json (8.05 kB)
+[expo-cli] metadata.json (1.46 kB)
+[expo-cli] 
+[expo-cli] Exported: dist
+✔ Exported bundle(s)
+✔ Uploaded assetmap.json 
+✔ Uploaded 1 app bundle
+✔ Uploading assets skipped - no new assets found
+ℹ 22 iOS assets (maximum: 2000 total per update). Learn more about asset limits: https://expo.fyi/eas-update-asset-limits
+✔ Computed project fingerprints
+✔ Published!
+
+Branch           production
+Runtime version  1.0.31
+Platform         ios
+Update group ID  7312ba52-a2a7-4508-b1a3-0a96719d32e1
+iOS update ID    01a048d5-febc-75fe-b758-fcaa0438e61d
+Message          Update prayer moderation flow
+Commit           700546a21fb88b9fd6f41ec8103c2f2d5a74e3ca
+EAS Dashboard    https://expo.dev/accounts/pireifej/projects/pray-over-us/updates/7312ba52-a2a7-4508-b1a3-0a96719d32e1
+
+No compatible builds found for the following fingerprints:
+    iOS fingerprint:  f3b18523cfcd929bfeb87a63d79db2fd59c296ea
+    URL            :  https://expo.dev/accounts/pireifej/projects/pray-over-us/fingerprints/f3b18523cfcd929bfeb87a63d79db2fd59c296ea

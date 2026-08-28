@@ -18,6 +18,14 @@
         "npm_config_legacy_peer_deps": "true"
       }
     },
+    "staging": {
+      "distribution": "store",
+      "channel": "staging",
+      "autoIncrement": true,
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
+      }
+    },
     "production": {
       "channel": "production",
       "autoIncrement": true,

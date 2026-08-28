@@ -1,0 +1,50 @@
+Provider Paul Ireifej (128110254)
+✔ Bundle identifier registered com.pireifej.prayoverus
+✔ Synced capabilities: No updates
+✔ Synced capability identifiers: No updates
+✔ Fetched Apple distribution certificates
+✔ Fetched Apple provisioning profiles
+
+Project Credentials Configuration
+
+Project                   @pireifej/pray-over-us
+Bundle Identifier         com.pireifej.prayoverus
+                          
+App Store Configuration   
+                          
+Distribution Certificate  
+Serial Number             5EF9BB5503BFD472A34EB72C8B2DC328
+Expiration Date           Mon, 02 Aug 2027 20:29:55 UTC
+Apple Team                MC4R3L639K (Paul Ireifej (Individual))
+Updated                   25 days ago
+                          
+Provisioning Profile      
+Developer Portal ID       BU5N45N364
+Status                    active
+Expiration                Mon, 02 Aug 2027 20:29:55 UTC
+Apple Team                MC4R3L639K (Paul Ireifej (Individual))
+Updated                   25 days ago
+                          
+All credentials are ready to build @pireifej/pray-over-us (com.pireifej.prayoverus)
+
+✔ Push Notifications are set up
+
+Bumping expo.ios.buildNumber from 116 to 117
+Updated versions in app.json
+Synchronized versions with Info.plist
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+✔ Compressed project files 35s (229 MB)
+Your project archive is 229 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+✔ Uploaded to EAS 3s
+⌛️ Computing the project fingerprint is taking longer than expected...
+⏩ To skip this step, set the environment variable: EAS_SKIP_AUTO_FINGERPRINT=1
+✔ Computed project fingerprint
+
+See logs: https://expo.dev/accounts/pireifej/projects/pray-over-us/builds/64f1e384-fa1f-42e8-93a5-f6852856df6a
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+✔ Build finished
+
+🍏 iOS app:
+https://expo.dev/artifacts/eas/7-FgNnG_fcUZjn5aay5Pr8CY_vIawkRdlI6QDw2mhzk.ipa

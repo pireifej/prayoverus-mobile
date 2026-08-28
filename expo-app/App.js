@@ -1604,7 +1604,10 @@ function App() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const result = await apiCheckContent({ requestText: text }, controller.signal);
+      const result = await apiCheckContent({
+        requestText: text,
+        userId: String(currentUser.id),
+      }, controller.signal);
       clearTimeout(timeout);
       return result;
     } catch (e) {
@@ -1685,6 +1688,7 @@ function App() {
         icon: isSafety ? '💛' : '🙏',
         title: isSafety ? 'A caring note...' : 'A gentle thought...',
         message: check.caringNote || 'Please review your prayer request before sharing it.',
+        suggestion: suggestedWording || undefined,
         buttons: [
           ...(suggestedWording ? [{
               label: 'Use suggested prayer',
@@ -1695,7 +1699,7 @@ function App() {
               },
             }] : []),
             ...(canPostAsWritten ? [
-              { label: 'Post my original prayer', onPress: () => proceedToPost(text) },
+              { label: 'Post as written', onPress: () => proceedToPost(text) },
             ] : []),
           {
             label: 'Cancel',

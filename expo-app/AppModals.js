@@ -79,11 +79,15 @@ export function AppToast() {
 // ─── Modal dialog ─────────────────────────────────────────────────────────────
 export function AppModal() {
   const [config, setConfig] = React.useState(null);
+  const [isDismissing, setIsDismissing] = React.useState(false);
+  const dismissingRef = React.useRef(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.88)).current;
 
   React.useEffect(() => {
     _triggerModal = (cfg) => {
+      dismissingRef.current = false;
+      setIsDismissing(false);
       setConfig(cfg);
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.88);
@@ -96,6 +100,9 @@ export function AppModal() {
   }, []);
 
   const dismiss = (onPress) => {
+    if (dismissingRef.current) return;
+    dismissingRef.current = true;
+    setIsDismissing(true);
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 0.92, duration: 160, useNativeDriver: true }),
@@ -181,6 +188,16 @@ export function AppModal() {
               width: '100%',
             }}>
               <Text style={{
+                fontSize: 12,
+                color: '#2563eb',
+                fontWeight: '800',
+                marginBottom: 6,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+              }}>
+                Suggested prayer
+              </Text>
+              <Text style={{
                 fontSize: 14,
                 color: '#1e3a5f',
                 lineHeight: 21,
@@ -197,6 +214,7 @@ export function AppModal() {
                 return (
                   <TouchableOpacity
                     key={i}
+                    disabled={isDismissing}
                     onPress={() => dismiss(btn.onPress)}
                     activeOpacity={0.75}
                     style={{
@@ -205,6 +223,7 @@ export function AppModal() {
                       paddingVertical: 14,
                       alignItems: 'center',
                       width: '100%',
+                      opacity: isDismissing ? 0.6 : 1,
                     }}
                   >
                     <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '600' }}>{btn.label}</Text>
@@ -215,6 +234,7 @@ export function AppModal() {
                 return (
                   <TouchableOpacity
                     key={i}
+                    disabled={isDismissing}
                     onPress={() => dismiss(btn.onPress)}
                     activeOpacity={0.8}
                     style={{
@@ -225,6 +245,7 @@ export function AppModal() {
                       width: '100%',
                       borderWidth: 1.5,
                       borderColor: '#fecaca',
+                      opacity: isDismissing ? 0.6 : 1,
                     }}
                   >
                     <Text style={{ color: '#dc2626', fontSize: 16, fontWeight: '700' }}>{btn.label}</Text>
@@ -234,9 +255,10 @@ export function AppModal() {
               return (
                 <TouchableOpacity
                   key={i}
+                  disabled={isDismissing}
                   onPress={() => dismiss(btn.onPress)}
                   activeOpacity={0.85}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', opacity: isDismissing ? 0.6 : 1 }}
                 >
                   <LinearGradient
                     colors={['#2563eb', '#1e40af']}

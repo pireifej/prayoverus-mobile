@@ -63,8 +63,10 @@ const translations = {
     edit: 'Edit',
     deleteMenuItem: 'Delete',
     cancelMenuItem: 'Cancel',
-    deletePrayerTitle: 'Delete Prayer Request',
-    deleteConfirmMsg: 'Are you sure you want to delete this prayer request? This cannot be undone.',
+    deletePrayerTitle: 'Remove this prayer request?',
+    deleteConfirmMsg: 'This will remove your prayer request from the community and from your profile. People may have already prayed for it, but it will no longer be visible to them. You can cancel if you are not sure.',
+    removePrayerButton: 'Remove request',
+    deleteSuccessMsg: 'Prayer request removed from the community.',
 
     // Prayer modal
     preparingPrayer: 'Preparing your prayer...',
@@ -290,8 +292,10 @@ const translations = {
     edit: 'Editar',
     deleteMenuItem: 'Eliminar',
     cancelMenuItem: 'Cancelar',
-    deletePrayerTitle: 'Eliminar Petición de Oración',
-    deleteConfirmMsg: '¿Estás seguro de que quieres eliminar esta petición? Esta acción no se puede deshacer.',
+    deletePrayerTitle: '¿Eliminar esta petición de oración?',
+    deleteConfirmMsg: 'Esto eliminará tu petición de oración de la comunidad y de tu perfil. Es posible que algunas personas ya hayan orado por ella, pero dejará de ser visible para ellos. Puedes cancelar si no estás seguro.',
+    removePrayerButton: 'Eliminar petición',
+    deleteSuccessMsg: 'La petición de oración se eliminó de la comunidad.',
 
     // Prayer modal
     preparingPrayer: 'Preparando tu oración...',

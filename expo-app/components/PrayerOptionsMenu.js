@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, Share, Clipboard, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Share, Clipboard, StyleSheet, ActivityIndicator } from 'react-native';
 import { showToast, showModal } from '../AppModals';
 import { apiGetPrayerByRequestId } from '../services/api';
 import t from '../i18n';
@@ -18,6 +18,7 @@ export default function PrayerOptionsMenu({
   const [menuVisible, setMenuVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isOwner =
     prayer.user_id &&
@@ -65,6 +66,25 @@ export default function PrayerOptionsMenu({
       showModal({ icon: '⚠️', title: t('errorTitle'), message: t('couldNotFetchPrayer') });
     } finally {
       setIsCopyingPrayer(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (isDeleting || !onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const didDelete = await onDelete(prayer);
+      if (didDelete === true) {
+        setDeleteConfirmVisible(false);
+      }
+    } catch (error) {
+      // The parent normally handles and displays delete errors. Keep the
+      // request visible and the confirmation available if an unexpected
+      // callback error escapes.
+      console.log('Error deleting prayer:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -157,19 +177,44 @@ export default function PrayerOptionsMenu({
         visible={deleteConfirmVisible}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setDeleteConfirmVisible(false)}
+        onRequestClose={() => {
+          if (!isDeleting) setDeleteConfirmVisible(false);
+        }}
       >
-        <View style={styles.modalOverlay}>
+        <View style={styles.modalOverlay} accessibilityViewIsModal>
           <View style={styles.deleteConfirmContainer}>
             <Text style={styles.deleteConfirmIcon}>🗑️</Text>
-            <Text style={styles.deleteConfirmTitle}>{t('deletePrayerTitle')}</Text>
+            <Text style={styles.deleteConfirmTitle} accessibilityRole="header">
+              {t('deletePrayerTitle')}
+            </Text>
             <Text style={styles.deleteConfirmMessage}>{t('deleteConfirmMsg')}</Text>
             <View style={styles.deleteConfirmButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setDeleteConfirmVisible(false)}>
+              <TouchableOpacity
+                style={[styles.cancelButton, isDeleting && styles.deleteButtonDisabled]}
+                disabled={isDeleting}
+                onPress={() => setDeleteConfirmVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t('cancelMenuItem')}
+                testID={`button-cancel-delete-${prayer.id}`}
+              >
                 <Text style={styles.cancelButtonText}>{t('cancelMenuItem')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={() => { setDeleteConfirmVisible(false); if (onDelete) onDelete(prayer); }}>
-                <Text style={styles.deleteButtonText}>Delete</Text>
+              <TouchableOpacity
+                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+                disabled={isDeleting}
+                onPress={handleConfirmDelete}
+                accessibilityRole="button"
+                accessibilityLabel={t('removePrayerButton')}
+                testID={`button-confirm-delete-${prayer.id}`}
+              >
+                {isDeleting ? (
+                  <>
+                    <ActivityIndicator size="small" color="#ffffff" />
+                    <Text style={styles.deleteButtonText}>Removing…</Text>
+                  </>
+                ) : (
+                  <Text style={styles.deleteButtonText}>{t('removePrayerButton')}</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -183,7 +228,7 @@ const styles = StyleSheet.create({
   container:            { position: 'absolute', top: 8, right: 8, zIndex: 10 },
   menuButton:           { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
   menuDots:             { fontSize: 20, fontWeight: 'bold', color: '#666' },
-  modalOverlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   menuContainer:        { backgroundColor: 'white', borderRadius: 16, width: '80%', maxWidth: 300, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 8 },
   menuHeader:           { padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   menuTitle:            { fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center' },
@@ -194,13 +239,14 @@ const styles = StyleSheet.create({
   menuItemTextDanger:   { color: '#dc3545' },
   menuItemCancel:       { backgroundColor: '#f8f9fa', justifyContent: 'center', borderBottomWidth: 0 },
   menuItemTextCancel:   { fontSize: 16, color: '#666', textAlign: 'center', width: '100%' },
-  deleteConfirmContainer: { backgroundColor: 'white', borderRadius: 20, width: '85%', maxWidth: 340, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 },
+  deleteConfirmContainer: { backgroundColor: 'white', borderRadius: 20, width: '100%', maxWidth: 360, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 },
   deleteConfirmIcon:    { fontSize: 48, marginBottom: 16 },
   deleteConfirmTitle:   { fontSize: 20, fontWeight: '700', color: '#1a1a1a', marginBottom: 12, textAlign: 'center' },
   deleteConfirmMessage: { fontSize: 15, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  deleteConfirmButtons: { flexDirection: 'row', width: '100%', gap: 12 },
-  cancelButton:         { flex: 1, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e0e0e0', alignItems: 'center' },
+  deleteConfirmButtons: { width: '100%', gap: 12 },
+  cancelButton:         { width: '100%', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e0e0e0', alignItems: 'center' },
   cancelButtonText:     { fontSize: 16, fontWeight: '600', color: '#666' },
-  deleteButton:         { flex: 1, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#dc3545', borderWidth: 2, borderColor: '#dc3545', alignItems: 'center' },
+  deleteButton:         { width: '100%', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#dc3545', borderWidth: 2, borderColor: '#dc3545', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
   deleteButtonText:     { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  deleteButtonDisabled: { opacity: 0.6 },
 });

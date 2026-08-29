@@ -59,7 +59,7 @@
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|sentry-expo|native-base|react-native-svg|react-native-purchases)"
     ],
     "testMatch": [
-      "**/__tests__/hooks/**/*.test.[jt]s?(x)"
+      "**/__tests__/**/*.test.[jt]s?(x)"
     ]
   }
 }

@@ -2499,21 +2499,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       
       // Check for success: API returns { success: true } or { error: 0 }
       const isSuccess = data.success === true || data.error === 0;
-      const message = data.message || data.result || 'Prayer request deleted';
       
       if (isSuccess) {
         // Remove from local state immediately
         setCommunityPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
         setPrayers(prevPrayers => prevPrayers.filter(p => p.id !== prayer.id));
         
-        showToast(message, '✅');
+        showToast(t('deleteSuccessMsg'), '✅');
+        return true;
       } else if (data.error) {
         showModal({ icon: '⚠️', title: 'Error', message: data.result || 'Failed to delete prayer request' });
+        return false;
       } else {
         throw new Error('Unexpected response from server');
       }
     } catch (error) {
       showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Failed to delete prayer request. Please try again.' });
+      return false;
     }
   };
 

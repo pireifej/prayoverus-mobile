@@ -26,16 +26,16 @@ if ! "${EAS[@]}" whoami; then
 fi
 
 echo
-echo "Publishing iOS-only OTA update to the EAS production channel..."
+echo "Publishing iOS-only OTA update to the isolated ios-production channel..."
 echo "App version: ${APP_VERSION}"
 echo "Runtime version: ${RUNTIME_VERSION}"
 echo "Message: ${UPDATE_MESSAGE}"
 echo
-echo "This targets compatible iOS production builds, including TestFlight."
+echo "This targets compatible iOS builds using the ios-production channel."
 echo "It does not build Android, publish Android, or create a new binary."
 
 if ! "${EAS[@]}" update \
-    --channel production \
+    --channel ios-production \
     --platform ios \
     --message "${UPDATE_MESSAGE}" | tee "${UPDATE_LOG}"; then
   echo "iOS OTA publish failed." >&2

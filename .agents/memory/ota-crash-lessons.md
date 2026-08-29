@@ -22,6 +22,7 @@ Never publish an iOS OTA merely because it works in TestFlight when the TestFlig
 - Wrap any module-level calls (like `Intl.DateTimeFormat()`) in try-catch
 - OTA is safe only for pure JS logic changes inside functions/components — never for new imports or module-level initialization
 - The production channel serves every compatible iOS binary sharing that runtime, not only TestFlight. Give a native-changed binary a new runtime before using OTA, and wait until that binary is the public App Store version.
+- New iOS store binaries use the dedicated `ios-production` channel; Android stays on `production`. Keep the old iOS `production` channel rolled back to embedded so legacy App Store binaries cannot receive new iOS OTAs.
 
 ## OTA Rollback
 - `eas update:delete <groupId> --non-interactive` — deletes specific OTA group

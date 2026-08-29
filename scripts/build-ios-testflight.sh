@@ -44,18 +44,12 @@ echo
 echo "Building iOS production binary for TestFlight..."
 "${EAS[@]}" build \
   --platform ios \
-  --profile production \
+  --profile ios-production \
+  --auto-submit-with-profile ios-production \
   --message "${BUILD_MESSAGE}" \
+  --non-interactive \
   --wait
 
 echo
-echo "Submitting the latest iOS production binary to TestFlight..."
-"${EAS[@]}" submit \
-  --platform ios \
-  --profile production \
-  --latest \
-  --wait
-
-echo
-echo "iOS build submitted to App Store Connect for TestFlight."
+echo "The new iOS build was handed directly to App Store Connect for TestFlight."
 echo "It was not released to the public App Store."

@@ -32,10 +32,23 @@
       "env": {
         "npm_config_legacy_peer_deps": "true"
       }
+    },
+    "ios-production": {
+      "distribution": "store",
+      "channel": "ios-production",
+      "autoIncrement": true,
+      "env": {
+        "npm_config_legacy_peer_deps": "true"
+      }
     }
   },
   "submit": {
     "production": {
+      "ios": {
+        "ascAppId": "6751807110"
+      }
+    },
+    "ios-production": {
       "ios": {
         "ascAppId": "6751807110"
       }

@@ -215,6 +215,7 @@ export function usePrayers({
           use_alias: request.use_alias,
           is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
           active: request.active ?? 1,
+          prayer_count: Number(request.prayer_count ?? request.prayerCount ?? 0) || 0,
         }));
         console.log('📱 Parsed prayers:', userPrayers.length, 'items');
         setPrayers(userPrayers);

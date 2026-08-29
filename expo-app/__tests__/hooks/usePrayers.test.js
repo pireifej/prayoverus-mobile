@@ -31,13 +31,14 @@ jest.mock('../../utils/storage', () => ({
 }));
 
 const mockApiGetCommunityWall = jest.fn();
+const mockApiGetMyRequests    = jest.fn();
 const mockApiPrayFor           = jest.fn();
 const mockApiGetPrayer         = jest.fn();
 const mockApiGetUser           = jest.fn();
 
 jest.mock('../../services/api', () => ({
   apiGetCommunityWall:    (...args) => mockApiGetCommunityWall(...args),
-  apiGetMyRequests:       jest.fn(() => Promise.resolve([])),
+  apiGetMyRequests:       (...args) => mockApiGetMyRequests(...args),
   apiPrayFor:             (...args) => mockApiPrayFor(...args),
   apiGetUser:             (...args) => mockApiGetUser(...args),
   apiGetPrayer:           (...args) => mockApiGetPrayer(...args),
@@ -146,6 +147,30 @@ describe('usePrayers — loadCommunityPrayers', () => {
     await expect(
       act(async () => { await result.current.loadCommunityPrayers(); })
     ).resolves.not.toThrow();
+  });
+});
+
+// ── loadUserPrayers ────────────────────────────────────────────────────────────
+
+describe('usePrayers — loadUserPrayers', () => {
+  it('preserves the prayer count for owned requests', async () => {
+    mockApiGetMyRequests.mockResolvedValue([{
+      ...API_PRAYER_ROW,
+      user_id: '42',
+      fk_user_id: null,
+    }]);
+
+    const { result } = renderPrayersHook();
+
+    await act(async () => {
+      await result.current.loadUserPrayers();
+    });
+
+    expect(result.current.prayers).toHaveLength(1);
+    expect(result.current.prayers[0]).toMatchObject({
+      id: 'p1',
+      prayer_count: 3,
+    });
   });
 });
 

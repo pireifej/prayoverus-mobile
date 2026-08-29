@@ -5352,13 +5352,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         }
         scrollEventThrottle={16}
       >
-        {/* ── Tagline strip ── */}
-        <View style={styles.taglineStrip}>
-          <Text style={styles.taglineStripText}>{t('prayersMakeADifference')}</Text>
-        </View>
+        {/* ── Community encouragement ── */}
+        {!showMyRequestsOnly && (
+          <View style={styles.taglineStrip}>
+            <Text style={styles.taglineStripText}>{t('prayersMakeADifference')}</Text>
+          </View>
+        )}
 
         {/* ── Daily Bread Card ── */}
-        {dailyDevotional && dailyDevotional.title ? (
+        {!showMyRequestsOnly && dailyDevotional && dailyDevotional.title ? (
           <View style={styles.dailyBreadSection}>
             <TouchableOpacity
               style={styles.dailyBreadCard}
@@ -5390,7 +5392,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         ) : null}
 
         {/* ── Pray Through Requests Card ── */}
-        {communityPrayers.filter(p => !p.user_has_prayed).length > 0 && (
+        {!showMyRequestsOnly && communityPrayers.filter(p => !p.user_has_prayed).length > 0 && (
           <TouchableOpacity
             style={styles.prayerWalkCard}
             activeOpacity={0.88}
@@ -5413,38 +5415,42 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
         )}
 
-        {/* How to Earn Points Guide */}
-        <TouchableOpacity
-          style={styles.pointsGuideTrigger}
-          onPress={() => setShowPointsGuide(prev => !prev)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.pointsGuideTriggerText}>{t('howToEarnPoints')}</Text>
-          <Text style={styles.pointsGuideChevron}>{showPointsGuide ? '▲' : '▼'}</Text>
-        </TouchableOpacity>
-        {showPointsGuide && (
-          <View style={styles.pointsGuideCard}>
-            <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>{t('pointsRow1')}</Text>
-              <Text style={styles.pointsGuideValue}>+1 pt</Text>
-            </View>
-            <View style={styles.pointsGuideDivider} />
-            <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>{t('pointsRow2')}</Text>
-              <Text style={styles.pointsGuideValue}>+3 pts</Text>
-            </View>
-            <View style={styles.pointsGuideDivider} />
-            <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>{t('pointsRow3')}</Text>
-              <Text style={styles.pointsGuideValue}>+5 pts</Text>
-            </View>
-            <View style={styles.pointsGuideDivider} />
-            <View style={styles.pointsGuideRow}>
-              <Text style={styles.pointsGuideAction}>{t('pointsRow4')}</Text>
-              <Text style={styles.pointsGuideValue}>+10 pts</Text>
-            </View>
-            <Text style={styles.pointsGuideFooter}>{t('earnMorePoints')}</Text>
-          </View>
+        {/* How to Earn Points Guide — community-focused content */}
+        {!showMyRequestsOnly && (
+          <>
+            <TouchableOpacity
+              style={styles.pointsGuideTrigger}
+              onPress={() => setShowPointsGuide(prev => !prev)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.pointsGuideTriggerText}>{t('howToEarnPoints')}</Text>
+              <Text style={styles.pointsGuideChevron}>{showPointsGuide ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {showPointsGuide && (
+              <View style={styles.pointsGuideCard}>
+                <View style={styles.pointsGuideRow}>
+                  <Text style={styles.pointsGuideAction}>{t('pointsRow1')}</Text>
+                  <Text style={styles.pointsGuideValue}>+1 pt</Text>
+                </View>
+                <View style={styles.pointsGuideDivider} />
+                <View style={styles.pointsGuideRow}>
+                  <Text style={styles.pointsGuideAction}>{t('pointsRow2')}</Text>
+                  <Text style={styles.pointsGuideValue}>+3 pts</Text>
+                </View>
+                <View style={styles.pointsGuideDivider} />
+                <View style={styles.pointsGuideRow}>
+                  <Text style={styles.pointsGuideAction}>{t('pointsRow3')}</Text>
+                  <Text style={styles.pointsGuideValue}>+5 pts</Text>
+                </View>
+                <View style={styles.pointsGuideDivider} />
+                <View style={styles.pointsGuideRow}>
+                  <Text style={styles.pointsGuideAction}>{t('pointsRow4')}</Text>
+                  <Text style={styles.pointsGuideValue}>+10 pts</Text>
+                </View>
+                <Text style={styles.pointsGuideFooter}>{t('earnMorePoints')}</Text>
+              </View>
+            )}
+          </>
         )}
 
         {/* Share Prayer Request Button - Opens dedicated screen */}
@@ -5567,16 +5573,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             return <Text style={styles.emptyText}>{t('emptyFeed')}</Text>;
           }
 
-          // Pending prayers nudge — all unanswered requests
+          // Pending prayers follow-up — owned requests awaiting a testimony.
           const pendingOldPrayers = showMyRequestsOnly
             ? filteredPrayers.filter(p => !p.is_answered && p.active !== 0)
             : [];
 
           return (<>
             {pendingOldPrayers.length > 0 && (
-              <View style={styles.pendingNudgeBanner}>
+              <TouchableOpacity
+                style={styles.pendingAttentionCard}
+                onPress={() => openDetailModal(pendingOldPrayers[0])}
+                activeOpacity={0.82}
+                accessibilityRole="button"
+                accessibilityLabel={t('reviewTestimonies')}
+                testID="button-review-testimonies"
+              >
                 <Text style={styles.pendingNudgeIcon}>📋</Text>
                 <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingAttentionEyebrow}>{t('needsYourAttention')}</Text>
                   <Text style={styles.pendingNudgeTitle}>
                     {pendingOldPrayers.length === 1 ? t('pendingNudgeSingular') : t('pendingNudgePlural')(pendingOldPrayers.length)}
                   </Text>
@@ -5584,7 +5598,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     {t('pendingNudgeSubtext')}
                   </Text>
                 </View>
-              </View>
+                <Text style={styles.pendingAttentionAction}>{t('reviewTestimonies')} ›</Text>
+              </TouchableOpacity>
+            )}
+            {showMyRequestsOnly && (
+              <Text style={styles.mineSectionLabel}>{t('yourPrayerRequests')}</Text>
             )}
             {filteredPrayers.slice(0, displayedCount).map((prayer) => (
             <View key={prayer.id} style={styles.prayerCardContainer}>
@@ -6641,6 +6659,41 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     padding: 12,
     gap: 10,
+  },
+  pendingAttentionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 18,
+    padding: 14,
+    gap: 10,
+  },
+  pendingAttentionEyebrow: {
+    color: '#92400e',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: 3,
+  },
+  pendingAttentionAction: {
+    color: '#92400e',
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 4,
+  },
+  mineSectionLabel: {
+    color: '#334155',
+    fontSize: 14,
+    fontWeight: '800',
+    marginHorizontal: 16,
+    marginTop: 2,
+    marginBottom: 10,
   },
   pendingNudgeIcon: {
     fontSize: 22,

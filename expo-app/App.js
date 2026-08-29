@@ -245,6 +245,7 @@ function App() {
     loadCommunityPrayers,
     onRefreshCommunity,
     loadUserPrayers,
+    resolvePrayerCount,
     prayForRequest,
     markAsPrayed: _markAsPrayed,
     recordSwipePrayer,
@@ -4898,7 +4899,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
           </TouchableOpacity>
           <Text style={{ fontSize: 64, marginBottom: 20 }}>🎧</Text>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>Prayer Walk</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>{t('prayThroughTitle')}</Text>
           <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
             Create a free account to pray through community requests on your walk, with guided audio and background music.
           </Text>
@@ -4918,6 +4919,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       <PrayerWalkScreen
         prayers={communityPrayers}
         currentUser={currentUser}
+        lang={userLang}
         onPrayForRequest={prayForRequest}
         onClose={() => setCurrentScreen('home')}
       />
@@ -5380,7 +5382,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         ) : null}
 
-        {/* ── Prayer Walk Card ── */}
+        {/* ── Pray Through Requests Card ── */}
         {communityPrayers.filter(p => !p.user_has_prayed).length > 0 && (
           <TouchableOpacity
             style={styles.prayerWalkCard}
@@ -5390,9 +5392,13 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <View style={styles.prayerWalkLeft}>
               <Text style={styles.prayerWalkEmoji}>🎧</Text>
               <View>
-                <Text style={styles.prayerWalkTitle}>Prayer Walk</Text>
+                <Text style={styles.prayerWalkTitle}>{t('prayThroughTitle')}</Text>
                 <Text style={styles.prayerWalkSub}>
-                  {communityPrayers.filter(p => !p.user_has_prayed).length} unprayed requests
+                  {(() => {
+                    const count = communityPrayers.filter(p => !p.user_has_prayed).length;
+                    const formatter = t('prayThroughCount');
+                    return typeof formatter === 'function' ? formatter(count) : formatter;
+                  })()}
                 </Text>
               </View>
             </View>
@@ -5608,6 +5614,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <PrayerOptionsMenu 
                   prayer={prayer}
                   currentUserId={currentUser?.id}
+                  onResolvePrayerCount={resolvePrayerCount}
                   onEdit={handleEditPrayer}
                   onDelete={handleDeletePrayer}
                   onMarkAnswered={handleMarkAnswered}

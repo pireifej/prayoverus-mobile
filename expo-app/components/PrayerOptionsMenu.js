@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Share, Clipboard, StyleSheet, ActivityIndicator } from 'react-native';
 import { showToast, showModal } from '../AppModals';
 import { apiGetPrayerByRequestId } from '../services/api';
@@ -9,6 +9,7 @@ export default function PrayerOptionsMenu({
   currentUserId,
   onEdit,
   onDelete,
+  onResolvePrayerCount,
   onMarkAnswered,
   onShare,
   onReport,
@@ -19,12 +20,39 @@ export default function PrayerOptionsMenu({
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isCopyingPrayer, setIsCopyingPrayer] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [resolvedPrayerCount, setResolvedPrayerCount] = useState(
+    prayer?.prayer_count === null || prayer?.prayer_count === undefined
+      ? null
+      : Number(prayer.prayer_count) || 0
+  );
+  const [isResolvingDeleteCount, setIsResolvingDeleteCount] = useState(false);
 
   const isOwner =
     prayer.user_id &&
     currentUserId &&
     prayer.user_id.toString() === currentUserId.toString();
-  const prayerCount = Number(prayer?.prayer_count) || 0;
+  const prayerCount = resolvedPrayerCount ?? 0;
+
+  useEffect(() => {
+    if (prayer?.prayer_count !== null && prayer?.prayer_count !== undefined) {
+      setResolvedPrayerCount(Number(prayer.prayer_count) || 0);
+    }
+  }, [prayer?.prayer_count]);
+
+  const openDeleteConfirmation = async () => {
+    setMenuVisible(false);
+    setDeleteConfirmVisible(true);
+    if (resolvedPrayerCount !== null || !onResolvePrayerCount) return;
+    setIsResolvingDeleteCount(true);
+    try {
+      const count = await onResolvePrayerCount(prayer);
+      setResolvedPrayerCount(Number(count) || 0);
+    } catch (error) {
+      console.log('Error loading prayer count:', error?.message);
+    } finally {
+      setIsResolvingDeleteCount(false);
+    }
+  };
 
   const handleShare = async () => {
     setMenuVisible(false);
@@ -75,7 +103,7 @@ export default function PrayerOptionsMenu({
 
     setIsDeleting(true);
     try {
-      const didDelete = await onDelete(prayer);
+      const didDelete = await onDelete({ ...prayer, prayer_count: resolvedPrayerCount });
       if (didDelete === true) {
         setDeleteConfirmVisible(false);
       }
@@ -146,7 +174,7 @@ export default function PrayerOptionsMenu({
             )}
 
             {isOwner && (
-              <TouchableOpacity style={[styles.menuItem, styles.menuItemDanger]} onPress={() => { setMenuVisible(false); setDeleteConfirmVisible(true); }} data-testid={`button-delete-${prayer.id}`}>
+              <TouchableOpacity style={[styles.menuItem, styles.menuItemDanger]} onPress={openDeleteConfirmation} data-testid={`button-delete-${prayer.id}`}>
                 <Text style={styles.menuIcon}>🗑️</Text>
                 <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>{t('deleteMenuItem')}</Text>
               </TouchableOpacity>
@@ -189,7 +217,12 @@ export default function PrayerOptionsMenu({
               {t('deletePrayerTitle')}
             </Text>
             <Text style={styles.deleteConfirmMessage}>{t('deleteConfirmMsg')}</Text>
-            {prayerCount > 0 && (
+            {isResolvingDeleteCount ? (
+              <View style={styles.prayerWarning} accessibilityRole="alert">
+                <ActivityIndicator size="small" color="#92400e" />
+                <Text style={styles.prayerWarningText}>{t('checkingPrayerActivity')}</Text>
+              </View>
+            ) : prayerCount > 0 && (
               <View
                 style={styles.prayerWarning}
                 accessibilityRole="alert"
@@ -215,8 +248,8 @@ export default function PrayerOptionsMenu({
                 <Text style={styles.cancelButtonText}>{t('cancelMenuItem')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
-                disabled={isDeleting}
+                style={[styles.deleteButton, (isDeleting || isResolvingDeleteCount || resolvedPrayerCount === null) && styles.deleteButtonDisabled]}
+                disabled={isDeleting || isResolvingDeleteCount || resolvedPrayerCount === null}
                 onPress={handleConfirmDelete}
                 accessibilityRole="button"
                 accessibilityLabel={t('removePrayerButton')}

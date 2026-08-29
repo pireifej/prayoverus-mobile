@@ -32,6 +32,7 @@ jest.mock('../../utils/storage', () => ({
 
 const mockApiGetCommunityWall = jest.fn();
 const mockApiGetMyRequests    = jest.fn();
+const mockApiGetRequestById   = jest.fn();
 const mockApiPrayFor           = jest.fn();
 const mockApiGetPrayer         = jest.fn();
 const mockApiGetUser           = jest.fn();
@@ -39,6 +40,7 @@ const mockApiGetUser           = jest.fn();
 jest.mock('../../services/api', () => ({
   apiGetCommunityWall:    (...args) => mockApiGetCommunityWall(...args),
   apiGetMyRequests:       (...args) => mockApiGetMyRequests(...args),
+  apiGetRequestById:      (...args) => mockApiGetRequestById(...args),
   apiPrayFor:             (...args) => mockApiPrayFor(...args),
   apiGetUser:             (...args) => mockApiGetUser(...args),
   apiGetPrayer:           (...args) => mockApiGetPrayer(...args),
@@ -62,7 +64,7 @@ jest.mock('../../utils/helpers', () => ({
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-import { renderHook, act } from '@testing-library/react-native';
+import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useRef }           from 'react';
 import { usePrayers }       from '../../hooks/usePrayers';
 
@@ -106,7 +108,10 @@ function renderPrayersHook(callbacks = {}) {
   return { result, callbacksRef, setCurrentUser };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockApiGetMyRequests.mockResolvedValue([]);
+});
 
 // ── loadCommunityPrayers ──────────────────────────────────────────────────────
 
@@ -170,6 +175,28 @@ describe('usePrayers — loadUserPrayers', () => {
     expect(result.current.prayers[0]).toMatchObject({
       id: 'p1',
       prayer_count: 3,
+    });
+  });
+
+  it('hydrates a missing owned-request count from request details', async () => {
+    const { prayer_count, ...rowWithoutCount } = API_PRAYER_ROW;
+    mockApiGetMyRequests.mockResolvedValue([{
+      ...rowWithoutCount,
+      user_id: '42',
+      fk_user_id: null,
+    }]);
+    mockApiGetRequestById.mockResolvedValue({
+      error: 0,
+      request: { prayer_count: 7 },
+    });
+
+    const { result } = renderPrayersHook();
+    await act(async () => {
+      await result.current.loadUserPrayers();
+    });
+
+    await waitFor(() => {
+      expect(result.current.prayers[0]?.prayer_count).toBe(7);
     });
   });
 });

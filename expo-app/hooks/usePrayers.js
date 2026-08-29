@@ -19,6 +19,7 @@ import { showToast, showModal } from '../AppModals';
 import {
   apiGetCommunityWall,
   apiGetMyRequests,
+  apiGetRequestById,
   apiPrayFor,
   apiGetUser,
   apiGetPrayer,
@@ -183,6 +184,28 @@ export function usePrayers({
 
   // ── User prayer loading ─────────────────────────────────────────────────────
 
+  const fetchPrayerCount = async (prayerId) => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+    const data = await apiGetRequestById(prayerId, currentUser?.id, timezone, userLang);
+    if (data?.error !== 0 || !data?.request) throw new Error('Could not load prayer activity');
+    return Number(data.request.prayer_count ?? data.request.prayerCount ?? 0) || 0;
+  };
+
+  const resolvePrayerCount = async (prayer) => {
+    if (prayer?.prayer_count !== null && prayer?.prayer_count !== undefined) {
+      return Number(prayer.prayer_count) || 0;
+    }
+    const count = await fetchPrayerCount(prayer.id);
+    const applyCount = list => list.map(p =>
+      String(p.id) === String(prayer.id)
+        ? { ...p, prayer_count: count, prayer_count_loading: false }
+        : p
+    );
+    setPrayers(applyCount);
+    setCommunityPrayers(applyCount);
+    return count;
+  };
+
   const loadUserPrayers = async () => {
     if (!currentUser?.id) {
       console.log('No user ID available for loading prayers');
@@ -196,29 +219,65 @@ export function usePrayers({
 
       const prayersArray = Array.isArray(data) ? data : (data.result || []);
       if (prayersArray.length > 0) {
-        const userPrayers = prayersArray.map(request => ({
-          id: request.request_id,
-          title: request.request_title || 'Prayer Request',
-          content: request.request_text,
-          author: request.real_name || request.user_name || 'You',
-          date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
-          isPublic: request.fk_user_id === null,
-          prayedFor: false,
-          timestamp: request.timestamp,
-          category: request.category_name,
-          prayer_title: request.prayer_title,
-          other_person: request.other_person,
-          picture: request.request_picture,
-          user_id: request.user_id || currentUser?.id,
-          fk_prayer_id: request.fk_prayer_id,
-          allow_comments: request.allow_comments,
-          use_alias: request.use_alias,
-          is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
-          active: request.active ?? 1,
-          prayer_count: Number(request.prayer_count ?? request.prayerCount ?? 0) || 0,
-        }));
+        const communityById = new Map(communityPrayers.map(p => [String(p.id), p]));
+        const userPrayers = prayersArray.map(request => {
+          const countFromList = request.prayer_count ?? request.prayerCount;
+          const countFromCommunity = communityById.get(String(request.request_id))?.prayer_count;
+          const knownCount = countFromList ?? countFromCommunity;
+          return {
+            id: request.request_id,
+            title: request.request_title || 'Prayer Request',
+            content: request.request_text,
+            author: request.real_name || request.user_name || 'You',
+            date: request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'No date',
+            isPublic: request.fk_user_id === null,
+            prayedFor: false,
+            timestamp: request.timestamp,
+            category: request.category_name,
+            prayer_title: request.prayer_title,
+            other_person: request.other_person,
+            picture: request.request_picture,
+            user_id: request.user_id || currentUser?.id,
+            fk_prayer_id: request.fk_prayer_id,
+            allow_comments: request.allow_comments,
+            use_alias: request.use_alias,
+            is_answered: !!(request.is_answered || request.answered || request.prayer_answered),
+            active: request.active ?? 1,
+            prayer_count: knownCount === null || knownCount === undefined
+              ? null
+              : Number(knownCount) || 0,
+            prayer_count_loading: knownCount === null || knownCount === undefined,
+          };
+        });
         console.log('📱 Parsed prayers:', userPrayers.length, 'items');
         setPrayers(userPrayers);
+
+        // Hydrate only counts missing from both list endpoints. Four workers keep
+        // the Mine feed responsive without flooding the detail API.
+        const missing = userPrayers.filter(p => p.prayer_count === null);
+        let nextMissing = 0;
+        const hydrateWorker = async () => {
+          while (nextMissing < missing.length) {
+            const prayer = missing[nextMissing++];
+            try {
+              const count = await fetchPrayerCount(prayer.id);
+              setPrayers(prev => prev.map(p =>
+                String(p.id) === String(prayer.id)
+                  ? { ...p, prayer_count: count, prayer_count_loading: false }
+                  : p
+              ));
+            } catch (_) {
+              setPrayers(prev => prev.map(p =>
+                String(p.id) === String(prayer.id)
+                  ? { ...p, prayer_count_loading: false }
+                  : p
+              ));
+            }
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(4, missing.length) }, () => hydrateWorker())
+        );
       } else {
         console.log('📱 No prayers found in response');
         setPrayers([]);
@@ -554,6 +613,7 @@ export function usePrayers({
     loadCommunityPrayers,
     onRefreshCommunity,
     loadUserPrayers,
+    resolvePrayerCount,
     prayForRequest,
     markAsPrayed,
     recordSwipePrayer,

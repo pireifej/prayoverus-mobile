@@ -327,7 +327,7 @@ function CentralGlow({ playing }) {
 const MUSIC_URI = 'https://shouldcallpaul.replit.app/audio/canon.mp3';
 const MUSIC_VOLUME = 0.10;
 
-export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose }) {
+export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose, lang = 'en' }) {
   // Keep the screen on for the whole Prayer Walk session
   useKeepAwake();
 
@@ -346,6 +346,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
 
   const total = prayerList.length;
   const current = prayerList[currentIndex];
+  const title = lang === 'es' ? 'Orar por las peticiones' : 'Pray Through Requests';
 
   // Start ambient background music on mount, stop on unmount
   useEffect(() => {
@@ -536,7 +537,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
       <BlueSparks playing />
       <View style={styles.center}>
         <Text style={styles.doneEmoji}>✨</Text>
-        <Text style={styles.doneTitle}>Prayer Walk Complete!</Text>
+          <Text style={styles.doneTitle}>{lang === 'es' ? '¡Recorrido de oración completo!' : 'Prayer Journey Complete!'}</Text>
         <Text style={styles.doneSub}>
           You prayed for {prayedThisSession} {prayedThisSession === 1 ? 'person' : 'people'} today.{'\n'}God bless you!
         </Text>
@@ -563,7 +564,7 @@ export default function PrayerWalkScreen({ prayers, onPrayForRequest, onClose })
       {/* Header — well clear of the status bar */}
       <View style={[styles.header, { paddingTop: SAFE_TOP }]}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerLabel}>🕊  Prayer Walk</Text>
+          <Text style={styles.headerLabel}>🕊  {title}</Text>
           <Text style={styles.progressLabel}>{currentIndex + 1} of {total}</Text>
         </View>
         <View style={styles.headerRight}>

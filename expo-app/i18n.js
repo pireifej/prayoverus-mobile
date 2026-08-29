@@ -37,6 +37,8 @@ const translations = {
     prayerCountPlural: (n) => `🙏 ${n} people prayed`,
     loadMore: 'Load more prayers',
     moreWaiting: (n) => `${n} more waiting`,
+    prayThroughTitle: 'Pray Through Requests',
+    prayThroughCount: (n) => `${n} requests ready for guided prayer`,
     newBadgeTitle: 'New Badge Unlocked!',
     praiseGod: 'Praise God! 🙏',
 
@@ -67,6 +69,7 @@ const translations = {
     deleteConfirmMsg: 'This will remove your prayer request from the community and from your profile. You can cancel if you are not sure.',
     deletePrayerWarningSingular: '1 person may have already prayed for this request.',
     deletePrayerWarningPlural: (count) => `${count} people may have already prayed for this request.`,
+    checkingPrayerActivity: 'Checking prayer activity…',
     removePrayerButton: 'Remove request',
     deleteSuccessMsg: 'Prayer request removed from the community.',
 
@@ -268,6 +271,8 @@ const translations = {
     prayerCountPlural: (n) => `🙏 ${n} personas oraron`,
     loadMore: 'Cargar más oraciones',
     moreWaiting: (n) => `${n} más esperando`,
+    prayThroughTitle: 'Orar por las peticiones',
+    prayThroughCount: (n) => `${n} peticiones listas para oración guiada`,
     newBadgeTitle: '¡Nueva Insignia Desbloqueada!',
     praiseGod: '¡Gloria a Dios! 🙏',
 
@@ -298,6 +303,7 @@ const translations = {
     deleteConfirmMsg: 'Esto eliminará tu petición de oración de la comunidad y de tu perfil. Puedes cancelar si no estás seguro.',
     deletePrayerWarningSingular: 'Es posible que 1 persona ya haya orado por esta petición.',
     deletePrayerWarningPlural: (count) => `Es posible que ${count} personas ya hayan orado por esta petición.`,
+    checkingPrayerActivity: 'Comprobando la actividad de oración…',
     removePrayerButton: 'Eliminar petición',
     deleteSuccessMsg: 'La petición de oración se eliminó de la comunidad.',
 

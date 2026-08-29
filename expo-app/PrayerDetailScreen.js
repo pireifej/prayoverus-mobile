@@ -23,6 +23,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Calculate safe top padding based on platform
 const getStatusBarHeight = () => {
@@ -36,6 +37,7 @@ const getStatusBarHeight = () => {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 80;
+const SWIPE_HINT_KEY = '@prayer_reader_swipe_hint_seen';
 
 const API_BASE_URL = 'https://shouldcallpaul.replit.app';
 
@@ -94,6 +96,10 @@ export default function PrayerDetailScreen({
   const [index, setIndex] = useState(currentIndex);
   const [isLoadingNewPrayer, setIsLoadingNewPrayer] = useState(false);
   const [rankTooltip, setRankTooltip] = useState(null);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const copy = lang === 'es'
+    ? { title: 'Petición de oración', hint: 'Desliza para ver otras peticiones', previous: 'Petición anterior', next: 'Petición siguiente' }
+    : { title: 'Prayer Request', hint: 'Swipe to browse other requests', previous: 'Previous request', next: 'Next request' };
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -124,6 +130,22 @@ export default function PrayerDetailScreen({
     canGoPreviousRef.current = isInFeedList && index > 0;
     canGoNextRef.current = isInFeedList && index < prayerIds.length - 1;
   }, [isInFeedList, index, prayerIds]);
+
+  useEffect(() => {
+    if (!isInFeedList || prayerIds.length < 2) return;
+    let mounted = true;
+    let timer;
+    AsyncStorage.getItem(SWIPE_HINT_KEY).then(seen => {
+      if (!mounted || seen) return;
+      setShowSwipeHint(true);
+      AsyncStorage.setItem(SWIPE_HINT_KEY, '1').catch(() => {});
+      timer = setTimeout(() => setShowSwipeHint(false), 4500);
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [isInFeedList, prayerIds.length]);
   
   // PanResponder for swipe gestures — Rosary-style: detect threshold on release only,
   // no per-frame move tracking, so the JS thread stays free and swipes feel native-smooth.
@@ -135,6 +157,7 @@ export default function PrayerDetailScreen({
       },
       onPanResponderRelease: (_, gs) => {
         const navigate = (newIndex) => {
+          setShowSwipeHint(false);
           isLoadingRef.current = true;
           const ids = prayerIdsRef.current;
           Animated.timing(contentOpacity, {
@@ -367,6 +390,7 @@ export default function PrayerDetailScreen({
 
   const handlePrevious = () => {
     if (index > 0) {
+      setShowSwipeHint(false);
       const newIndex = index - 1;
       setIndex(newIndex);
       if (onNavigate) {
@@ -377,6 +401,7 @@ export default function PrayerDetailScreen({
   
   const handleNext = () => {
     if (index < prayerIds.length - 1) {
+      setShowSwipeHint(false);
       const newIndex = index + 1;
       setIndex(newIndex);
       if (onNavigate) {
@@ -431,7 +456,7 @@ export default function PrayerDetailScreen({
             <View style={[styles.navButton, styles.navButtonDisabled]}>
               <Text style={styles.navButtonTextDisabled}>←</Text>
             </View>
-            <Text style={styles.navCounter}>Loading...</Text>
+            <Text style={styles.navCounter}>{copy.title}</Text>
             <View style={[styles.navButton, styles.navButtonDisabled]}>
               <Text style={styles.navButtonTextDisabled}>→</Text>
             </View>
@@ -472,6 +497,8 @@ export default function PrayerDetailScreen({
           <TouchableOpacity
             onPress={handlePrevious}
             disabled={!canGoPrevious}
+            accessibilityRole="button"
+            accessibilityLabel={copy.previous}
             style={[
               styles.navButton,
               canGoPrevious ? styles.navButtonActive : styles.navButtonDisabled
@@ -480,17 +507,13 @@ export default function PrayerDetailScreen({
             <Text style={canGoPrevious ? styles.navButtonText : styles.navButtonTextDisabled}>←</Text>
           </TouchableOpacity>
           
-          {isInFeedList ? (
-            <Text style={styles.navCounter}>
-              {index + 1} / {prayerIds.length}
-            </Text>
-          ) : (
-            <Text style={styles.navCounter}>Prayer Details</Text>
-          )}
+          <Text style={styles.navCounter}>{copy.title}</Text>
           
           <TouchableOpacity
             onPress={handleNext}
             disabled={!canGoNext}
+            accessibilityRole="button"
+            accessibilityLabel={copy.next}
             style={[
               styles.navButton,
               canGoNext ? styles.navButtonActive : styles.navButtonDisabled
@@ -498,6 +521,12 @@ export default function PrayerDetailScreen({
           >
             <Text style={canGoNext ? styles.navButtonText : styles.navButtonTextDisabled}>→</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {showSwipeHint && (
+        <View style={styles.swipeHint} accessibilityRole="text">
+          <Text style={styles.swipeHintText}>↔ {copy.hint}</Text>
         </View>
       )}
       
@@ -736,6 +765,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
+  },
+  swipeHint: {
+    alignSelf: 'center',
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  swipeHintText: {
+    color: '#1e40af',
+    fontSize: 13,
+    fontWeight: '700',
   },
   closeButton: {
     width: 44,

@@ -77,6 +77,27 @@ describe('PrayerOptionsMenu delete confirmation', () => {
     expect(screen.getByText('3 people may have already prayed for this request.')).toBeTruthy();
   });
 
+  it('resolves an unknown prayer count before allowing deletion', async () => {
+    const onResolvePrayerCount = jest.fn().mockResolvedValue(5);
+    const unknownCountPrayer = { ...prayer, prayer_count: null };
+    const screen = render(
+      <PrayerOptionsMenu
+        prayer={unknownCountPrayer}
+        currentUserId={42}
+        onDelete={jest.fn()}
+        onResolvePrayerCount={onResolvePrayerCount}
+      />
+    );
+
+    openDeleteConfirmation(screen);
+
+    expect(screen.getByText('Checking prayer activity…')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('5 people may have already prayed for this request.')).toBeTruthy();
+    });
+    expect(onResolvePrayerCount).toHaveBeenCalledWith(unknownCountPrayer);
+  });
+
   it('disables both buttons while deletion is processing', async () => {
     let resolveDelete;
     const onDelete = jest.fn(() => new Promise(resolve => { resolveDelete = resolve; }));

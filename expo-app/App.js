@@ -127,8 +127,12 @@ try {
   });
 } catch (_) {}
 
-// App build tag — dynamically built from expo-updates + constants
-const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'}`;
+// App build tag — show the channel, app version, and the installed OTA update.
+// Embedded/native launches have no OTA ID, so label those explicitly.
+const OTA_UPDATE_ID = typeof Updates.updateId === 'string' && Updates.updateId.length > 0
+  ? Updates.updateId.slice(0, 8)
+  : 'embedded';
+const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'} · update ${OTA_UPDATE_ID}`;
 
 // Skip async startup effects during Jest test runs to prevent unclosed timers
 // and spurious "An update to App inside a test was not wrapped in act()" warnings.

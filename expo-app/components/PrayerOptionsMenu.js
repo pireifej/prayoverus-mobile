@@ -24,6 +24,7 @@ export default function PrayerOptionsMenu({
     prayer.user_id &&
     currentUserId &&
     prayer.user_id.toString() === currentUserId.toString();
+  const prayerCount = Number(prayer?.prayer_count) || 0;
 
   const handleShare = async () => {
     setMenuVisible(false);
@@ -188,6 +189,20 @@ export default function PrayerOptionsMenu({
               {t('deletePrayerTitle')}
             </Text>
             <Text style={styles.deleteConfirmMessage}>{t('deleteConfirmMsg')}</Text>
+            {prayerCount > 0 && (
+              <View
+                style={styles.prayerWarning}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+              >
+                <Text style={styles.prayerWarningIcon}>⚠️</Text>
+                <Text style={styles.prayerWarningText}>
+                  {prayerCount === 1
+                    ? t('deletePrayerWarningSingular')
+                    : t('deletePrayerWarningPlural')(prayerCount)}
+                </Text>
+              </View>
+            )}
             <View style={styles.deleteConfirmButtons}>
               <TouchableOpacity
                 style={[styles.cancelButton, isDeleting && styles.deleteButtonDisabled]}
@@ -242,7 +257,10 @@ const styles = StyleSheet.create({
   deleteConfirmContainer: { backgroundColor: 'white', borderRadius: 20, width: '100%', maxWidth: 360, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 10 },
   deleteConfirmIcon:    { fontSize: 48, marginBottom: 16 },
   deleteConfirmTitle:   { fontSize: 20, fontWeight: '700', color: '#1a1a1a', marginBottom: 12, textAlign: 'center' },
-  deleteConfirmMessage: { fontSize: 15, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  deleteConfirmMessage: { fontSize: 15, color: '#666', textAlign: 'center', lineHeight: 22, marginBottom: 18 },
+  prayerWarning:       { width: '100%', flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fffbeb', borderWidth: 1.5, borderColor: '#f59e0b', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 22 },
+  prayerWarningIcon:   { fontSize: 20, lineHeight: 24, marginRight: 9 },
+  prayerWarningText:   { flex: 1, color: '#92400e', fontSize: 15, fontWeight: '800', lineHeight: 22 },
   deleteConfirmButtons: { width: '100%', gap: 12 },
   cancelButton:         { width: '100%', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e0e0e0', alignItems: 'center' },
   cancelButtonText:     { fontSize: 16, fontWeight: '600', color: '#666' },

@@ -19,7 +19,10 @@ const prayer = {
   user_id: 42,
   title: 'Prayer for my father',
   content: 'Please pray for my father.',
+  prayer_count: 0,
 };
+
+const prayedPrayer = { ...prayer, prayer_count: 3 };
 
 const openDeleteConfirmation = (screen) => {
   fireEvent.press(screen.getByText('⋮'));
@@ -52,6 +55,26 @@ describe('PrayerOptionsMenu delete confirmation', () => {
 
     expect(onDelete).not.toHaveBeenCalled();
     expect(getDeleteModal(screen).props.visible).toBe(false);
+  });
+
+  it('shows no prayer warning when the request has no prayers', () => {
+    const screen = render(
+      <PrayerOptionsMenu prayer={prayer} currentUserId={42} onDelete={jest.fn()} />
+    );
+
+    openDeleteConfirmation(screen);
+
+    expect(screen.queryByText(/people may have already prayed/i)).toBeNull();
+  });
+
+  it('shows the counted prayer warning when the request has prayers', () => {
+    const screen = render(
+      <PrayerOptionsMenu prayer={prayedPrayer} currentUserId={42} onDelete={jest.fn()} />
+    );
+
+    openDeleteConfirmation(screen);
+
+    expect(screen.getByText('3 people may have already prayed for this request.')).toBeTruthy();
   });
 
   it('disables both buttons while deletion is processing', async () => {

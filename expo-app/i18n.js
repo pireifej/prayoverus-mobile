@@ -64,7 +64,9 @@ const translations = {
     deleteMenuItem: 'Delete',
     cancelMenuItem: 'Cancel',
     deletePrayerTitle: 'Remove this prayer request?',
-    deleteConfirmMsg: 'This will remove your prayer request from the community and from your profile. People may have already prayed for it, but it will no longer be visible to them. You can cancel if you are not sure.',
+    deleteConfirmMsg: 'This will remove your prayer request from the community and from your profile. You can cancel if you are not sure.',
+    deletePrayerWarningSingular: '1 person may have already prayed for this request.',
+    deletePrayerWarningPlural: (count) => `${count} people may have already prayed for this request.`,
     removePrayerButton: 'Remove request',
     deleteSuccessMsg: 'Prayer request removed from the community.',
 
@@ -293,7 +295,9 @@ const translations = {
     deleteMenuItem: 'Eliminar',
     cancelMenuItem: 'Cancelar',
     deletePrayerTitle: '¿Eliminar esta petición de oración?',
-    deleteConfirmMsg: 'Esto eliminará tu petición de oración de la comunidad y de tu perfil. Es posible que algunas personas ya hayan orado por ella, pero dejará de ser visible para ellos. Puedes cancelar si no estás seguro.',
+    deleteConfirmMsg: 'Esto eliminará tu petición de oración de la comunidad y de tu perfil. Puedes cancelar si no estás seguro.',
+    deletePrayerWarningSingular: 'Es posible que 1 persona ya haya orado por esta petición.',
+    deletePrayerWarningPlural: (count) => `Es posible que ${count} personas ya hayan orado por esta petición.`,
     removePrayerButton: 'Eliminar petición',
     deleteSuccessMsg: 'La petición de oración se eliminó de la comunidad.',
 

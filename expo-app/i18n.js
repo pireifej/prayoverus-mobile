@@ -70,6 +70,8 @@ const translations = {
     deletePrayerWarningSingular: '1 person may have already prayed for this request.',
     deletePrayerWarningPlural: (count) => `${count} people may have already prayed for this request.`,
     checkingPrayerActivity: 'Checking prayer activity…',
+    couldNotCheckPrayerActivity: 'We could not verify prayer activity. Try again before removing this request.',
+    retry: 'Try again',
     removePrayerButton: 'Remove request',
     deleteSuccessMsg: 'Prayer request removed from the community.',
 
@@ -304,6 +306,8 @@ const translations = {
     deletePrayerWarningSingular: 'Es posible que 1 persona ya haya orado por esta petición.',
     deletePrayerWarningPlural: (count) => `Es posible que ${count} personas ya hayan orado por esta petición.`,
     checkingPrayerActivity: 'Comprobando la actividad de oración…',
+    couldNotCheckPrayerActivity: 'No pudimos verificar la actividad de oración. Inténtalo de nuevo antes de eliminar esta petición.',
+    retry: 'Intentar de nuevo',
     removePrayerButton: 'Eliminar petición',
     deleteSuccessMsg: 'La petición de oración se eliminó de la comunidad.',
 

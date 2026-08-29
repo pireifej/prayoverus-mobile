@@ -26,6 +26,7 @@ export default function PrayerOptionsMenu({
       : Number(prayer.prayer_count) || 0
   );
   const [isResolvingDeleteCount, setIsResolvingDeleteCount] = useState(false);
+  const [deleteCountError, setDeleteCountError] = useState(false);
 
   const isOwner =
     prayer.user_id &&
@@ -39,19 +40,29 @@ export default function PrayerOptionsMenu({
     }
   }, [prayer?.prayer_count]);
 
-  const openDeleteConfirmation = async () => {
-    setMenuVisible(false);
-    setDeleteConfirmVisible(true);
-    if (resolvedPrayerCount !== null || !onResolvePrayerCount) return;
+  const resolveDeleteCount = async () => {
+    if (resolvedPrayerCount !== null) return;
+    if (!onResolvePrayerCount) {
+      setDeleteCountError(true);
+      return;
+    }
     setIsResolvingDeleteCount(true);
+    setDeleteCountError(false);
     try {
       const count = await onResolvePrayerCount(prayer);
       setResolvedPrayerCount(Number(count) || 0);
     } catch (error) {
       console.log('Error loading prayer count:', error?.message);
+      setDeleteCountError(true);
     } finally {
       setIsResolvingDeleteCount(false);
     }
+  };
+
+  const openDeleteConfirmation = async () => {
+    setMenuVisible(false);
+    setDeleteConfirmVisible(true);
+    await resolveDeleteCount();
   };
 
   const handleShare = async () => {
@@ -222,6 +233,16 @@ export default function PrayerOptionsMenu({
                 <ActivityIndicator size="small" color="#92400e" />
                 <Text style={styles.prayerWarningText}>{t('checkingPrayerActivity')}</Text>
               </View>
+            ) : deleteCountError ? (
+              <View style={styles.prayerWarning} accessibilityRole="alert">
+                <Text style={styles.prayerWarningIcon}>⚠️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.prayerWarningText}>{t('couldNotCheckPrayerActivity')}</Text>
+                  <TouchableOpacity onPress={resolveDeleteCount} accessibilityRole="button" testID={`button-retry-prayer-count-${prayer.id}`}>
+                    <Text style={styles.retryCountText}>{t('retry')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ) : prayerCount > 0 && (
               <View
                 style={styles.prayerWarning}
@@ -294,6 +315,7 @@ const styles = StyleSheet.create({
   prayerWarning:       { width: '100%', flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fffbeb', borderWidth: 1.5, borderColor: '#f59e0b', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 22 },
   prayerWarningIcon:   { fontSize: 20, lineHeight: 24, marginRight: 9 },
   prayerWarningText:   { flex: 1, color: '#92400e', fontSize: 15, fontWeight: '800', lineHeight: 22 },
+  retryCountText:      { color: '#92400e', fontSize: 14, fontWeight: '800', textDecorationLine: 'underline', marginTop: 6 },
   deleteConfirmButtons: { width: '100%', gap: 12 },
   cancelButton:         { width: '100%', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#e0e0e0', alignItems: 'center' },
   cancelButtonText:     { fontSize: 16, fontWeight: '600', color: '#666' },

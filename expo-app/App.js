@@ -1873,8 +1873,15 @@ function App() {
 
   // Get currently filtered prayers (based on hideAlreadyPrayed filter)
   const getFilteredPrayers = () => {
-    let filtered = communityPrayers;
-    if (hideAlreadyPrayed) {
+    const answeredIds = new Set(answeredPrayers.map(p => p.id));
+    let filtered = showMyRequestsOnly
+      ? prayers.map(p => answeredIds.has(p.id) ? { ...p, is_answered: true } : p)
+      : communityPrayers;
+
+    if (!showMyRequestsOnly && blockedUserIds.size > 0) {
+      filtered = filtered.filter(p => !blockedUserIds.has(String(p.user_id)));
+    }
+    if (hideAlreadyPrayed && !showMyRequestsOnly) {
       filtered = filtered.filter(prayer => !prayer.user_has_prayed);
     }
     return filtered;

@@ -98,6 +98,32 @@ describe('PrayerOptionsMenu delete confirmation', () => {
     expect(onResolvePrayerCount).toHaveBeenCalledWith(unknownCountPrayer);
   });
 
+  it('explains a failed count lookup and lets the user retry', async () => {
+    const onResolvePrayerCount = jest.fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(2);
+    const unknownCountPrayer = { ...prayer, prayer_count: null };
+    const screen = render(
+      <PrayerOptionsMenu
+        prayer={unknownCountPrayer}
+        currentUserId={42}
+        onDelete={jest.fn()}
+        onResolvePrayerCount={onResolvePrayerCount}
+      />
+    );
+
+    openDeleteConfirmation(screen);
+    await waitFor(() => {
+      expect(screen.getByText(/could not verify prayer activity/i)).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText('Try again'));
+    await waitFor(() => {
+      expect(screen.getByText('2 people may have already prayed for this request.')).toBeTruthy();
+    });
+    expect(onResolvePrayerCount).toHaveBeenCalledTimes(2);
+  });
+
   it('disables both buttons while deletion is processing', async () => {
     let resolveDelete;
     const onDelete = jest.fn(() => new Promise(resolve => { resolveDelete = resolve; }));

@@ -20,9 +20,8 @@ if ! "${EAS[@]}" whoami; then
   "${EAS[@]}" login
 fi
 
-echo "Building and submitting Android to Google Play Production..."
-"${EAS[@]}" build \
+echo "Publishing Android OTA update to the EAS production channel..."
+"${EAS[@]}" update \
+  --channel production \
   --platform android \
-  --profile production \
-  --message "${BUILD_MESSAGE}" \
-  --auto-submit
+  --message "${BUILD_MESSAGE}"

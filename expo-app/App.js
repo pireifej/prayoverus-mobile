@@ -391,6 +391,7 @@ function App() {
   const [loadingChurches, setLoadingChurches] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showMyRequestsOnly, setShowMyRequestsOnly] = useState(false); // Filter to show only user's own requests
+  const [completedMineExpanded, setCompletedMineExpanded] = useState(null);
   const [answeredExpanded, setAnsweredExpanded] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -5303,7 +5304,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         <View style={styles.filterSegmentRow}>
           <TouchableOpacity
             style={[styles.filterSegmentBtn, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentBtnActive]}
-            onPress={() => { setShowMyRequestsOnly(false); setShowChurchOnly(false); }}
+            onPress={() => { setShowMyRequestsOnly(false); setShowChurchOnly(false); setCompletedMineExpanded(null); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.filterSegmentText, !showMyRequestsOnly && !showChurchOnly && styles.filterSegmentTextActive]}>
@@ -5312,7 +5313,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.filterSegmentBtn, showMyRequestsOnly && styles.filterSegmentBtnActive]}
-            onPress={() => { setShowMyRequestsOnly(true); setShowChurchOnly(false); setHideAlreadyPrayed(false); loadUserPrayers(); loadAnsweredPrayers(); }}
+            onPress={() => { setShowMyRequestsOnly(true); setShowChurchOnly(false); setHideAlreadyPrayed(false); setCompletedMineExpanded(null); loadUserPrayers(); loadAnsweredPrayers(); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.filterSegmentText, showMyRequestsOnly && styles.filterSegmentTextActive]}>
@@ -5322,7 +5323,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           {currentUser?.churchName && currentUser.churchName.trim() !== '' && currentUser.churchName !== 'None' && (
             <TouchableOpacity
               style={[styles.filterSegmentBtn, showChurchOnly && styles.filterSegmentBtnActive]}
-              onPress={() => { setShowChurchOnly(true); setShowMyRequestsOnly(false); }}
+              onPress={() => { setShowChurchOnly(true); setShowMyRequestsOnly(false); setCompletedMineExpanded(null); }}
               activeOpacity={0.75}
             >
               <Text style={[styles.filterSegmentText, showChurchOnly && styles.filterSegmentTextActive]} numberOfLines={1}>
@@ -5585,6 +5586,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           const pendingOldPrayers = showMyRequestsOnly
             ? filteredPrayers.filter(p => !p.is_answered && p.active !== 0)
             : [];
+          const completedMinePrayers = showMyRequestsOnly
+            ? filteredPrayers.filter(p => p.is_answered)
+            : [];
+          const otherMinePrayers = showMyRequestsOnly
+            ? filteredPrayers.filter(p => !pendingOldPrayers.includes(p) && !completedMinePrayers.includes(p))
+            : [];
+          const isCompletedExpanded = completedMineExpanded === null
+            ? pendingOldPrayers.length === 0
+            : completedMineExpanded;
+          const prayersForDisplay = showMyRequestsOnly
+            ? [
+                ...pendingOldPrayers,
+                ...(isCompletedExpanded ? completedMinePrayers : []),
+                ...otherMinePrayers,
+              ]
+            : filteredPrayers;
+          const visiblePrayers = prayersForDisplay.slice(0, displayedCount);
 
           return (<>
             {pendingOldPrayers.length > 0 && (
@@ -5606,11 +5624,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <Text style={styles.pendingAttentionAction}>{t('reviewTestimonies')} ›</Text>
               </TouchableOpacity>
             )}
-            {showMyRequestsOnly && (
-              <Text style={styles.mineSectionLabel}>{t('yourPrayerRequests')}</Text>
+            {visiblePrayers.map((prayer, prayerIndex) => (
+            <React.Fragment key={prayer.id}>
+            {showMyRequestsOnly && isCompletedExpanded && completedMinePrayers.length > 0 && prayerIndex === pendingOldPrayers.length && (
+              <TouchableOpacity
+                style={styles.completedSectionHeader}
+                onPress={() => setCompletedMineExpanded(!isCompletedExpanded)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isCompletedExpanded }}
+                testID="button-toggle-completed-requests"
+              >
+                <View>
+                  <Text style={styles.completedSectionTitle}>{t('completedRequests')}</Text>
+                  <Text style={styles.completedSectionCount}>{completedMinePrayers.length} {t('completedStatus').toLowerCase()}</Text>
+                </View>
+                <Text style={styles.completedSectionChevron}>{isCompletedExpanded ? '⌃' : '⌄'}</Text>
+              </TouchableOpacity>
             )}
-            {filteredPrayers.slice(0, displayedCount).map((prayer) => (
-            <View key={prayer.id} style={styles.prayerCardContainer}>
+            <View style={styles.prayerCardContainer}>
               {/* Prayer Count Badge - Opens detail view */}
               {prayer.prayer_count > 0 && (
                 <TouchableOpacity 
@@ -5627,7 +5659,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <TouchableOpacity 
                 style={[
                   styles.communityPrayerCard,
-                  prayer.is_answered && { backgroundColor: '#f0fdf4', borderLeftWidth: 4, borderLeftColor: '#16a34a' },
+                   prayer.is_answered && (
+                     showMyRequestsOnly
+                       ? styles.completedPrayerCard
+                       : { backgroundColor: '#f0fdf4', borderLeftWidth: 4, borderLeftColor: '#16a34a' }
+                   ),
                   prayer.active === 0 && { opacity: 0.6, backgroundColor: '#f8f8f8', borderLeftWidth: 4, borderLeftColor: '#9ca3af' },
                 ]}
                 onPress={() => openDetailModal(prayer)}
@@ -5662,6 +5698,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     });
                   }}
                 />
+                {showMyRequestsOnly && prayer.is_answered && (
+                  <View style={styles.completedStatusBadge}>
+                    <Text style={styles.completedStatusText}>✓ {t('completedStatus')}</Text>
+                  </View>
+                )}
                 
                 <Text style={styles.prayerTitle}>
                   {prayer.is_answered ? '✅ ' : ''}{prayer.title}
@@ -5715,8 +5756,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               </TouchableOpacity>
             </View>
+            </React.Fragment>
           ))}
-          {filteredPrayers.length > displayedCount && (
+          {showMyRequestsOnly && completedMinePrayers.length > 0 && !isCompletedExpanded && pendingOldPrayers.length <= displayedCount && (
+            <TouchableOpacity
+              style={styles.completedSectionHeader}
+              onPress={() => setCompletedMineExpanded(true)}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: false }}
+              testID="button-toggle-completed-requests"
+            >
+              <View>
+                <Text style={styles.completedSectionTitle}>{t('completedRequests')}</Text>
+                <Text style={styles.completedSectionCount}>{completedMinePrayers.length} {t('completedStatus').toLowerCase()}</Text>
+              </View>
+              <Text style={styles.completedSectionChevron}>⌄</Text>
+            </TouchableOpacity>
+          )}
+          {prayersForDisplay.length > displayedCount && (
             <TouchableOpacity
               onPress={() => setDisplayedCount(c => c + PRAYERS_PAGE_SIZE)}
               style={{ alignItems: 'center', paddingVertical: 22, marginBottom: 12, marginHorizontal: 16, backgroundColor: '#f1f5f9', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' }}
@@ -5727,7 +5785,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 Load more prayers
               </Text>
               <Text style={{ color: '#6b7280', fontSize: 14, marginTop: 2 }}>
-                {filteredPrayers.length - displayedCount} more waiting
+                {prayersForDisplay.length - displayedCount} more waiting
               </Text>
             </TouchableOpacity>
           )}
@@ -6699,6 +6757,57 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 2,
     marginBottom: 10,
+  },
+  completedSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+  },
+  completedSectionTitle: {
+    color: '#334155',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  completedSectionCount: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  completedSectionChevron: {
+    color: '#64748b',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  completedPrayerCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#86efac',
+  },
+  completedStatusBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  completedStatusText: {
+    color: '#15803d',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   pendingNudgeIcon: {
     fontSize: 22,

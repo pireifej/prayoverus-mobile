@@ -86,6 +86,7 @@ export default function PrayerDetailScreen({
   userId,
   onClose,
   onPray,
+  onMarkAnswered,
   onNavigate,
   onViewProfile,
   lang = 'en',
@@ -98,8 +99,8 @@ export default function PrayerDetailScreen({
   const [rankTooltip, setRankTooltip] = useState(null);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const copy = lang === 'es'
-    ? { title: 'Petición de oración', hint: 'Desliza para ver otras peticiones', previous: 'Petición anterior', next: 'Petición siguiente' }
-    : { title: 'Prayer Request', hint: 'Swipe to browse other requests', previous: 'Previous request', next: 'Next request' };
+    ? { title: 'Petición de oración', hint: 'Desliza para ver otras peticiones', previous: 'Petición anterior', next: 'Petición siguiente', addTestimony: 'Añadir testimonio' }
+    : { title: 'Prayer Request', hint: 'Swipe to browse other requests', previous: 'Previous request', next: 'Next request', addTestimony: 'Add testimony' };
   
   // Safe top padding based on platform
   const safeTopPadding = getStatusBarHeight();
@@ -375,11 +376,13 @@ export default function PrayerDetailScreen({
           const r = data.request;
           prayerCacheRef.current[id] = {
             id: r.request_id, title: r.request_title, content: r.request_text,
-            author: r.real_name || r.user_name, real_name: r.real_name,
+            author: r.real_name || r.user_name, real_name: r.real_name, user_id: r.user_id,
             picture: r.request_picture, date: r.timestamp, category: null,
             prayer_count: r.prayer_count || 0, user_has_prayed: r.user_has_prayed || false,
             prayed_by_people: r.prayed_by_people || (r.prayed_by_names || []).map(n => ({ name: n, picture: null })),
             user_picture: r.user_picture, church_id: r.church_id, my_church_only: r.my_church_only,
+            is_answered: !!(r.is_answered || r.prayer_answered),
+            answered_message: r.answered_message || null,
           };
         }
       } catch (_) {}
@@ -650,6 +653,22 @@ export default function PrayerDetailScreen({
         )}
           
         <View style={styles.actionContainer}>
+          {prayer?.user_id != null
+            && userId != null
+            && String(prayer.user_id) === String(userId)
+            && !prayer.is_answered
+            && onMarkAnswered && (
+            <TouchableOpacity
+              style={styles.testimonyButton}
+              onPress={() => onMarkAnswered(prayer)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={copy.addTestimony}
+              testID="button-add-testimony"
+            >
+              <Text style={styles.testimonyButtonText}>🙌 {copy.addTestimony}</Text>
+            </TouchableOpacity>
+          )}
           <AnimatedButton 
             style={[
               styles.prayButton,
@@ -1080,6 +1099,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
     marginTop: 4,
+  },
+  testimonyButton: {
+    width: '100%',
+    backgroundColor: '#16a34a',
+    borderRadius: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  testimonyButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
   },
   prayButton: {
     borderRadius: 16,

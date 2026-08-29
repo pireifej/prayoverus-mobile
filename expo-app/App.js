@@ -1930,9 +1930,9 @@ Through Christ our Lord. Amen.`;
   };
 
   // Open prayer detail view (now uses PrayerDetailScreen instead of modal)
-  const openDetailModal = (prayer) => {
+  const openDetailModal = (prayer, prayerSequence = null) => {
     // Find index in the FILTERED prayers list (what's currently displayed)
-    const filtered = getFilteredPrayers();
+    const filtered = prayerSequence || getFilteredPrayers();
     const index = filtered.findIndex(p => p.id === prayer.id);
     
     // Get array of prayer IDs for navigation
@@ -2184,12 +2184,12 @@ Through Christ our Lord. Amen.`;
   };
 
   // Close prayer detail view
-  const closeDetailModal = () => {
+  const closeDetailModal = ({ suppressAd = false } = {}) => {
     prayerViewCountRef.current += 1;
     const newViewCount = prayerViewCountRef.current;
     setPrayerViewCount(newViewCount);
     console.log(`📺 👁️ Prayer view count: ${newViewCount} (show ad at 5, 10, 15...) | Ad loaded: ${interstitialLoadedRef.current} | AdMob available: ${isAdMobAvailable}`);
-    if (newViewCount % 5 === 0) {
+    if (!suppressAd && newViewCount % 5 === 0) {
       if (!isAdMobAvailable) {
         console.log('📺 🚫 AdMob not available (Expo Go / dev build) — skipping ad. Will show in production.');
       } else {
@@ -2545,6 +2545,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setAnsweredModal({ visible: true, prayer, text: '', isLoading: false });
   };
 
+  const handleMarkAnsweredFromDetail = (prayer) => {
+    closeDetailModal({ suppressAd: true });
+    setTimeout(() => handleMarkAnswered(prayer), 120);
+  };
+
   // Fetch all churches for the dropdown
   const fetchChurches = async () => {
     try {
@@ -2765,6 +2770,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         userId={currentUser?.id}
         onClose={closeDetailModal}
         onPray={handlePrayFromDetailScreen}
+        onMarkAnswered={handleMarkAnsweredFromDetail}
         onNavigate={handleDetailNavigate}
         lang={userLang}
       />
@@ -5326,19 +5332,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           )}
         </View>
 
-        {/* Row 2: Hide Prayed toggle — full-width tappable row */}
-        <TouchableOpacity
-          style={styles.filterHideRow}
-          onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.filterHideLabel, hideAlreadyPrayed && styles.filterHideLabelActive]}>
-            {hideAlreadyPrayed ? '✓ Hiding prayed requests' : t('hidePrayed')}
-          </Text>
-          <View style={[styles.filterHideToggle, hideAlreadyPrayed && styles.filterHideToggleActive]}>
-            <View style={[styles.filterHideKnob, hideAlreadyPrayed && styles.filterHideKnobActive]} />
-          </View>
-        </TouchableOpacity>
+        {/* Row 2: Hide Prayed is a community browsing filter, not a Mine action */}
+        {!showMyRequestsOnly && (
+          <TouchableOpacity
+            style={styles.filterHideRow}
+            onPress={() => setHideAlreadyPrayed(!hideAlreadyPrayed)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterHideLabel, hideAlreadyPrayed && styles.filterHideLabelActive]}>
+              {hideAlreadyPrayed ? '✓ Hiding prayed requests' : t('hidePrayed')}
+            </Text>
+            <View style={[styles.filterHideToggle, hideAlreadyPrayed && styles.filterHideToggleActive]}>
+              <View style={[styles.filterHideKnob, hideAlreadyPrayed && styles.filterHideKnobActive]} />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
       
       <ScrollView 
@@ -5582,7 +5590,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             {pendingOldPrayers.length > 0 && (
               <TouchableOpacity
                 style={styles.pendingAttentionCard}
-                onPress={() => openDetailModal(pendingOldPrayers[0])}
+                onPress={() => openDetailModal(pendingOldPrayers[0], pendingOldPrayers)}
                 activeOpacity={0.82}
                 accessibilityRole="button"
                 accessibilityLabel={t('reviewTestimonies')}
@@ -5593,9 +5601,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   <Text style={styles.pendingAttentionEyebrow}>{t('needsYourAttention')}</Text>
                   <Text style={styles.pendingNudgeTitle}>
                     {pendingOldPrayers.length === 1 ? t('pendingNudgeSingular') : t('pendingNudgePlural')(pendingOldPrayers.length)}
-                  </Text>
-                  <Text style={styles.pendingNudgeSubtext}>
-                    {t('pendingNudgeSubtext')}
                   </Text>
                 </View>
                 <Text style={styles.pendingAttentionAction}>{t('reviewTestimonies')} ›</Text>

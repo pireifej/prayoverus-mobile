@@ -2,11 +2,11 @@
 set -euo pipefail
 
 if (( $# > 1 )); then
-  echo "Usage: $0 [build message]" >&2
+  echo "Usage: $0 [update message]" >&2
   exit 2
 fi
 
-BUILD_MESSAGE="${1:-Android production build}"
+UPDATE_MESSAGE="${1:-Android production OTA update}"
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${SCRIPT_DIR}/../expo-app"
 WORKSPACE_DIR="${SCRIPT_DIR}/.."
@@ -24,4 +24,4 @@ echo "Publishing Android OTA update to the EAS production channel..."
 "${EAS[@]}" update \
   --channel production \
   --platform android \
-  --message "${BUILD_MESSAGE}"
+  --message "${UPDATE_MESSAGE}"

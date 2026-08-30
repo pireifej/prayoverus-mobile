@@ -87,6 +87,8 @@ import { showToast, showModal } from './AppModals';
 import {
   apiHeaders,
   apiGetDailyDevotional,
+  apiGetDailyDevotionalById,
+  apiGetDailyDevotionalArchive,
   apiGetPrayerByRequestId,
   apiGetBadgeDefinitions,
   apiGetUserBadges,
@@ -110,6 +112,12 @@ import {
   apiCreatePrayerWithImage,
   apiEditPrayerWithImage,
 } from './services/api';
+import {
+  normalizeDailyBread,
+  parseDailyBreadUrl,
+  readDailyBreadArchivePage,
+  createLatestRequestGate,
+} from './utils/dailyBread';
 
 // ── Global unhandled-rejection / error safety net ─────────────────────────
 // Catches async crashes that escape useEffect try/catch blocks.
@@ -378,6 +386,18 @@ function App() {
   const [dailyDevotional, setDailyDevotional] = useState(null);
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
+  const [dailyBreadLoading, setDailyBreadLoading] = useState(false);
+  const [dailyBreadError, setDailyBreadError] = useState('');
+  const [dailyBreadRequestedArticle, setDailyBreadRequestedArticle] = useState(null);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
+  const [archiveHasMore, setArchiveHasMore] = useState(false);
+  const [archiveOffset, setArchiveOffset] = useState(0);
+  const [archiveSelectionId, setArchiveSelectionId] = useState(null);
+  const dailyBreadDisplayModeRef = useRef('today');
+  const dailyBreadRequestGateRef = useRef(createLatestRequestGate());
+  const archiveRequestGateRef = useRef(createLatestRequestGate());
+  const archiveLoadingRef = useRef(false);
   const [hideAlreadyPrayed, setHideAlreadyPrayed] = useState(false);
   const [communityChurches, setCommunityChurches] = useState([]);
   const [communityMembers, setCommunityMembers] = useState([]);
@@ -1072,14 +1092,17 @@ function App() {
       return;
     }
 
-    // Check for Daily Bread deep link (?open=dailybread)
-    if (route.includes('open=dailybread')) {
-      console.log('📱 Deep link detected: Daily Bread');
-      if (currentUserRef.current) {
-        setSelectedDevotional(dailyDevotional);
-        setCurrentScreen('dailyBread');
+    // Canonical Daily Bread links retain the article ID; legacy links still open today.
+    const dailyBreadLink = parseDailyBreadUrl(url);
+    if (dailyBreadLink) {
+      console.log('📱 Deep link detected: Daily Bread', dailyBreadLink.articleId || 'today');
+      if (isInitialUrl && isCheckingAuthRef.current) {
+        setPendingInitialUrl(url);
+      } else if (currentUserRef.current) {
+        openDailyBreadArticle(dailyBreadLink.articleId, dailyBreadLink.lang);
       } else {
         setPendingInitialUrl(url);
+        showModal({ icon: '🔐', title: 'Sign In Required', message: 'Please sign in to read this Daily Bread devotional.' });
       }
       return;
     }
@@ -1147,13 +1170,13 @@ function App() {
       console.log('📱 Auth check complete, processing pending deep link URL');
       const route = pendingInitialUrl.replace(/.*?:\/\//g, '');
 
-      // Daily Bread deep link
-      if (route.includes('open=dailybread')) {
+      // Keep a Daily Bread link pending until sign-in, then load its exact article.
+      const dailyBreadLink = parseDailyBreadUrl(pendingInitialUrl);
+      if (dailyBreadLink) {
         if (currentUser) {
-          setSelectedDevotional(dailyDevotional);
-          setCurrentScreen('dailyBread');
+          openDailyBreadArticle(dailyBreadLink.articleId, dailyBreadLink.lang);
+          setPendingInitialUrl(null);
         }
-        setPendingInitialUrl(null);
         return;
       }
 
@@ -1314,36 +1337,119 @@ function App() {
     }
   };
 
+  const openDailyBreadArticle = async (articleId, requestedLang = userLang) => {
+    if (!articleId) {
+      dailyBreadRequestGateRef.current.invalidate();
+      dailyBreadDisplayModeRef.current = 'today';
+      setDailyBreadError('');
+      setDailyBreadRequestedArticle(null);
+      setSelectedDevotional(dailyDevotional);
+      setCurrentScreen('dailyBread');
+      return;
+    }
+
+    const requestToken = dailyBreadRequestGateRef.current.start();
+    dailyBreadDisplayModeRef.current = 'article';
+    setDailyBreadLoading(true);
+    setDailyBreadError('');
+    setDailyBreadRequestedArticle({ id: articleId, lang: requestedLang });
+    setSelectedDevotional(null);
+    setCurrentScreen('dailyBread');
+    try {
+      const data = await apiGetDailyDevotionalById(articleId, requestedLang);
+      const devotional = data?.error === 0 ? normalizeDailyBread(data.result) : null;
+      if (!devotional?.id || devotional.id !== articleId || !devotional.title) {
+        throw new Error('Daily Bread article not found');
+      }
+      if (!dailyBreadRequestGateRef.current.isCurrent(requestToken)) return;
+      setSelectedDevotional(devotional);
+      setDailyBreadRequestedArticle(null);
+    } catch (error) {
+      if (!dailyBreadRequestGateRef.current.isCurrent(requestToken)) return;
+      console.warn('[DailyBread] Article load error:', error?.message);
+      setDailyBreadError(
+        requestedLang === 'es'
+          ? 'No se pudo cargar este devocional. Es posible que ya no este disponible.'
+          : 'This devotional could not be loaded. It may no longer be available.'
+      );
+    } finally {
+      if (dailyBreadRequestGateRef.current.isCurrent(requestToken)) {
+        setDailyBreadLoading(false);
+      }
+    }
+  };
+
+  const loadDailyBreadArchive = async (reset = false) => {
+    if (archiveLoadingRef.current && !reset) return;
+    const requestToken = archiveRequestGateRef.current.start();
+    const offset = reset ? 0 : archiveOffset;
+    if (reset) {
+      setPastDevotionals([]);
+      setArchiveOffset(0);
+      setArchiveHasMore(false);
+    }
+    archiveLoadingRef.current = true;
+    setArchiveLoading(true);
+    setArchiveError('');
+    try {
+      const data = await apiGetDailyDevotionalArchive(userLang, 30, offset);
+      if (!data || data.error !== 0) throw new Error(data?.message || 'Archive unavailable');
+      const page = readDailyBreadArchivePage(data);
+      if (!archiveRequestGateRef.current.isCurrent(requestToken)) return;
+      if (page.hasMore && (page.nextOffset === null || page.nextOffset <= offset)) {
+        throw new Error('Archive returned a non-advancing page');
+      }
+      setPastDevotionals(previous => {
+        const base = reset ? [] : previous;
+        const seen = new Set(base.map(item => item.id));
+        return [...base, ...page.items.filter(item => !seen.has(item.id))];
+      });
+      setArchiveOffset(page.nextOffset ?? offset);
+      setArchiveHasMore(page.hasMore);
+    } catch (error) {
+      if (!archiveRequestGateRef.current.isCurrent(requestToken)) return;
+      console.warn('[DailyBread] Archive load error:', error?.message);
+      setArchiveError(
+        userLang === 'es'
+          ? 'No se pudieron cargar los devocionales anteriores.'
+          : 'Past devotionals could not be loaded.'
+      );
+    } finally {
+      if (archiveRequestGateRef.current.isCurrent(requestToken)) {
+        archiveLoadingRef.current = false;
+        setArchiveLoading(false);
+      }
+    }
+  };
+
+  const selectArchivedDevotional = async (item) => {
+    if (!item?.id || archiveSelectionId) return;
+    setArchiveSelectionId(item.id);
+    await openDailyBreadArticle(item.id, item.lang || userLang);
+    setArchiveSelectionId(null);
+  };
+
   const fetchDailyDevotional = async () => {
     const DB_TODAY_KEY = `@db_today_date_${userLang}`;
     const DB_CACHE_KEY = `@db_today_data_${userLang}`;
-    const DB_HISTORY_KEY = `@db_history_${userLang}`;
 
     const today = new Date().toDateString();
-    let lastDate = null, cachedStr = null, historyStr = null;
+    let lastDate = null, cachedStr = null;
     try {
-      [lastDate, cachedStr, historyStr] = await Promise.all([
+      [lastDate, cachedStr] = await Promise.all([
         AsyncStorage.getItem(DB_TODAY_KEY),
         AsyncStorage.getItem(DB_CACHE_KEY),
-        AsyncStorage.getItem(DB_HISTORY_KEY),
       ]);
     } catch (e) { console.warn('[Boot] Daily Bread cache read error:', e?.message); }
-
-    let history = [];
-    try {
-      history = historyStr ? JSON.parse(historyStr) : [];
-      setPastDevotionals(history);
-    } catch (e) {
-      console.warn('[Boot] Daily Bread history parse error:', e?.message);
-      setPastDevotionals([]);
-    }
 
     // Show cached version immediately for fast display
     if (lastDate === today && cachedStr) {
       try {
         const cached = JSON.parse(cachedStr);
         setDailyDevotional(cached);
-        setSelectedDevotional(cached);
+        if (dailyBreadDisplayModeRef.current === 'today') {
+          setSelectedDevotional(cached);
+        }
       } catch (e) {
         console.warn('[Boot] Daily Bread cache parse error — will use fresh data:', e?.message);
       }
@@ -1368,24 +1474,17 @@ function App() {
         const freshCreatedAt = raw.created_at || '';
 
         // Skip updating if we already have this exact article cached
-        if (lastDate === today && cachedCreatedAt && cachedCreatedAt === freshCreatedAt) {
+        if (lastDate === today && cached?.id && cachedCreatedAt && cachedCreatedAt === freshCreatedAt) {
           return;
         }
 
         // Normalize API snake_case fields to camelCase for display
-        const devotional = {
-          title: raw.title,
-          content: raw.article_body,
-          bibleVerse: raw.bible_verse,
-          verseReference: raw.verse_reference,
-          prayer: raw.prayer,
-          imageURL: raw.image_url,
-          date: raw.date || raw.created_at || new Date().toISOString(),
-          createdAt: raw.created_at || '',
-        };
+        const devotional = normalizeDailyBread(raw);
 
         setDailyDevotional(devotional);
-        setSelectedDevotional(devotional);
+        if (dailyBreadDisplayModeRef.current === 'today') {
+          setSelectedDevotional(devotional);
+        }
         // Only lock the cache to today if the API returned today's devotional.
         // If the backend hasn't published today's yet, keep trying on each app open.
         const devotionalDate = new Date(devotional.date).toDateString();
@@ -1393,15 +1492,6 @@ function App() {
           await AsyncStorage.setItem(DB_TODAY_KEY, today);
         }
         await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
-
-        const alreadyInHistory = history.some(d =>
-          d.title === devotional.title && d.date === devotional.date
-        );
-        if (!alreadyInHistory) {
-          const updatedHistory = [devotional, ...history].slice(0, 60);
-          await AsyncStorage.setItem(DB_HISTORY_KEY, JSON.stringify(updatedHistory));
-          setPastDevotionals(updatedHistory);
-        }
 
         scheduleDailyBreadNotification(devotional.title);
       }
@@ -1419,6 +1509,13 @@ function App() {
   // Re-fetch Daily Bread in the new language when user switches
   useEffect(() => {
     if (currentUser && langVersion > 0) {
+      archiveRequestGateRef.current.invalidate();
+      archiveLoadingRef.current = false;
+      setArchiveLoading(false);
+      setPastDevotionals([]);
+      setArchiveOffset(0);
+      setArchiveHasMore(false);
+      setArchiveError('');
       fetchDailyDevotional();
     }
   }, [langVersion]);
@@ -4971,11 +5068,27 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     return (
       <DailyBreadScreen
         devotional={selectedDevotional}
-        onBack={() => setCurrentScreen('home')}
+        loading={dailyBreadLoading}
+        error={dailyBreadError}
+        onRetry={() => dailyBreadRequestedArticle?.id
+          ? openDailyBreadArticle(dailyBreadRequestedArticle.id, dailyBreadRequestedArticle.lang)
+          : setCurrentScreen('home')}
+        onBack={() => {
+          dailyBreadRequestGateRef.current.invalidate();
+          dailyBreadDisplayModeRef.current = 'today';
+          setDailyBreadLoading(false);
+          setCurrentScreen('home');
+        }}
         pastDevotionals={pastDevotionals}
-        onSelectPast={(item) => setSelectedDevotional(item)}
+        onSelectPast={selectArchivedDevotional}
+        onLoadArchive={() => loadDailyBreadArchive(true)}
+        onLoadMoreArchive={() => loadDailyBreadArchive(false)}
+        archiveLoading={archiveLoading}
+        archiveError={archiveError}
+        archiveHasMore={archiveHasMore}
+        archiveSelectionId={archiveSelectionId}
         bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
-        archiveUnlocked={archiveUnlocked}
+        archiveUnlocked={archiveUnlocked || !isAdMobAvailable}
         userId={currentUser?.id}
         onNewBadge={showBadgeCelebration}
         lang={userLang}
@@ -5375,8 +5488,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               style={styles.dailyBreadCard}
               activeOpacity={0.90}
               onPress={() => {
-                setSelectedDevotional(dailyDevotional);
-                setCurrentScreen('dailyBread');
+                openDailyBreadArticle(null);
               }}
             >
               {dailyDevotional.imageURL ? (

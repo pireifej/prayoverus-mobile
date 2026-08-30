@@ -81,6 +81,12 @@ export const apiGetUserBadges = (userId) =>
 // ─── Daily Devotional ─────────────────────────────────────────────────────────
 export const apiGetDailyDevotional = (lang) => post('/getDailyDevotional', { lang });
 
+export const apiGetDailyDevotionalById = (articleId, lang) =>
+  post('/getDailyDevotionalById', { articleId, lang });
+
+export const apiGetDailyDevotionalArchive = (lang, limit = 30, offset = 0) =>
+  post('/getDailyDevotionalArchive', { lang, limit, offset });
+
 export const apiReadDailyBread = (userId, devotionalId) =>
   post('/readDailyBread', { userId, devotionalId });
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, Animated, Image, StyleSheet, TouchableOpacity,
-  Clipboard, Share, Platform, Dimensions, Alert, ScrollView, Modal,
+  Clipboard, Share, Platform, Dimensions, Alert, ScrollView, Modal, ActivityIndicator,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { apiReadDailyBread, apiGetDailyBreadAudio } from './services/api';
+import { buildDailyBreadShareUrl } from './utils/dailyBread';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = Math.round(SCREEN_HEIGHT * 0.40);
@@ -77,7 +78,27 @@ function isOlderThan30Days(dateStr) {
   return Date.now() - d.getTime() > THIRTY_DAYS_MS;
 }
 
-export default function DailyBreadScreen({ devotional, onBack, pastDevotionals = [], onSelectPast, bannerAdProps, archiveUnlocked, onUnlockArchive, userId, onNewBadge, lang = 'en' }) {
+export default function DailyBreadScreen({
+  devotional,
+  loading = false,
+  error = '',
+  onRetry,
+  onBack,
+  pastDevotionals = [],
+  onSelectPast,
+  onLoadArchive,
+  onLoadMoreArchive,
+  archiveLoading = false,
+  archiveError = '',
+  archiveHasMore = false,
+  archiveSelectionId = null,
+  bannerAdProps,
+  archiveUnlocked,
+  onUnlockArchive,
+  userId,
+  onNewBadge,
+  lang = 'en',
+}) {
   const [prayerCopied, setPrayerCopied] = useState(false);
   const [audioStatus, setAudioStatus] = useState('idle'); // idle | loading | playing | paused
   const [audioPosition, setAudioPosition] = useState(0);
@@ -127,14 +148,24 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
         <StatusBar style="light" />
+        {loading ? <ActivityIndicator size="large" color="#fff" style={{ marginBottom: 20 }} /> : null}
         <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
-          {lang === 'es' ? 'No se pudo cargar el devocional.' : "Today's devotional couldn't be loaded."}
+          {loading
+            ? (lang === 'es' ? 'Cargando devocional' : 'Loading devotional')
+            : (lang === 'es' ? 'No se pudo cargar el devocional.' : "This devotional couldn't be loaded.")}
         </Text>
-        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
-          {lang === 'es'
-            ? 'Es posible que los datos guardados estén dañados. Por favor, regresa e intenta de nuevo.'
-            : 'The cached data may be corrupt. Please go back and try again.'}
-        </Text>
+        {!loading ? (
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
+            {error || (lang === 'es'
+              ? 'Por favor regresa e intenta de nuevo.'
+              : 'Please go back and try again.')}
+          </Text>
+        ) : null}
+        {!loading && onRetry ? (
+          <TouchableOpacity onPress={onRetry} style={[styles.topBtn, { marginBottom: 12 }]} activeOpacity={0.8}>
+            <Text style={styles.topBtnText}>{lang === 'es' ? 'Intentar de nuevo' : 'Try Again'}</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity onPress={onBack} style={styles.topBtn} activeOpacity={0.8}>
           <Text style={styles.topBtnText}>← Back</Text>
         </TouchableOpacity>
@@ -155,9 +186,20 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
   });
 
   const handleShare = async () => {
-    const deepLink = 'https://prayoverus.com/download.html?open=dailybread';
+    const deepLink = buildDailyBreadShareUrl(devotional, lang);
+    if (!deepLink) {
+      Alert.alert(
+        lang === 'es' ? 'Enlace no disponible' : 'Link Unavailable',
+        lang === 'es'
+          ? 'Este devocional aun no tiene un enlace permanente.'
+          : 'This devotional does not have a permanent link yet.'
+      );
+      return;
+    }
     const verse = devotional.verseReference ? ` (${devotional.verseReference})` : '';
-    const message = `"${devotional.title}"${verse}\n\nRead today's Daily Bread devotional in the Pray Over Us app:\n${deepLink}`;
+    const message = lang === 'es'
+      ? `"${devotional.title}"${verse}\n\nLee este Pan Diario de Pray Over Us:\n${deepLink}`
+      : `"${devotional.title}"${verse}\n\nRead this Daily Bread devotional from Pray Over Us:\n${deepLink}`;
     try { await Share.share({ message }); } catch (e) {}
   };
 
@@ -362,11 +404,16 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
           <Text style={styles.topBtnText}>← Back</Text>
         </TouchableOpacity>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {pastDevotionals.length > 0 && (
-            <TouchableOpacity onPress={() => setShowArchive(true)} style={styles.topBtn} activeOpacity={0.8}>
-              <Text style={styles.topBtnText}>📅 Archive</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={() => {
+              setShowArchive(true);
+              if (onLoadArchive) onLoadArchive();
+            }}
+            style={styles.topBtn}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.topBtnText}>{lang === 'es' ? '📅 Archivo' : '📅 Archive'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.topBtn} activeOpacity={0.8}>
             <Text style={styles.topBtnText}>Share ↗</Text>
           </TouchableOpacity>
@@ -385,13 +432,36 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
             <View style={archiveStyles.sheetHandle} />
             <Text style={archiveStyles.sheetTitle}>{lang === 'es' ? '📅 Devocionales Anteriores' : '📅 Past Devotionals'}</Text>
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {archiveLoading && pastDevotionals.length === 0 ? (
+                <View style={archiveStyles.status}>
+                  <ActivityIndicator color="#fff" />
+                  <Text style={archiveStyles.statusText}>{lang === 'es' ? 'Cargando archivo' : 'Loading archive'}</Text>
+                </View>
+              ) : null}
+              {archiveError ? (
+                <View style={archiveStyles.status}>
+                  <Text style={archiveStyles.statusText}>{archiveError}</Text>
+                  <TouchableOpacity style={archiveStyles.retryBtn} onPress={() => onLoadArchive?.()}>
+                    <Text style={archiveStyles.retryText}>{lang === 'es' ? 'Intentar de nuevo' : 'Try Again'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              {!archiveLoading && !archiveError && pastDevotionals.length === 0 ? (
+                <View style={archiveStyles.status}>
+                  <Text style={archiveStyles.statusText}>
+                    {lang === 'es' ? 'Todavia no hay devocionales anteriores' : 'No past devotionals are available yet'}
+                  </Text>
+                </View>
+              ) : null}
               {pastDevotionals.map((item, i) => {
                 const locked = !archiveUnlocked && isOlderThan30Days(item.date);
+                const selecting = archiveSelectionId === item.id;
                 return (
                   <TouchableOpacity
-                    key={i}
+                    key={item.id || `${item.date}-${i}`}
                     style={[archiveStyles.item, locked && archiveStyles.itemLocked]}
                     activeOpacity={locked ? 0.9 : 0.7}
+                    disabled={Boolean(archiveSelectionId)}
                     onPress={() => {
                       if (locked) {
                         Alert.alert(
@@ -414,7 +484,9 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
                         {locked ? '🔒 ' : ''}{item.title || 'Daily Bread'}
                       </Text>
                     </View>
-                    {!locked && <Text style={archiveStyles.itemArrow}>›</Text>}
+                    {!locked && (selecting
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={archiveStyles.itemArrow}>›</Text>)}
                     {locked && (
                       <View style={archiveStyles.watchAdBtn}>
                         <Text style={archiveStyles.watchAdText}>Watch ad</Text>
@@ -423,6 +495,17 @@ export default function DailyBreadScreen({ devotional, onBack, pastDevotionals =
                   </TouchableOpacity>
                 );
               })}
+              {archiveHasMore && !archiveError ? (
+                <TouchableOpacity
+                  style={archiveStyles.loadMoreBtn}
+                  onPress={() => onLoadMoreArchive?.()}
+                  disabled={archiveLoading}
+                >
+                  {archiveLoading
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={archiveStyles.loadMoreText}>{lang === 'es' ? 'Cargar mas' : 'Load More'}</Text>}
+                </TouchableOpacity>
+              ) : null}
             </ScrollView>
             <TouchableOpacity style={archiveStyles.closeBtn} onPress={() => setShowArchive(false)} activeOpacity={0.8}>
               <Text style={archiveStyles.closeBtnText}>Close</Text>
@@ -563,6 +646,12 @@ const archiveStyles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
   },
   watchAdText: { color: '#fbbf24', fontSize: 11, fontWeight: '600' },
+  status: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 12, gap: 12 },
+  statusText: { color: 'rgba(255,255,255,0.72)', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  retryBtn: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 },
+  retryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  loadMoreBtn: { alignItems: 'center', marginTop: 16, paddingVertical: 13, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)' },
+  loadMoreText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   closeBtn: {
     marginTop: 20, backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',

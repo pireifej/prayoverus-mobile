@@ -83,6 +83,7 @@ import HtmlText from './components/HtmlText';
 import PrayerHandsLoader from './components/PrayerHandsLoader';
 import AnimatedButton from './components/AnimatedButton';
 import PrayerOptionsMenu from './components/PrayerOptionsMenu';
+import PrayerGuidelinesModal from './components/PrayerGuidelinesModal';
 import { showToast, showModal } from './AppModals';
 import {
   apiHeaders,
@@ -342,6 +343,7 @@ function App() {
   }, [prayerModal.loading]);
 
   const [showTitleInput, setShowTitleInput] = useState(false);
+  const [showPrayerGuidelines, setShowPrayerGuidelines] = useState(false);
   const [helpForm, setHelpForm] = useState({
     message: '',
     name: '',
@@ -4982,7 +4984,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://prayoverus.com/prayer-guidelines.html')}
+              onPress={() => setShowPrayerGuidelines(true)}
               activeOpacity={0.7}
               style={{ marginTop: 12, alignItems: 'center' }}
             >
@@ -4993,6 +4995,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
         </ScrollView>
         </KeyboardAvoidingView>
+        <PrayerGuidelinesModal
+          visible={showPrayerGuidelines}
+          onClose={() => setShowPrayerGuidelines(false)}
+        />
       </View>
     );
   }

@@ -10,3 +10,4 @@
 - [Second-launch crash after Google login](second-launch-crash.md) — getInitialURL() in a re-running useEffect replays stale OAuth URL; fix: mount-only effect + ignore OAuth URLs + add AppErrorBoundary
 - [Consumable IAP — Extra Prayer Post](consumable-iap-extra-post.md) — add per-post charge for 2nd+ daily posts; hold until 1.0.33 approved; needs new Consumable product in ASC + RevenueCat
 - [Crisis prayer posting](crisis-prayer-posting.md) — show support resources first, but preserve an explicit option to post the original request
+- [React Native archive sheets](react-native-archive-sheets.md) — a flex ScrollView can collapse inside a bottom sheet with only maxHeight; give the sheet an explicit height

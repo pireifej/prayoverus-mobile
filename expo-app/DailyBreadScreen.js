@@ -622,7 +622,7 @@ const archiveStyles = StyleSheet.create({
   sheet: {
     backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingTop: 12, paddingHorizontal: 20, paddingBottom: 36,
-    maxHeight: '80%',
+    height: '80%', maxHeight: '80%',
   },
   sheetHandle: {
     width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)',

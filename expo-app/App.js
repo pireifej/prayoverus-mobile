@@ -119,6 +119,10 @@ import {
   readDailyBreadArchivePage,
   createLatestRequestGate,
 } from './utils/dailyBread';
+import {
+  buildPendingDailyBreadUrl,
+  getNotificationDestination,
+} from './utils/notifications';
 
 // ── Global unhandled-rejection / error safety net ─────────────────────────
 // Catches async crashes that escape useEffect try/catch blocks.
@@ -386,6 +390,8 @@ function App() {
   const [pendingGoogleAuthCode, setPendingGoogleAuthCode] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
   const [dailyDevotional, setDailyDevotional] = useState(null);
+  const dailyDevotionalRef = useRef(null);
+  dailyDevotionalRef.current = dailyDevotional;
   const [selectedDevotional, setSelectedDevotional] = useState(null);
   const [pastDevotionals, setPastDevotionals] = useState([]);
   const [dailyBreadLoading, setDailyBreadLoading] = useState(false);
@@ -1318,7 +1324,7 @@ function App() {
 
   // ─── Daily Bread ───────────────────────────────────────────────────────────
 
-  const scheduleDailyBreadNotification = async (title) => {
+  const scheduleDailyBreadNotification = async (devotional) => {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') return;
@@ -1328,9 +1334,13 @@ function App() {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Daily Bread 🍞',
-          body: `Your Daily Bread is ready: ${title}`,
+          body: `Your Daily Bread is ready: ${devotional.title}`,
           sound: true,
-          data: { type: 'dailyBread' },
+          data: {
+            type: 'dailyBread',
+            articleId: devotional.id,
+            lang: devotional.lang || userLang,
+          },
         },
         trigger: { hour: 8, minute: 0, repeats: true },
       });
@@ -1345,7 +1355,7 @@ function App() {
       dailyBreadDisplayModeRef.current = 'today';
       setDailyBreadError('');
       setDailyBreadRequestedArticle(null);
-      setSelectedDevotional(dailyDevotional);
+      setSelectedDevotional(dailyDevotionalRef.current);
       setCurrentScreen('dailyBread');
       return;
     }
@@ -1495,7 +1505,7 @@ function App() {
         }
         await AsyncStorage.setItem(DB_CACHE_KEY, JSON.stringify(devotional));
 
-        scheduleDailyBreadNotification(devotional.title);
+        scheduleDailyBreadNotification(devotional);
       }
     } catch (e) {
       console.log('Daily Bread fetch error:', e);
@@ -2081,13 +2091,22 @@ Through Christ our Lord. Amen.`;
     const handleNotificationTap = (response) => {
       const data = response?.notification?.request?.content?.data || {};
       console.log('📬 Notification tapped, data:', JSON.stringify(data));
-      if (data.screen === 'RequestDetail' && data.requestId) {
-        setPendingNotificationRequestId(String(data.requestId));
-      } else {
-        // Fallback: go to home / My Requests tab
-        setCurrentScreen('home');
-        setShowMyRequestsOnly(true);
+      const destination = getNotificationDestination(data);
+      if (destination.type === 'dailyBread') {
+        if (currentUserRef.current && !isCheckingAuthRef.current) {
+          openDailyBreadArticle(destination.articleId, destination.lang);
+        } else {
+          setPendingInitialUrl(buildPendingDailyBreadUrl(destination));
+        }
+        return;
       }
+      if (destination.type === 'prayer') {
+        setPendingNotificationRequestId(destination.requestId);
+        return;
+      }
+      // Fallback: go to home / My Requests tab
+      setCurrentScreen('home');
+      setShowMyRequestsOnly(true);
     };
     const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationTap);
     return () => sub.remove();
@@ -2102,8 +2121,11 @@ Through Christ our Lord. Amen.`;
         if (!response) return;
         const data = response.notification.request.content.data || {};
         console.log('📬 Cold-start notification data:', JSON.stringify(data));
-        if (data.screen === 'RequestDetail' && data.requestId) {
-          setPendingNotificationRequestId(String(data.requestId));
+        const destination = getNotificationDestination(data);
+        if (destination.type === 'dailyBread') {
+          setPendingInitialUrl(buildPendingDailyBreadUrl(destination));
+        } else if (destination.type === 'prayer') {
+          setPendingNotificationRequestId(destination.requestId);
         } else {
           setCurrentScreen('home');
           setShowMyRequestsOnly(true);

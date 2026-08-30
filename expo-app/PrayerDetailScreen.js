@@ -602,10 +602,14 @@ export default function PrayerDetailScreen({
           <Text style={styles.prayerText} selectable={true}>{prayer?.content}</Text>
         </View>
 
-        {prayer?.is_answered && prayer?.answered_message && (
+        {prayer?.is_answered && (
           <View style={styles.testimonyContainer}>
             <Text style={styles.testimonyLabel}>✅ Prayer Answered</Text>
-            <Text style={styles.testimonyText} selectable={true}>"{prayer.answered_message}"</Text>
+            {prayer.answered_message ? (
+              <Text style={styles.testimonyText} selectable={true}>"{prayer.answered_message}"</Text>
+            ) : (
+              <Text style={styles.testimonyText}>This prayer has been marked as answered.</Text>
+            )}
           </View>
         )}
 

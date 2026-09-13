@@ -11,18 +11,14 @@ import { client as Purchases, isAvailable as rcAvailable } from '../services/pur
 
 // ── RevenueCat constants ─────────────────────────────────────────────────────
 
-export const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
-export const ENTITLEMENT_PREMIUM_THEMES  = 'premium_themes'; // legacy — unlocks all themes
-export const PRODUCT_EXTENDED_PRAYER     = 'extended_prayer_single';
-export const PRODUCT_PREMIUM_THEMES      = 'premium_themes'; // legacy
+export const PRO_ENTITLEMENT = 'Pray Over Us Pro';
 
-// Per-theme products & entitlements — same IDs on both Apple and Google Play
-export const THEME_PRODUCTS = {
-  golden:   'theme_golden',
-  amethyst: 'theme_amethyst',
-  rose:     'theme_rose',
-  forest:   'theme_forest',
-  midnight: 'theme_midnight',
+const selectMonthlyPackage = (offering) => {
+  const packages = offering?.availablePackages || [];
+  return offering?.monthly
+    || packages.find(pkg => pkg.packageType === 'MONTHLY')
+    || packages.find(pkg => /monthly/i.test(pkg.identifier || pkg.product?.identifier || ''))
+    || null;
 };
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
@@ -30,63 +26,98 @@ export const THEME_PRODUCTS = {
 export function useIap() {
   const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
   const [iapProducts, setIapProducts]         = useState([]);
+  const [iapOffering, setIapOffering]         = useState(null);
+  const [proPackage, setProPackage]           = useState(null);
   const [iapPurchasing, setIapPurchasing]     = useState(false);
-  const [iapModal, setIapModal]               = useState(null); // { productId, title, description } | null
+  const [iapModal, setIapModal]               = useState(null);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   const hasEntitlement = (key) =>
     iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
 
-  const iapExtendedPrayerUnlocked = hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER);
-  const iapThemesUnlocked         = hasEntitlement(ENTITLEMENT_PREMIUM_THEMES);
+  // Keep this check explicit: every paid feature uses the same RevenueCat
+  // entitlement and there are no per-feature purchase flags anymore.
+  const isPro = iapCustomerInfo?.entitlements?.active?.[PRO_ENTITLEMENT] !== undefined;
 
-  /** Returns true if a specific theme is unlocked (legacy all-unlock OR per-theme purchase). */
-  const isThemeUnlocked = (themeKey) =>
-    iapThemesUnlocked || hasEntitlement(THEME_PRODUCTS[themeKey] || '');
-
-  const getIapPrice = (productId) =>
-    iapProducts.find(p => p.identifier === productId)?.priceString ?? null;
+  const getIapPrice = (packageOrId = proPackage) => {
+    if (packageOrId?.product?.priceString) return packageOrId.product.priceString;
+    if (typeof packageOrId === 'string') {
+      return iapProducts.find(p => p.identifier === packageOrId)?.priceString ?? null;
+    }
+    return proPackage?.product?.priceString ?? null;
+  };
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
   const loadIapData = async () => {
-    if (!rcAvailable || !Purchases) return;
+    if (!rcAvailable || !Purchases) return null;
     try {
-      const allProductIds = [
-        PRODUCT_EXTENDED_PRAYER,
-        PRODUCT_PREMIUM_THEMES,
-        ...Object.values(THEME_PRODUCTS),
-      ];
-      const [info, prods] = await Promise.all([
+      const [info, offerings] = await Promise.all([
         Purchases.getCustomerInfo(),
-        Purchases.getProducts(allProductIds),
+        Purchases.getOfferings
+          ? Purchases.getOfferings()
+          : Promise.resolve({ current: null }),
       ]);
+      const offering = offerings?.current || null;
+      const monthly = selectMonthlyPackage(offering);
       setIapCustomerInfo(info);
-      setIapProducts(prods);
+      setIapOffering(offering);
+      setProPackage(monthly);
+      setIapProducts((offering?.availablePackages || []).map(pkg => pkg.product).filter(Boolean));
+      return { info, offering, proPackage: monthly };
     } catch (e) {
       console.warn('[IAP] load error:', e?.message);
+      return null;
     }
+  };
+
+  const presentProPaywall = async (onSuccess) => {
+    let monthly = proPackage;
+    if (!monthly) {
+      const loaded = await loadIapData();
+      monthly = loaded?.proPackage || null;
+    }
+
+    if (!monthly) {
+      showModal({
+        icon: '🕊️',
+        title: 'Pray Over Us Pro',
+        message: rcAvailable
+          ? 'The Pro subscription is temporarily unavailable. Please try again in a moment.'
+          : 'Pro subscriptions will be available in the next app update.',
+      });
+      return false;
+    }
+
+    setIapModal({
+      package: monthly,
+      title: 'Pray Over Us Pro',
+      description: 'Unlock unlimited prayer requests, Deepen Prayer, premium themes, full Daily Bread devotionals, and Prayer Walk audio.',
+      onSuccess,
+    });
+    return true;
   };
 
   // ── Purchase / restore ─────────────────────────────────────────────────────
 
-  const doIapPurchase = async (productId, onSuccess) => {
+  const doIapPurchase = async (purchasePackage = proPackage, onSuccess) => {
     if (!rcAvailable || !Purchases) {
       showToast('Purchases are not available on this device.', '⚠️');
       return;
     }
     setIapPurchasing(true);
     try {
-      const product = iapProducts.find(p => p.identifier === productId);
-      if (!product) throw new Error('Product not found — check your App Store / Play Store setup.');
-      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
+      const packageToPurchase = purchasePackage?.product ? purchasePackage : proPackage;
+      if (!packageToPurchase) throw new Error('Pro subscription not found — check your RevenueCat offering setup.');
+      const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
       setIapCustomerInfo(customerInfo);
       setIapModal(null);
-      if (onSuccess) {
-        onSuccess();
+      const callback = onSuccess || iapModal?.onSuccess;
+      if (callback) {
+        callback();
       } else {
-        showToast('Thank you — enjoy your new feature.', '🙌');
+        showToast('Welcome to Pray Over Us Pro.', '🙌');
       }
     } catch (e) {
       if (!e?.userCancelled) {
@@ -119,17 +150,18 @@ export function useIap() {
     setIapCustomerInfo,
     iapProducts,
     setIapProducts,
+    iapOffering,
+    proPackage,
     iapPurchasing,
     iapModal,
     setIapModal,
     // computed
-    iapExtendedPrayerUnlocked,
-    iapThemesUnlocked,
+    isPro,
     // functions
     hasEntitlement,
-    isThemeUnlocked,
     getIapPrice,
     loadIapData,
+    presentProPaywall,
     doIapPurchase,
     doIapRestore,
   };

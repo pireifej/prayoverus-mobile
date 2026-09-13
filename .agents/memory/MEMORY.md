@@ -11,3 +11,4 @@
 - [Consumable IAP — Extra Prayer Post](consumable-iap-extra-post.md) — add per-post charge for 2nd+ daily posts; hold until 1.0.33 approved; needs new Consumable product in ASC + RevenueCat
 - [Crisis prayer posting](crisis-prayer-posting.md) — show support resources first, but preserve an explicit option to post the original request
 - [React Native archive sheets](react-native-archive-sheets.md) — a flex ScrollView can collapse inside a bottom sheet with only maxHeight; give the sheet an explicit height
+- [RevenueCat Pro entitlement](revenuecat-pro-entitlement.md) — all paid features share one entitlement and the live monthly package from the current offering

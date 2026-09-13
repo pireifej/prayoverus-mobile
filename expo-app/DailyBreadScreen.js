@@ -78,6 +78,14 @@ function isOlderThan30Days(dateStr) {
   return Date.now() - d.getTime() > THIRTY_DAYS_MS;
 }
 
+function firstTwoSentences(text) {
+  const value = String(text || '').trim();
+  if (!value) return '';
+  const sentences = value.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [];
+  if (sentences.length <= 2) return value;
+  return sentences.slice(0, 2).join('').trim();
+}
+
 export default function DailyBreadScreen({
   devotional,
   loading = false,
@@ -95,6 +103,8 @@ export default function DailyBreadScreen({
   bannerAdProps,
   archiveUnlocked,
   onUnlockArchive,
+  isPro = true,
+  onOpenProPaywall,
   userId,
   onNewBadge,
   lang = 'en',
@@ -298,7 +308,50 @@ export default function DailyBreadScreen({
   };
 
   const isEs = lang === 'es';
-  const audioLabel = audioStatus === 'loading' ? (isEs ? 'Cargando...' : 'Loading...') : audioStatus === 'playing' ? '⏸ Pause' : audioStatus === 'paused' ? '▶ Resume' : (isEs ? '🔊 Escuchar' : '🔊 Listen');
+  const articleBody = String(devotional.content || '');
+  const previewContent = firstTwoSentences(articleBody);
+  const remainingContent = articleBody.slice(previewContent.length).trim();
+  const audioLabel = !isPro
+    ? (isEs ? '🔒 Leer completo con Pro' : '🔒 Read Full Article with Pro')
+    : audioStatus === 'loading'
+      ? (isEs ? 'Cargando...' : 'Loading...')
+      : audioStatus === 'playing'
+        ? '⏸ Pause'
+        : audioStatus === 'paused'
+          ? '▶ Resume'
+          : (isEs ? '🔊 Escuchar' : '🔊 Listen');
+
+  const fullArticle = (
+    <>
+      {(devotional.bibleVerse || devotional.verseReference) ? (
+        <View style={styles.verseBlock}>
+          <View style={styles.verseBorder} />
+          <View style={styles.verseInner}>
+            {devotional.bibleVerse ? <Text style={styles.verseText}>"{devotional.bibleVerse}"</Text> : null}
+            {devotional.verseReference ? <Text style={styles.verseRef}>— {devotional.verseReference}</Text> : null}
+          </View>
+        </View>
+      ) : null}
+
+      {devotional.content ? <Text style={styles.bodyText}>{devotional.content}</Text> : null}
+
+      {devotional.prayer ? (
+        <View style={styles.prayerSection}>
+          <Text style={styles.prayerLabel}>✝️ Today's Prayer</Text>
+          <Text style={styles.prayerText}>{devotional.prayer}</Text>
+          <TouchableOpacity
+            style={[styles.copyBtn, prayerCopied && styles.copyBtnDone]}
+            onPress={handleCopyPrayer}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.copyBtnText}>
+              {prayerCopied ? (lang === 'es' ? '✓ Copiado' : '✓ Copied to Clipboard') : (lang === 'es' ? '🙏 Copiar Oración' : '🙏 Copy Prayer')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </>
+  );
 
   return (
     <View style={styles.container}>
@@ -337,9 +390,9 @@ export default function DailyBreadScreen({
           {/* Listen button + progress bar */}
           <TouchableOpacity
             style={[styles.listenBtn, audioStatus === 'playing' && styles.listenBtnActive, audioStatus === 'loading' && { opacity: 0.7 }]}
-            onPress={handlePlayPause}
+            onPress={isPro ? handlePlayPause : onOpenProPaywall}
             activeOpacity={0.8}
-            disabled={audioStatus === 'loading'}
+            disabled={audioStatus === 'loading' || !isPro}
           >
             {audioStatus === 'playing' && <SoundWave playing />}
             <Text style={styles.listenBtnText}>{audioLabel}</Text>
@@ -357,33 +410,28 @@ export default function DailyBreadScreen({
             </View>
           )}
 
-          {(devotional.bibleVerse || devotional.verseReference) ? (
-            <View style={styles.verseBlock}>
-              <View style={styles.verseBorder} />
-              <View style={styles.verseInner}>
-                {devotional.bibleVerse ? <Text style={styles.verseText}>"{devotional.bibleVerse}"</Text> : null}
-                {devotional.verseReference ? <Text style={styles.verseRef}>— {devotional.verseReference}</Text> : null}
+          {isPro ? fullArticle : (
+            <View style={styles.lockedArticle}>
+              {previewContent ? <Text style={styles.bodyText}>{previewContent}</Text> : null}
+              <View style={styles.lockedArticleBody}>
+                <Text style={[styles.bodyText, styles.lockedArticleText]}>
+                  {remainingContent || (isEs ? 'Continúa leyendo para descubrir el resto de este devocional.' : 'Continue reading to discover the rest of this devotional.')}
+                </Text>
+                <View style={styles.lockedArticleVeil} pointerEvents="none">
+                  <Text style={styles.lockedArticleVeilText}>🔒 Pray Over Us Pro</Text>
+                </View>
               </View>
-            </View>
-          ) : null}
-
-          {devotional.content ? <Text style={styles.bodyText}>{devotional.content}</Text> : null}
-
-          {devotional.prayer ? (
-            <View style={styles.prayerSection}>
-              <Text style={styles.prayerLabel}>✝️ Today's Prayer</Text>
-              <Text style={styles.prayerText}>{devotional.prayer}</Text>
               <TouchableOpacity
-                style={[styles.copyBtn, prayerCopied && styles.copyBtnDone]}
-                onPress={handleCopyPrayer}
-                activeOpacity={0.8}
+                style={styles.proArticleButton}
+                onPress={onOpenProPaywall}
+                activeOpacity={0.85}
               >
-                <Text style={styles.copyBtnText}>
-                  {prayerCopied ? (lang === 'es' ? '✓ Copiado' : '✓ Copied to Clipboard') : (lang === 'es' ? '🙏 Copiar Oración' : '🙏 Copy Prayer')}
+                <Text style={styles.proArticleButtonText}>
+                  {isEs ? 'Leer el artículo completo con Pro' : 'Read Full Article with Pro'}
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : null}
+          )}
 
           {bannerAdProps?.isAvailable && bannerAdProps?.BannerAd && bannerAdProps?.adUnitId ? (
             <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 4 }}>
@@ -454,7 +502,7 @@ export default function DailyBreadScreen({
                 </View>
               ) : null}
               {pastDevotionals.map((item, i) => {
-                const locked = !archiveUnlocked && isOlderThan30Days(item.date);
+                const locked = false;
                 const selecting = archiveSelectionId === item.id;
                 return (
                   <TouchableOpacity
@@ -596,6 +644,41 @@ const styles = StyleSheet.create({
     fontSize: 20, fontFamily: SERIF, color: '#2d2a26',
     lineHeight: 32, marginBottom: 32,
   },
+  lockedArticle: { marginTop: 4 },
+  lockedArticleBody: {
+    position: 'relative',
+    minHeight: 150,
+    maxHeight: 190,
+    overflow: 'hidden',
+    borderRadius: 14,
+    backgroundColor: '#ebe8df',
+    marginBottom: 18,
+  },
+  lockedArticleText: {
+    margin: 0,
+    padding: 16,
+    opacity: 0.22,
+  },
+  lockedArticleVeil: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(249,247,242,0.68)',
+  },
+  lockedArticleVeilText: {
+    color: '#1e3a5f',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  proArticleButton: {
+    backgroundColor: '#1e40af',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  proArticleButtonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   prayerSection: { backgroundColor: '#EEF2F7', borderRadius: 14, padding: 20, marginBottom: 32 },
   prayerLabel: {
     fontSize: 13, fontWeight: '700', letterSpacing: 1.5, color: '#1e40af',

@@ -1,28 +1,16 @@
 /**
- * useIap unit tests
+ * RevenueCat Pro subscription contract.
  *
- * Covers the three IAP-path assertions from the hook-split smoke plan:
- *   1. getIapPrice returns correctly for a loaded product
- *   2. hasEntitlement / isThemeUnlocked reflect customerInfo correctly
- *   3. doIapPurchase finds the product, calls the SDK, updates state,
- *      and handles cancel / error without crashing
- *
- * Mock strategy: jest.mock factories are hoisted by babel ABOVE variable
- * declarations, so any outer `const mockPurchases = {...}` would be undefined
- * when the factory runs. Instead, we create jest.fn() instances INSIDE the
- * factory and retrieve references via require() in beforeAll.
+ * The app has one entitlement and reads the monthly package from the current
+ * offering. No feature-specific products or entitlements belong in this test.
  */
-
-// ── purchasesClient mock ──────────────────────────────────────────────────────
-// jest.mock is hoisted before any variable assignment, so jest.fn() instances
-// must be created inside the factory — NOT from an outer variable.
 jest.mock('../../services/purchasesClient', () => ({
   __esModule: true,
   client: {
-    getCustomerInfo:      jest.fn(),
-    getProducts:          jest.fn(),
-    purchaseStoreProduct: jest.fn(),
-    restorePurchases:     jest.fn(),
+    getCustomerInfo: jest.fn(),
+    getOfferings: jest.fn(),
+    purchasePackage: jest.fn(),
+    restorePurchases: jest.fn(),
   },
   isAvailable: true,
 }));
@@ -30,277 +18,157 @@ jest.mock('../../services/purchasesClient', () => ({
 jest.mock('../../AppModals', () => ({
   __esModule: true,
   showToast: jest.fn(),
-  showModal:  jest.fn(),
+  showModal: jest.fn(),
 }));
 
 import { renderHook, act } from '@testing-library/react-native';
-import {
-  useIap,
-  ENTITLEMENT_EXTENDED_PRAYER,
-  ENTITLEMENT_PREMIUM_THEMES,
-  PRODUCT_EXTENDED_PRAYER,
-  THEME_PRODUCTS,
-} from '../../hooks/useIap';
-
-// ── Shared mock references ────────────────────────────────────────────────────
-// Retrieved after module mock is applied so we get the same instances
-// that useIap.js imported.
+import { useIap, PRO_ENTITLEMENT } from '../../hooks/useIap';
 
 let mockClient;
 let mockShowModal;
 
 beforeAll(() => {
-  mockClient   = require('../../services/purchasesClient').client;
+  mockClient = require('../../services/purchasesClient').client;
   mockShowModal = require('../../AppModals').showModal;
 });
 
 beforeEach(() => jest.clearAllMocks());
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const makeCustomerInfo = (activeEntitlementKeys = []) => ({
+const makeCustomerInfo = (activeEntitlements = []) => ({
   entitlements: {
     active: Object.fromEntries(
-      activeEntitlementKeys.map(k => [k, { identifier: k }]),
+      activeEntitlements.map(identifier => [identifier, { identifier }]),
     ),
   },
 });
 
-const makeProduct = (identifier, priceString) => ({ identifier, priceString });
-
-// ── getIapPrice ───────────────────────────────────────────────────────────────
-
-describe('useIap — getIapPrice', () => {
-  it('returns the priceString when the product is in iapProducts', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
-    mockClient.getProducts.mockResolvedValue([
-      makeProduct(PRODUCT_EXTENDED_PRAYER, '$1.99'),
-    ]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.getIapPrice(PRODUCT_EXTENDED_PRAYER)).toBe('$1.99');
-  });
-
-  it('returns null before any products are loaded', () => {
-    const { result } = renderHook(() => useIap());
-    expect(result.current.getIapPrice(PRODUCT_EXTENDED_PRAYER)).toBeNull();
-  });
-
-  it('returns null when the loaded list does not include the queried id', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
-    mockClient.getProducts.mockResolvedValue([makeProduct('other_product', '$0.99')]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.getIapPrice(PRODUCT_EXTENDED_PRAYER)).toBeNull();
-  });
+const makePackage = (identifier = '$rc_monthly', priceString = '$9.99') => ({
+  identifier,
+  packageType: 'MONTHLY',
+  product: { identifier: 'pray_over_us_pro_monthly', priceString, title: 'Pray Over Us Pro' },
 });
 
-// ── hasEntitlement / isThemeUnlocked ─────────────────────────────────────────
-
-describe('useIap — hasEntitlement / isThemeUnlocked', () => {
-  it('hasEntitlement returns false when no customerInfo is loaded', () => {
-    const { result } = renderHook(() => useIap());
-    expect(result.current.hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER)).toBe(false);
-  });
-
-  it('hasEntitlement returns true after loading an active entitlement', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(
-      makeCustomerInfo([ENTITLEMENT_EXTENDED_PRAYER]),
-    );
-    mockClient.getProducts.mockResolvedValue([]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER)).toBe(true);
-    expect(result.current.iapExtendedPrayerUnlocked).toBe(true);
-  });
-
-  it('hasEntitlement returns false for a key that is not in the active set', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(
-      makeCustomerInfo([ENTITLEMENT_EXTENDED_PRAYER]),
-    );
-    mockClient.getProducts.mockResolvedValue([]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.hasEntitlement(ENTITLEMENT_PREMIUM_THEMES)).toBe(false);
-  });
-
-  it('isThemeUnlocked returns true with the legacy all-themes entitlement', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(
-      makeCustomerInfo([ENTITLEMENT_PREMIUM_THEMES]),
-    );
-    mockClient.getProducts.mockResolvedValue([]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.isThemeUnlocked('golden')).toBe(true);
-    expect(result.current.isThemeUnlocked('midnight')).toBe(true);
-    expect(result.current.iapThemesUnlocked).toBe(true);
-  });
-
-  it('isThemeUnlocked is true only for the purchased theme (per-theme entitlement)', async () => {
-    mockClient.getCustomerInfo.mockResolvedValue(
-      makeCustomerInfo([THEME_PRODUCTS.golden]),
-    );
-    mockClient.getProducts.mockResolvedValue([]);
-
-    const { result } = renderHook(() => useIap());
-
-    await act(async () => { await result.current.loadIapData(); });
-
-    expect(result.current.isThemeUnlocked('golden')).toBe(true);
-    expect(result.current.isThemeUnlocked('midnight')).toBe(false);
-    expect(result.current.isThemeUnlocked('rose')).toBe(false);
-  });
+const makeOfferings = (monthly = makePackage()) => ({
+  current: { identifier: 'default', availablePackages: monthly ? [monthly] : [] },
 });
 
-// ── loadIapData ───────────────────────────────────────────────────────────────
+async function loadDefault(result, customerInfo = makeCustomerInfo([]), monthly = makePackage()) {
+  mockClient.getCustomerInfo.mockResolvedValue(customerInfo);
+  mockClient.getOfferings.mockResolvedValue(makeOfferings(monthly));
+  await act(async () => { await result.current.loadIapData(); });
+}
 
-describe('useIap — loadIapData', () => {
-  it('calls getCustomerInfo and getProducts, then stores both results', async () => {
-    const expectedInfo     = makeCustomerInfo([ENTITLEMENT_EXTENDED_PRAYER]);
-    const expectedProducts = [makeProduct(PRODUCT_EXTENDED_PRAYER, '$1.99')];
-
-    mockClient.getCustomerInfo.mockResolvedValue(expectedInfo);
-    mockClient.getProducts.mockResolvedValue(expectedProducts);
-
+describe('useIap — Pro entitlement and offering', () => {
+  it('uses the exact active Pro entitlement for isPro', async () => {
     const { result } = renderHook(() => useIap());
+    expect(result.current.isPro).toBe(false);
 
-    await act(async () => { await result.current.loadIapData(); });
+    await loadDefault(result, makeCustomerInfo([PRO_ENTITLEMENT]));
+
+    expect(result.current.isPro).toBe(true);
+    expect(result.current.hasEntitlement(PRO_ENTITLEMENT)).toBe(true);
+    expect(result.current.proPackage.packageType).toBe('MONTHLY');
+  });
+
+  it('does not unlock Pro for a different entitlement name', async () => {
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result, makeCustomerInfo(['premium_themes']));
+
+    expect(result.current.isPro).toBe(false);
+    expect(result.current.hasEntitlement(PRO_ENTITLEMENT)).toBe(false);
+  });
+
+  it('loads the current offering and exposes the monthly package price', async () => {
+    const monthly = makePackage('$rc_monthly', '$9.99');
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result, makeCustomerInfo([]), monthly);
 
     expect(mockClient.getCustomerInfo).toHaveBeenCalledTimes(1);
-    expect(mockClient.getProducts).toHaveBeenCalledTimes(1);
-    expect(result.current.iapCustomerInfo).toEqual(expectedInfo);
-    expect(result.current.iapProducts).toEqual(expectedProducts);
+    expect(mockClient.getOfferings).toHaveBeenCalledTimes(1);
+    expect(result.current.iapOffering.identifier).toBe('default');
+    expect(result.current.getIapPrice()).toBe('$9.99');
+    expect(result.current.getIapPrice(monthly)).toBe('$9.99');
   });
 
-  it('does not crash when the SDK rejects', async () => {
-    mockClient.getCustomerInfo.mockRejectedValue(new Error('network error'));
-    mockClient.getProducts.mockRejectedValue(new Error('network error'));
-
+  it('opens one Pro paywall using the current monthly package', async () => {
     const { result } = renderHook(() => useIap());
+    await loadDefault(result);
 
-    await expect(
-      act(async () => { await result.current.loadIapData(); })
-    ).resolves.not.toThrow();
+    const onSuccess = jest.fn();
+    await act(async () => { await result.current.presentProPaywall(onSuccess); });
 
-    expect(result.current.iapCustomerInfo).toBeNull();
-    expect(result.current.iapProducts).toEqual([]);
+    expect(result.current.iapModal).toEqual(expect.objectContaining({
+      title: 'Pray Over Us Pro',
+      package: result.current.proPackage,
+      onSuccess,
+    }));
+  });
+
+  it('shows an unavailable message when the offering has no monthly package', async () => {
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result, makeCustomerInfo([]), null);
+
+    await act(async () => { await result.current.presentProPaywall(); });
+
+    expect(mockShowModal).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Pray Over Us Pro',
+      message: expect.stringContaining('temporarily unavailable'),
+    }));
   });
 });
 
-// ── doIapPurchase ─────────────────────────────────────────────────────────────
-
-describe('useIap — doIapPurchase', () => {
-  /** Pre-loads one product into the hook state. */
-  async function seedProduct(result, identifier = PRODUCT_EXTENDED_PRAYER, priceString = '$1.99') {
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
-    mockClient.getProducts.mockResolvedValue([makeProduct(identifier, priceString)]);
-    await act(async () => { await result.current.loadIapData(); });
-    jest.clearAllMocks(); // reset call counts so purchase-path assertions are clean
-  }
-
-  it('calls purchaseStoreProduct with the correct product object', async () => {
+describe('useIap — purchase and restore', () => {
+  it('purchases the selected monthly package and fires the success callback', async () => {
     const { result } = renderHook(() => useIap());
-    await seedProduct(result);
-
-    mockClient.purchaseStoreProduct.mockResolvedValue({
-      customerInfo: makeCustomerInfo([ENTITLEMENT_EXTENDED_PRAYER]),
-    });
-
-    await act(async () => {
-      await result.current.doIapPurchase(PRODUCT_EXTENDED_PRAYER, jest.fn());
-    });
-
-    expect(mockClient.purchaseStoreProduct).toHaveBeenCalledWith(
-      makeProduct(PRODUCT_EXTENDED_PRAYER, '$1.99'),
-    );
-  });
-
-  it('updates customerInfo, closes the modal, and fires onSuccess after purchase', async () => {
-    const { result } = renderHook(() => useIap());
-    await seedProduct(result);
-
-    const updatedInfo = makeCustomerInfo([ENTITLEMENT_EXTENDED_PRAYER]);
-    mockClient.purchaseStoreProduct.mockResolvedValue({ customerInfo: updatedInfo });
-
-    act(() => {
-      result.current.setIapModal({ productId: PRODUCT_EXTENDED_PRAYER, title: 'Extended Prayer' });
-    });
-    expect(result.current.iapModal).not.toBeNull();
-
+    await loadDefault(result);
+    const updatedInfo = makeCustomerInfo([PRO_ENTITLEMENT]);
+    mockClient.purchasePackage.mockResolvedValue({ customerInfo: updatedInfo });
     const onSuccess = jest.fn();
-    await act(async () => {
-      await result.current.doIapPurchase(PRODUCT_EXTENDED_PRAYER, onSuccess);
-    });
-
-    expect(result.current.iapModal).toBeNull();                   // modal dismissed
-    expect(onSuccess).toHaveBeenCalledTimes(1);                   // success callback fired
-    expect(result.current.iapExtendedPrayerUnlocked).toBe(true); // entitlement reflected
-    expect(result.current.iapPurchasing).toBe(false);            // not stuck in loading state
-  });
-
-  it('does not crash and leaves iapPurchasing=false when the user cancels', async () => {
-    const { result } = renderHook(() => useIap());
-    await seedProduct(result);
-
-    mockClient.purchaseStoreProduct.mockRejectedValue({ userCancelled: true });
 
     await act(async () => {
-      await result.current.doIapPurchase(PRODUCT_EXTENDED_PRAYER);
+      await result.current.doIapPurchase(result.current.proPackage, onSuccess);
     });
 
+    expect(mockClient.purchasePackage).toHaveBeenCalledWith(result.current.proPackage);
+    expect(result.current.isPro).toBe(true);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
     expect(result.current.iapPurchasing).toBe(false);
   });
 
-  it('shows a failure modal on a non-cancel SDK error', async () => {
+  it('does not show an error when the user cancels', async () => {
     const { result } = renderHook(() => useIap());
-    await seedProduct(result);
+    await loadDefault(result);
+    mockClient.purchasePackage.mockRejectedValue({ userCancelled: true });
 
-    mockClient.purchaseStoreProduct.mockRejectedValue(new Error('Payment declined'));
+    await act(async () => { await result.current.doIapPurchase(); });
 
-    await act(async () => {
-      await result.current.doIapPurchase(PRODUCT_EXTENDED_PRAYER);
-    });
-
-    expect(mockShowModal).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Purchase failed' }),
-    );
+    expect(mockShowModal).not.toHaveBeenCalled();
     expect(result.current.iapPurchasing).toBe(false);
   });
 
-  it('shows "Product not found" when no matching product is in iapProducts', async () => {
-    // loadIapData returns empty product list
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
-    mockClient.getProducts.mockResolvedValue([]);
-
+  it('shows a failure modal when RevenueCat rejects the purchase', async () => {
     const { result } = renderHook(() => useIap());
+    await loadDefault(result);
+    mockClient.purchasePackage.mockRejectedValue(new Error('Payment declined'));
 
-    await act(async () => { await result.current.loadIapData(); });
-    jest.clearAllMocks();
+    await act(async () => { await result.current.doIapPurchase(); });
 
-    await act(async () => {
-      await result.current.doIapPurchase(PRODUCT_EXTENDED_PRAYER);
-    });
+    expect(mockShowModal).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Purchase failed',
+      message: 'Payment declined',
+    }));
+    expect(result.current.iapPurchasing).toBe(false);
+  });
 
-    expect(mockShowModal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title:   'Purchase failed',
-        message: expect.stringContaining('Product not found'),
-      }),
-    );
+  it('restores purchases and updates the entitlement state', async () => {
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result);
+    mockClient.restorePurchases.mockResolvedValue(makeCustomerInfo([PRO_ENTITLEMENT]));
+
+    await act(async () => { await result.current.doIapRestore(); });
+
+    expect(mockClient.restorePurchases).toHaveBeenCalledTimes(1);
+    expect(result.current.isPro).toBe(true);
+    expect(result.current.iapPurchasing).toBe(false);
   });
 });

@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   REVIEW_STATE:        '@review_state',
   OPEN_DATES:          '@open_dates',
   DAILY_POST_TRACKER:  '@daily_post_tracker',
+  EXTENDED_PRAYER_PREF: '@extended_prayer_preference',
   ONBOARDING_DONE:     '@onboarding_done',
   // ARCHIVE_UNLOCKED is a per-session, ad-reward unlock — NOT a per-user IAP entitlement.
   // The user watches a rewarded ad; no server-side receipt is stored or checked.

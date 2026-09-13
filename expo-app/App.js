@@ -54,7 +54,7 @@ class AppErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform, Alert, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, AppRegistry, TouchableOpacity, TextInput, Modal, ActivityIndicator, RefreshControl, Animated, Linking, Image, Vibration, Share, Clipboard, Pressable, TouchableWithoutFeedback, PanResponder, KeyboardAvoidingView, Platform, Alert, BackHandler, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as StoreReview from 'expo-store-review';
 import { StatusBar } from 'expo-status-bar';
@@ -70,7 +70,7 @@ import GroupRosaryScreen from './GroupRosaryScreen';
 import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
 import { useAuth } from './hooks/useAuth';
 import { usePrayers } from './hooks/usePrayers';
-import { useIap, ENTITLEMENT_EXTENDED_PRAYER, ENTITLEMENT_PREMIUM_THEMES, PRODUCT_EXTENDED_PRAYER, THEME_PRODUCTS } from './hooks/useIap';
+import { useIap } from './hooks/useIap';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
@@ -272,10 +272,9 @@ function App() {
   // Destructure IAP hook
   const {
     rcAvailable,
-    iapCustomerInfo, iapProducts, iapPurchasing, iapModal, setIapModal,
-    iapExtendedPrayerUnlocked, iapThemesUnlocked,
-    hasEntitlement, isThemeUnlocked, getIapPrice,
-    loadIapData, doIapPurchase, doIapRestore,
+    iapCustomerInfo, iapProducts, iapOffering, proPackage, iapPurchasing, iapModal, setIapModal,
+    isPro, getIapPrice,
+    loadIapData, presentProPaywall, doIapPurchase, doIapRestore,
   } = iap;
 
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -316,7 +315,8 @@ function App() {
     ).start();
   }, []);
 
-  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false });
+  const [extendedPrayerPreference, setExtendedPrayerPreference] = useState(false);
+  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false, extended: false });
   const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
@@ -489,6 +489,14 @@ function App() {
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
+  const hasReachedDailyFreeLimit = !isPro && dailyPostCount >= 1;
+
+  useEffect(() => {
+    if (!isPro && premiumBgTheme !== null) {
+      setPremiumBgTheme(null);
+    }
+  }, [isPro, premiumBgTheme]);
+
   // Badge state
   const [userBadges, setUserBadges] = useState([]);
   const [badgeCelebration, setBadgeCelebration] = useState(null);
@@ -658,6 +666,18 @@ function App() {
 
   // Load IAP data on startup
   useEffect(() => { if (IS_TESTING) return; loadIapData(); loadDailyPostCount(); }, []);
+
+  // Keep the user's Deepen Prayer choice for the next request.
+  useEffect(() => {
+    if (IS_TESTING) return;
+    AsyncStorage.getItem(STORAGE_KEYS.EXTENDED_PRAYER_PREF)
+      .then(value => {
+        const enabled = value === 'true';
+        setExtendedPrayerPreference(enabled);
+        setNewPrayer(prev => ({ ...prev, extended: enabled }));
+      })
+      .catch(e => console.warn('[Prayer] preference load error:', e?.message));
+  }, []);
 
   // Load EULA acceptance and blocked users on startup
   useEffect(() => {
@@ -1677,6 +1697,7 @@ function App() {
       content: contentOverride ?? newPrayer.content,
       isPublic: newPrayer.isPublic,
       isSilent: !!newPrayer.isSilent,
+      extended: !!newPrayer.extended,
       author: currentUser?.firstName || 'You',
       userId: currentUser?.id,
       timestamp: new Date().toISOString(),
@@ -1690,7 +1711,7 @@ function App() {
       setPostSuccess(true);
       maybeRequestReview();
       setTimeout(() => {
-        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference });
         setPrayerImage(null);
         setShowTitleInput(false);
         setPostSuccess(false);
@@ -1702,7 +1723,7 @@ function App() {
       if (isNetworkError) {
         setPrayers([prayer, ...prayers]);
         if (newPrayer.isPublic) setCommunityPrayers([prayer, ...communityPrayers]);
-        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference });
         setPrayerImage(null);
         setShowTitleInput(false);
         showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
@@ -1733,16 +1754,8 @@ function App() {
 
   // Handle the daily-post gate, then submit the request.
   const proceedToPost = async (contentOverride) => {
-    if (dailyPostCountRef.current >= 1 && isAdMobAvailable) {
-      showModal({
-        icon: '📺',
-        title: 'Watch a Short Ad',
-        message: 'You\'ve already posted once today. Watch a quick ad to post another prayer request.',
-        buttons: [
-          { label: 'Watch Ad', onPress: () => showInterstitialAdWithCallback(() => doAddPrayer(contentOverride)) },
-          { label: 'Cancel', style: 'cancel' },
-        ],
-      });
+    if (!isPro && dailyPostCountRef.current >= 1) {
+      presentProPaywall();
       return;
     }
     await doAddPrayer(contentOverride);
@@ -1750,6 +1763,10 @@ function App() {
 
   const addPrayer = async () => {
     if (currentUser?.isGuest) { showGuestPrompt(); return; }
+    if (!isPro && dailyPostCountRef.current >= 1) {
+      presentProPaywall();
+      return;
+    }
     const text = newPrayer.content.trim();
     if (!text) {
       showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
@@ -1849,6 +1866,7 @@ function App() {
         formData.append('tz', timezone);
         formData.append('userId', currentUser?.id.toString());
         formData.append('sendEmail', prayer.isSilent ? 'false' : 'true');
+        formData.append('extended', prayer.extended ? 'true' : 'false');
         formData.append('idempotencyKey', idempotencyKey);
         formData.append('lang', userLang);
         if (!prayer.isPublic) formData.append('myChurchOnly', 'true');
@@ -1869,6 +1887,7 @@ function App() {
           tz: timezone,
           userId: currentUser?.id,
           sendEmail: prayer.isSilent ? "false" : "true",
+          extended: !!prayer.extended,
           idempotencyKey: idempotencyKey,
           lang: userLang,
           ...((!prayer.isPublic) && { myChurchOnly: true }),
@@ -2559,7 +2578,8 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
     setNewPrayer({
       title: prayer.title || '',
       content: prayer.content || '',
-      isPublic: prayer.isPublic !== false // Default to true if not specified
+      isPublic: prayer.isPublic !== false, // Default to true if not specified
+      extended: extendedPrayerPreference,
     });
     // Use 'picture' field (from API) - may need to construct full URL
     let existingImage = prayer.picture || null;
@@ -4686,7 +4706,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         // When editing, just go back without saving draft message
         setEditingPrayer(null);
         setOriginalPrayerImage(null);
-        setNewPrayer({ title: '', content: '', isPublic: true });
+        setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
         setPrayerImage(null);
         setShowTitleInput(false);
       } else if (hasContent) {
@@ -4706,7 +4726,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             label: 'Yes, Clear',
             style: 'destructive',
             onPress: () => {
-              setNewPrayer({ title: '', content: '', isPublic: true });
+              setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
               setPrayerImage(null);
               setShowTitleInput(false);
             }
@@ -4787,7 +4807,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             // Reset form and go back
             setEditingPrayer(null);
             setOriginalPrayerImage(null);
-            setNewPrayer({ title: '', content: '', isPublic: true });
+            setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
             setPrayerImage(null);
             setShowTitleInput(false);
             setCurrentScreen('home');
@@ -4956,23 +4976,94 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </Text>
               </TouchableOpacity>
             )}
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 18,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderRadius: 14,
+                backgroundColor: '#eff6ff',
+                borderWidth: 1,
+                borderColor: '#bfdbfe',
+              }}
+              onPress={() => {
+                if (!isPro) {
+                  presentProPaywall();
+                  return;
+                }
+                const next = !newPrayer.extended;
+                setNewPrayer(prev => ({ ...prev, extended: next }));
+                AsyncStorage.setItem(STORAGE_KEYS.EXTENDED_PRAYER_PREF, String(next)).catch(() => {});
+              }}
+              disabled={isPosting}
+              activeOpacity={0.8}
+            >
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
+                  Deepen Prayer (Extended Mode) {!isPro ? '🔒' : ''}
+                </Text>
+                <Text style={{ color: '#64748b', fontSize: 12, marginTop: 3, lineHeight: 17 }}>
+                  {isPro
+                    ? 'Create a longer, more detailed prayer for this request.'
+                    : 'Available with Pray Over Us Pro.'}
+                </Text>
+              </View>
+              <Switch
+                value={isPro && !!newPrayer.extended}
+                onValueChange={(next) => {
+                  if (!isPro) {
+                    presentProPaywall();
+                    return;
+                  }
+                  setNewPrayer(prev => ({ ...prev, extended: next }));
+                  AsyncStorage.setItem(STORAGE_KEYS.EXTENDED_PRAYER_PREF, String(next)).catch(() => {});
+                }}
+                disabled={!isPro || isPosting}
+                trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+                thumbColor={newPrayer.extended && isPro ? '#2563eb' : '#f8fafc'}
+              />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.npPostButtonContainer}>
+            {!isEditing && hasReachedDailyFreeLimit && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#fff7ed',
+                  borderColor: '#fed7aa',
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  padding: 14,
+                  marginBottom: 12,
+                }}
+                onPress={() => presentProPaywall()}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: '#9a3412', fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' }}>
+                  You've reached today's free request limit. Upgrade to Pro for unlimited daily posts.
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity 
               style={[
                 styles.npPostButton, 
-                (!newPrayer.content.trim() || isPosting || isCheckingContent) && styles.npPostButtonDisabled
+                (!newPrayer.content.trim() || isPosting || isCheckingContent || (!isEditing && hasReachedDailyFreeLimit)) && styles.npPostButtonDisabled
               ]}
               onPress={async () => {
                 if (isEditing) {
                   await handleUpdatePrayer();
+                } else if (hasReachedDailyFreeLimit) {
+                  presentProPaywall();
                 } else {
                   await addPrayer();
                   setCurrentScreen('home');
                 }
               }}
-              disabled={!newPrayer.content.trim() || isPosting || isCheckingContent}
+              disabled={!newPrayer.content.trim() || isPosting || isCheckingContent || (!isEditing && hasReachedDailyFreeLimit)}
             >
               {(!newPrayer.content.trim() || isPosting || isCheckingContent) ? (
                 isCheckingContent ? (
@@ -5054,6 +5145,36 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </LinearGradient>
       );
     }
+    if (!isPro) {
+      return (
+        <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <StatusBar style="light" />
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 52, left: 20, padding: 10 }}
+            onPress={() => setCurrentScreen('home')}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15 }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ fontSize: 64, marginBottom: 20 }}>🎧</Text>
+          <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 12 }}>
+            Prayer Walk is a Pro feature
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 28 }}>
+            Listen to guided prayer audio and automatically pray through community requests with Pray Over Us Pro.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#fbbf24', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 36, marginBottom: 16 }}
+            onPress={() => presentProPaywall()}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#1e1b4b', fontSize: 17, fontWeight: '800' }}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentScreen('home')}>
+            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14 }}>Not now</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      );
+    }
     return (
       <PrayerWalkScreen
         prayers={communityPrayers}
@@ -5116,7 +5237,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         archiveHasMore={archiveHasMore}
         archiveSelectionId={archiveSelectionId}
         bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
-        archiveUnlocked={archiveUnlocked || !isAdMobAvailable}
+        archiveUnlocked={isPro}
+        isPro={isPro}
+        onOpenProPaywall={presentProPaywall}
         userId={currentUser?.id}
         onNewBadge={showBadgeCelebration}
         lang={userLang}
@@ -5976,7 +6099,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </Text>
                 <TouchableOpacity
                   style={{ backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, opacity: iapPurchasing ? 0.6 : 1 }}
-                  onPress={() => doIapPurchase(iapModal?.productId)}
+                  onPress={() => doIapPurchase(iapModal?.package, iapModal?.onSuccess)}
                   disabled={iapPurchasing}
                   activeOpacity={0.85}
                 >
@@ -5984,7 +6107,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                     ? <ActivityIndicator color="#1e1b4b" />
                     : <Text style={{ color: '#1e1b4b', fontSize: 17, fontWeight: '800' }}>
                         {rcAvailable
-                          ? `Unlock — ${getIapPrice(iapModal?.productId) ?? '…'}`
+                          ? `Subscribe — ${getIapPrice(iapModal?.package) ?? '…'} / month`
                           : 'Coming Soon'}
                       </Text>
                   }
@@ -5994,7 +6117,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   disabled={iapPurchasing}
                   style={{ alignItems: 'center', paddingVertical: 10 }}
                 >
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Already purchased? Restore</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Already subscribed? Restore purchases</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setIapModal(null)}
@@ -6171,7 +6294,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   { key: 'forest',   label: '🌿 Forest',         color: '#166534' },
                   { key: 'midnight', label: '🌌 Midnight',       color: '#0f172a' },
                 ].map(theme => {
-                  const unlocked = theme.key === null || isThemeUnlocked(theme.key);
+                  const unlocked = theme.key === null || isPro;
                   const isActive = premiumBgTheme === theme.key;
                   return (
                     <TouchableOpacity
@@ -6186,17 +6309,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                           setShowPremiumThemePicker(false);
                         } else {
                           setShowPremiumThemePicker(false);
-                          const productId = THEME_PRODUCTS[theme.key];
-                          const price = getIapPrice(productId);
                           const selectedKey = theme.key;
-                          Alert.alert(
-                            `${theme.label}`,
-                            `Unlock this theme${price ? ` for ${price}` : ''} — yours forever across all your prayers.`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: `Unlock${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(productId, () => setPremiumBgTheme(selectedKey)) },
-                            ]
-                          );
+                          setPremiumBgTheme(null);
+                          presentProPaywall(() => setPremiumBgTheme(selectedKey));
                         }
                       }}
                       activeOpacity={0.7}
@@ -6264,18 +6379,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer && !!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
-                        const prayerId = prayerModal.prayer?.id;
-                        Alert.alert(
-                          '✨ Extended Prayer',
-                          `Generate a deeper, AI-crafted prayer for this request.`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: `Generate${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER, () => fetchExtendedPrayer(prayerId)) },
-                          ]
-                        );
-                      }}
+                      onPress={() => presentProPaywall(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >
@@ -6346,18 +6450,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   {!extendedPrayer && !!prayerModal.prayer?.user_id && prayerModal.prayer?.user_id?.toString() === currentUser?.id?.toString() ? (
                     <TouchableOpacity
                       style={[styles.unlockExtendedBtn, loadingExtendedPrayer && { opacity: 0.7 }]}
-                      onPress={() => {
-                        const price = getIapPrice(PRODUCT_EXTENDED_PRAYER);
-                        const prayerId = prayerModal.prayer?.id;
-                        Alert.alert(
-                          '✨ Extended Prayer',
-                          `Generate a deeper, AI-crafted prayer for this request.`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: `Generate${price ? ` — ${price}` : ''}`, onPress: () => doIapPurchase(PRODUCT_EXTENDED_PRAYER, () => fetchExtendedPrayer(prayerId)) },
-                          ]
-                        );
-                      }}
+                      onPress={() => presentProPaywall(() => fetchExtendedPrayer(prayerModal.prayer?.id))}
                       activeOpacity={0.8}
                       disabled={loadingExtendedPrayer}
                     >

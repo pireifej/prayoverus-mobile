@@ -5,9 +5,15 @@
  * down the rest of the app. SDK bootstrap lives in services/purchasesClient.js
  * so it can be mocked independently in tests.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { showToast, showModal } from '../AppModals';
 import { client as Purchases, isAvailable as rcAvailable } from '../services/purchasesClient';
+import {
+  getUserSessionToken,
+  setRevenueCatAppUserId as cacheRevenueCatAppUserId,
+} from '../services/userSession';
+import { apiGetProStatus } from '../services/api';
 
 // ── RevenueCat constants ─────────────────────────────────────────────────────
 
@@ -16,6 +22,7 @@ export const PRO_ENTITLEMENT = 'Pray Over Us Pro';
 const selectMonthlyPackage = (offering) => {
   const packages = offering?.availablePackages || [];
   return offering?.monthly
+    || packages.find(pkg => pkg.identifier === 'monthly' || pkg.product?.identifier === 'monthly')
     || packages.find(pkg => pkg.packageType === 'MONTHLY')
     || packages.find(pkg => /monthly/i.test(pkg.identifier || pkg.product?.identifier || ''))
     || null;
@@ -28,6 +35,8 @@ export function useIap() {
   const [iapProducts, setIapProducts]         = useState([]);
   const [iapOffering, setIapOffering]         = useState(null);
   const [proPackage, setProPackage]           = useState(null);
+  const [revenuecatAppUserId, setRevenuecatAppUserId] = useState(null);
+  const [iapLoading, setIapLoading]           = useState(false);
   const [iapPurchasing, setIapPurchasing]     = useState(false);
   const [iapModal, setIapModal]               = useState(null);
 
@@ -52,6 +61,7 @@ export function useIap() {
 
   const loadIapData = async () => {
     if (!rcAvailable || !Purchases) return null;
+    setIapLoading(true);
     try {
       const [info, offerings] = await Promise.all([
         Purchases.getCustomerInfo(),
@@ -59,18 +69,78 @@ export function useIap() {
           ? Purchases.getOfferings()
           : Promise.resolve({ current: null }),
       ]);
-      const offering = offerings?.current || null;
+      const offering = offerings?.current?.identifier === 'default'
+        ? offerings.current
+        : offerings?.all?.default || offerings?.current || null;
       const monthly = selectMonthlyPackage(offering);
+      const appUserId = await Purchases.getAppUserID?.();
       setIapCustomerInfo(info);
       setIapOffering(offering);
       setProPackage(monthly);
+      setRevenuecatAppUserId(appUserId || null);
+      cacheRevenueCatAppUserId(appUserId || null);
       setIapProducts((offering?.availablePackages || []).map(pkg => pkg.product).filter(Boolean));
-      return { info, offering, proPackage: monthly };
+      return { info, offering, proPackage: monthly, revenuecatAppUserId: appUserId || null };
     } catch (e) {
       console.warn('[IAP] load error:', e?.message);
       return null;
+    } finally {
+      setIapLoading(false);
     }
   };
+
+  const identifyRevenueCatUser = async (userId) => {
+    if (!rcAvailable || !Purchases || !userId) return null;
+    try {
+      const result = await Purchases.logIn?.(String(userId));
+      const info = result?.customerInfo || result;
+      const appUserId = await Purchases.getAppUserID?.();
+      if (info?.entitlements) setIapCustomerInfo(info);
+      setRevenuecatAppUserId(appUserId || null);
+      cacheRevenueCatAppUserId(appUserId || null);
+      return info || null;
+    } catch (e) {
+      console.warn('[IAP] RevenueCat user identification failed:', e?.message);
+      return null;
+    }
+  };
+
+  const resetRevenueCatUser = async () => {
+    if (!rcAvailable || !Purchases) return;
+    try {
+      await Purchases.logOut?.();
+    } catch (e) {
+      console.warn('[IAP] RevenueCat logout failed:', e?.message);
+    } finally {
+      setIapCustomerInfo(null);
+      setRevenuecatAppUserId(null);
+      cacheRevenueCatAppUserId(null);
+    }
+  };
+
+  const refreshProStatus = async () => {
+    const appUserId = revenuecatAppUserId || await Purchases?.getAppUserID?.();
+    if (!appUserId || !(await getUserSessionToken())) return null;
+    try {
+      return await apiGetProStatus({ revenuecatAppUserId: appUserId });
+    } catch (e) {
+      // The client-side entitlement remains RevenueCat's source of truth.
+      if (e?.code !== 'PRO_REQUIRED') {
+        console.warn('[IAP] backend Pro status refresh failed:', e?.message);
+      }
+      return null;
+    }
+  };
+
+  const loadIapDataRef = useRef(loadIapData);
+  loadIapDataRef.current = loadIapData;
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') loadIapDataRef.current?.();
+    });
+    return () => subscription?.remove();
+  }, []);
 
   const presentProPaywall = async (onSuccess) => {
     let monthly = proPackage;
@@ -112,6 +182,8 @@ export function useIap() {
       if (!packageToPurchase) throw new Error('Pro subscription not found — check your RevenueCat offering setup.');
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
       setIapCustomerInfo(customerInfo);
+      await loadIapData();
+      await refreshProStatus();
       setIapModal(null);
       const callback = onSuccess || iapModal?.onSuccess;
       if (callback) {
@@ -134,6 +206,8 @@ export function useIap() {
     try {
       const info = await Purchases.restorePurchases();
       setIapCustomerInfo(info);
+      await loadIapData();
+      await refreshProStatus();
       showToast('Your purchases have been restored.', '✅');
       setIapModal(null);
     } catch (e) {
@@ -152,7 +226,9 @@ export function useIap() {
     setIapProducts,
     iapOffering,
     proPackage,
+    revenuecatAppUserId,
     iapPurchasing,
+    iapLoading,
     iapModal,
     setIapModal,
     // computed
@@ -161,6 +237,9 @@ export function useIap() {
     hasEntitlement,
     getIapPrice,
     loadIapData,
+    identifyRevenueCatUser,
+    resetRevenueCatUser,
+    refreshProStatus,
     presentProPaywall,
     doIapPurchase,
     doIapRestore,

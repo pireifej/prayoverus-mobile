@@ -122,6 +122,7 @@ describe('useIap — purchase and restore', () => {
     const { result } = renderHook(() => useIap());
     await loadDefault(result);
     const updatedInfo = makeCustomerInfo([PRO_ENTITLEMENT]);
+    mockClient.getCustomerInfo.mockResolvedValue(updatedInfo);
     mockClient.purchasePackage.mockResolvedValue({ customerInfo: updatedInfo });
     const onSuccess = jest.fn();
 
@@ -163,7 +164,9 @@ describe('useIap — purchase and restore', () => {
   it('restores purchases and updates the entitlement state', async () => {
     const { result } = renderHook(() => useIap());
     await loadDefault(result);
-    mockClient.restorePurchases.mockResolvedValue(makeCustomerInfo([PRO_ENTITLEMENT]));
+    const restoredInfo = makeCustomerInfo([PRO_ENTITLEMENT]);
+    mockClient.getCustomerInfo.mockResolvedValue(restoredInfo);
+    mockClient.restorePurchases.mockResolvedValue(restoredInfo);
 
     await act(async () => { await result.current.doIapRestore(); });
 

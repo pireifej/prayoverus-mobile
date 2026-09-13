@@ -1,3 +1,9 @@
+import {
+  getUserSessionToken,
+  getRevenueCatAppUserId,
+} from './userSession';
+import { client as Purchases } from './purchasesClient';
+
 // ─── API Configuration ────────────────────────────────────────────────────────
 export const API_BASE = 'https://shouldcallpaul.replit.app';
 
@@ -7,21 +13,111 @@ export const API_BASE = 'https://shouldcallpaul.replit.app';
 // Never hardcode credentials here — the bundle is recoverable from the IPA/APK.
 const AUTH_CREDENTIALS = process.env.EXPO_PUBLIC_API_AUTH ?? '';
 
-export const apiHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  'Authorization': 'Basic ' + AUTH_CREDENTIALS,
-});
+let authFailureHandler = null;
+let accessFailureHandler = null;
+
+export class ApiError extends Error {
+  constructor(message, { status, code, response } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.response = response;
+  }
+}
+
+export const setApiAuthFailureHandler = (handler) => {
+  authFailureHandler = typeof handler === 'function' ? handler : null;
+  return () => { authFailureHandler = null; };
+};
+
+export const setApiAccessFailureHandler = (handler) => {
+  accessFailureHandler = typeof handler === 'function' ? handler : null;
+  return () => { accessFailureHandler = null; };
+};
+
+const notifyAuthFailure = (error) => {
+  if (
+    error.status === 401
+    || error.code === 'USER_SESSION_REQUIRED'
+    || error.code === 'USER_ID_MISMATCH'
+  ) {
+    authFailureHandler?.(error);
+  }
+  if (error.code === 'PRO_REQUIRED' || error.code === 'DAILY_LIMIT_REACHED') {
+    accessFailureHandler?.(error);
+  }
+};
+
+export const apiHeaders = async ({ json = true } = {}) => {
+  const headers = {
+    'Accept': 'application/json',
+    'Authorization': 'Basic ' + AUTH_CREDENTIALS,
+  };
+  if (json) headers['Content-Type'] = 'application/json';
+  const sessionToken = await getUserSessionToken();
+  if (sessionToken) headers['x-user-session-token'] = sessionToken;
+  return headers;
+};
+
+const currentRevenueCatAppUserId = async () => {
+  const cached = getRevenueCatAppUserId();
+  if (cached) return cached;
+  try {
+    const appUserId = await Purchases?.getAppUserID?.();
+    return appUserId || null;
+  } catch (_) {
+    return null;
+  }
+};
 
 // ─── Generic helpers ──────────────────────────────────────────────────────────
 const post = async (path, body) => {
+  const revenuecatAppUserId = await currentRevenueCatAppUserId();
+  const requestBody = body && typeof body === 'object' && !Array.isArray(body)
+    ? { ...body, ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}) }
+    : body;
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify(body),
+    headers: await apiHeaders(),
+    body: JSON.stringify(requestBody),
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
-  return res.json();
+  let response;
+  try { response = await res.json(); } catch (_) { response = null; }
+  if (!res.ok) {
+    const code = response?.error?.code || response?.error || response?.code;
+    const error = new ApiError(
+      response?.message || response?.error?.message || `API error ${res.status} on ${path}`,
+      { status: res.status, code, response },
+    );
+    notifyAuthFailure(error);
+    throw error;
+  }
+  return response;
+};
+
+const readErrorResponse = async (res, path) => {
+  let response;
+  try { response = await res.json(); } catch (_) { response = null; }
+  const code = response?.error?.code || response?.error || response?.code;
+  const error = new ApiError(
+    response?.message || response?.error?.message || `API error ${res.status} on ${path}`,
+    { status: res.status, code, response },
+  );
+  notifyAuthFailure(error);
+  throw error;
+};
+
+const fetchWithApi = async (path, options = {}) => {
+  const { headers: extraHeaders = {}, body, ...rest } = options;
+  const isJson = typeof body === 'string' || body == null;
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...rest,
+    headers: { ...(await apiHeaders({ json: isJson })), ...extraHeaders },
+    ...(body !== undefined ? { body } : {}),
+  });
+  if (!res.ok) await readErrorResponse(res, path);
+  return res;
 };
 
 
@@ -31,6 +127,7 @@ export const apiResetPassword        = (token, newPassword)     => post('/resetP
 export const apiGoogleToken          = (code, codeVerifier, redirectUri) =>
   post('/auth/google/token', { code, codeVerifier: codeVerifier || undefined, redirectUri });
 export const apiGoogleLogin          = (payload)                => post('/googleLogin',           payload);
+export const apiSocialLogin          = (payload)                => post('/socialLogin',           payload);
 export const apiCreateUser           = (payload)                => post('/createUser',            payload);
 export const apiGetRequestById       = (requestId, userId, tz, lang) =>
   post('/getRequestById', { requestId, userId, tz, lang });
@@ -63,20 +160,14 @@ export const apiGetDetailedPrayer = (requestId, lang) =>
 // ─── Community / Churches ────────────────────────────────────────────────────
 export const apiGetCommunityWall   = (payload) => post('/getCommunityWall',   payload);
 export const apiGetAllChurches     = () =>
-  fetch(`${API_BASE}/getAllChurches`, {
-    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
-  }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
+  fetchWithApi('/getAllChurches').then(r => r.json());
 export const apiGetUsersByChurch   = (churchId) => post('/getUsersByChurch',  { churchId });
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 export const apiGetBadgeDefinitions = () =>
-  fetch(`${API_BASE}/getBadgeDefinitions`, {
-    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
-  }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
+  fetchWithApi('/getBadgeDefinitions').then(r => r.json());
 export const apiGetUserBadges = (userId) =>
-  fetch(`${API_BASE}/getUserBadges?userId=${userId}`, {
-    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
-  }).then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
+  fetchWithApi(`/getUserBadges?userId=${userId}`).then(r => r.json());
 
 // ─── Daily Devotional ─────────────────────────────────────────────────────────
 export const apiGetDailyDevotional = (lang) => post('/getDailyDevotional', { lang });
@@ -93,23 +184,25 @@ export const apiReadDailyBread = (userId, devotionalId) =>
 // Returns the raw Response so callers can call .blob() for binary audio data.
 // Caller MUST check res.ok before consuming the body.
 export const apiGetDailyBreadAudio = async (payload) => {
-  const res = await fetch(`${API_BASE}/getDailyBreadAudio`, {
+  const revenuecatAppUserId = await currentRevenueCatAppUserId();
+  const res = await fetchWithApi('/getDailyBreadAudio', {
     method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}),
+    }),
   });
-  if (!res.ok) throw new Error(`Audio API error ${res.status} on /getDailyBreadAudio`);
   return res;
 };
 
 // ─── App Version ─────────────────────────────────────────────────────────────
 export const apiGetAppVersion = () =>
-  fetch(`${API_BASE}/api/app-version`, { headers: apiHeaders() })
-    .then(r => { if (!r.ok) throw new Error(`API error ${r.status}`); return r.json(); });
+  fetchWithApi('/api/app-version').then(r => r.json());
 
 // ─── Auth endpoints (used from UserAuth.js) ───────────────────────────────────
 export const apiLogin = (email, password) => post('/login', { email, password });
 export const apiAppleLogin = (payload) => post('/appleLogin', payload);
+export const apiGetProStatus = (payload = {}) => post('/api/subscriptions/pro-status', payload);
 
 // ─── Push Notifications ──────────────────────────────────────────────────────
 export const apiRegisterFCMToken = (userId, fcmToken) =>
@@ -119,12 +212,15 @@ export const apiRegisterFCMToken = (userId, fcmToken) =>
 // Returns raw Response so callers can call .blob() for binary audio data.
 // Caller MUST check res.ok before consuming the body.
 export const apiGetPrayerAudio = async (requestId, text) => {
-  const res = await fetch(`${API_BASE}/getPrayerAudio`, {
+  const revenuecatAppUserId = await currentRevenueCatAppUserId();
+  const res = await fetchWithApi('/getPrayerAudio', {
     method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify({ requestId, text }),
+    body: JSON.stringify({
+      requestId,
+      text,
+      ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}),
+    }),
   });
-  if (!res.ok) throw new Error(`Audio API error ${res.status} on /getPrayerAudio`);
   return res;
 };
 
@@ -133,51 +229,38 @@ export const apiSubmitHelp = (payload) => post('/contact', payload);
 
 // ─── Content Check (supports optional AbortController signal for timeout) ────
 export const apiCheckContent = async (payload, signal) => {
-  const res = await fetch(`${API_BASE}/checkPrayerContent`, {
+  const res = await fetchWithApi('/checkPrayerContent', {
     method: 'POST',
-    headers: apiHeaders(),
     body: JSON.stringify(payload),
     ...(signal ? { signal } : {}),
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on /checkPrayerContent`);
   return res.json();
 };
 
 // ─── Profile Picture ─────────────────────────────────────────────────────────
 export const apiUploadProfilePicture = async (formData) => {
-  const res = await fetch(`${API_BASE}/uploadProfilePicture`, {
+  const res = await fetchWithApi('/uploadProfilePicture', {
     method: 'POST',
-    headers: { 'Authorization': 'Basic ' + AUTH_CREDENTIALS },
     body: formData,
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on /uploadProfilePicture`);
   return res.json();
 };
 
 // ─── Multipart Prayer Create (with image) ────────────────────────────────────
 export const apiCreatePrayerWithImage = async (formData, idempotencyKey) => {
-  const res = await fetch(`${API_BASE}/createRequestAndPrayer`, {
+  const res = await fetchWithApi('/createRequestAndPrayer', {
     method: 'POST',
-    headers: {
-      'Authorization': 'Basic ' + AUTH_CREDENTIALS,
-      ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
-    },
+    headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {},
     body: formData,
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on /createRequestAndPrayer`);
   return res.json();
 };
 
 // ─── Multipart Prayer Edit (with image) ──────────────────────────────────────
 export const apiEditPrayerWithImage = async (formData) => {
-  const res = await fetch(`${API_BASE}/editRequest`, {
+  const res = await fetchWithApi('/editRequest', {
     method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': 'Basic ' + AUTH_CREDENTIALS,
-    },
     body: formData,
   });
-  if (!res.ok) throw new Error(`API error ${res.status} on /editRequest`);
   return res.json();
 };

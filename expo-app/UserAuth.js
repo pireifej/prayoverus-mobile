@@ -25,8 +25,10 @@ import {
   apiResetPassword,
   apiGoogleToken,
   apiGoogleLogin,
+  apiSocialLogin,
   apiCreateUser,
 } from './services/api';
+import { extractUserSessionToken } from './services/userSession';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -298,6 +300,9 @@ export function ResetPasswordScreen({ token, onSuccess, onAutoLogin, resetEmail 
                 faith_rank: u.faith_rank || null,
                 prayer_count: parseInt(u.prayer_count, 10) || 0,
                 request_count: parseInt(u.request_count, 10) || 0,
+                auth_provider: u.auth_provider || 'email',
+                has_password: u.has_password ?? true,
+                user_session_token: extractUserSessionToken(loginData),
               });
               return; // skip the alert — user is straight in the app
             }
@@ -561,20 +566,13 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       }
       // Exchange code via server-side proxy so client_secret stays off the device
       const userInfo = await apiGoogleToken(code, codeVerifier, googleRedirectUri);
-      if (userInfo.error) {
+      const providerAccessToken = userInfo?.access_token || userInfo?.accessToken;
+      if (userInfo?.error || !providerAccessToken) {
         setLoginError('Google sign-in failed. Please try again.');
         return;
       }
-      if (!userInfo.email) {
-        setLoginError('Could not get email from Google. Please try again.');
-        return;
-      }
       const data = await apiGoogleLogin({
-        email: userInfo.email,
-        google_id: userInfo.id,
-        first_name: userInfo.given_name || '',
-        last_name: userInfo.family_name || '',
-        picture: userInfo.picture || '',
+        access_token: providerAccessToken,
       });
       if (data.error === 0 && data.result?.length > 0) {
         const u = data.result[0];
@@ -589,6 +587,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           request_count: parseInt(u.request_count, 10) || 0,
           auth_provider: 'google',
           has_password: u.has_password ?? false,
+          user_session_token: extractUserSessionToken(data),
         });
       } else {
         setLoginError(data.result || 'Google sign-in failed. Please try again.');
@@ -638,6 +637,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           request_count: parseInt(u.request_count, 10) || 0,
           auth_provider: 'apple',
           has_password: u.has_password ?? false,
+          user_session_token: extractUserSessionToken(data),
         });
       } else {
         setLoginError(data.result || 'Apple Sign-In failed. Please try again.');
@@ -824,22 +824,12 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
     setLoading(true);
     
     try {
-      // Get user info from Facebook Graph API
-      const graphResponse = await fetch(
-        `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
-      );
-      const userData = await graphResponse.json();
-      
-      if (!userData.email) {
-        Alert.alert('Error', 'Could not get email from Facebook. Please use email login instead.');
-        setLoading(false);
-        return;
-      }
-
-      // Try to login with Facebook email
-      const data = await apiLogin(userData.email, `fb_${userData.id}`);
+      if (!accessToken) throw new Error('Facebook did not return an access token.');
+      const data = await apiSocialLogin({
+        provider: 'facebook',
+        access_token: accessToken,
+      });
       if (data.error === 0 && data.result && data.result.length > 0) {
-        // User exists, log them in
         const user = data.result[0];
         const userDataFormatted = {
           id: user.user_id,
@@ -859,11 +849,11 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           request_count: parseInt(user.request_count, 10) || 0,
           auth_provider: user.auth_provider || 'facebook',
           has_password: user.has_password ?? false,
+          user_session_token: extractUserSessionToken(data),
         };
         onLogin(userDataFormatted);
       } else {
-        // User doesn't exist, create account
-        await createFacebookAccount(userData, accessToken);
+        setLoginError(data.result || data.message || 'Facebook sign-in failed. Please try again.');
       }
       
     } catch (error) {
@@ -873,45 +863,6 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
       Alert.alert('Error', 'Failed to login with Facebook. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const createFacebookAccount = async (facebookData, accessToken) => {
-    try {
-      const nameParts = (facebookData.name || '').split(' ');
-      const firstName = nameParts[0] || 'User';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-      
-      const data = await apiCreateUser({
-        email: facebookData.email,
-        password: `fb_${facebookData.id}`,
-        firstName,
-        lastName,
-        gender: null,
-        placeId: "ChIJo05dXN_Mw4kR0opDnOf0g-Q",
-        phone: null,
-        picture: 'defaultUser.png',
-        command: "createUser",
-        jsonpCallback: "afterCreateUser",
-        tz: timezone,
-        env: "prod",
-      });
-      if (data.error === 0) {
-        Alert.alert('Success', 'Account created! Logging you in...', [
-          { text: 'OK', onPress: () => handleFacebookLogin(accessToken) }
-        ]);
-      } else {
-        const errorMessage = data.result || data.message || 'Failed to create account';
-        Alert.alert('Error', errorMessage);
-      }
-      
-    } catch (error) {
-      // Do not log the full error object — request body includes a derived
-      // password (fb_<id>) that crash reporters must not capture.
-      if (__DEV__) console.log('Create Facebook account error:', error.message);
-      Alert.alert('Error', 'Failed to create account. Please try email signup instead.');
     }
   };
 
@@ -998,6 +949,7 @@ export function LoginScreen({ onLogin, onForgotPassword, appBuild, resetSuccess,
           request_count: parseInt(user.request_count, 10) || 0,
           auth_provider: user.auth_provider || 'email',
           has_password: user.has_password ?? true,
+          user_session_token: extractUserSessionToken(data),
         };
         if (rememberMe) {
           try {

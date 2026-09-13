@@ -112,6 +112,8 @@ import {
   apiCreatePrayer,
   apiCreatePrayerWithImage,
   apiEditPrayerWithImage,
+  setApiAuthFailureHandler,
+  setApiAccessFailureHandler,
 } from './services/api';
 import {
   normalizeDailyBread,
@@ -272,9 +274,10 @@ function App() {
   // Destructure IAP hook
   const {
     rcAvailable,
-    iapCustomerInfo, iapProducts, iapOffering, proPackage, iapPurchasing, iapModal, setIapModal,
+    iapCustomerInfo, iapProducts, iapOffering, proPackage, iapPurchasing, iapLoading, iapModal, setIapModal,
     isPro, getIapPrice,
-    loadIapData, presentProPaywall, doIapPurchase, doIapRestore,
+    loadIapData, identifyRevenueCatUser, resetRevenueCatUser, refreshProStatus,
+    presentProPaywall, doIapPurchase, doIapRestore,
   } = iap;
 
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -313,6 +316,22 @@ function App() {
         Animated.timing(prayerHandsPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
       ])
     ).start();
+  }, []);
+
+  useEffect(() => {
+    const unregister = setApiAccessFailureHandler?.((error) => {
+      if (error.code === 'DAILY_LIMIT_REACHED') {
+        showModal({
+          icon: '✨',
+          title: 'Daily free limit reached',
+          message: error.message || 'Free tier is limited to 1 request per day. Upgrade to Pro for unlimited requests.',
+          buttons: [{ label: 'Upgrade to Pro', onPress: () => presentProPaywall() }],
+        });
+      } else {
+        presentProPaywall();
+      }
+    });
+    return unregister;
   }, []);
 
   const [extendedPrayerPreference, setExtendedPrayerPreference] = useState(false);
@@ -1562,6 +1581,7 @@ function App() {
   const goToRegister = () => { setAuthInitMode('register'); setCurrentUser(null); };
 
   const handleGuestMode = () => {
+    resetRevenueCatUser();
     setCurrentUser({ id: 'guest', isGuest: true, firstName: 'Guest', lastName: '', email: '', avatar_emoji: '🕊️' });
     setCurrentScreen('home');
   };
@@ -1581,9 +1601,25 @@ function App() {
   // handleLogin — thin wrapper; auth/storage/notification setup lives in hooks/useAuth.js
   const handleLogin = async (userData) => {
     await _authHandleLogin(userData);
+    if (!userData?.isGuest && userData?.id) {
+      await identifyRevenueCatUser(userData.id);
+      await loadIapData();
+      await refreshProStatus();
+    }
     setShowMyRequestsOnly(false);
     setCurrentScreen('home');
   };
+
+  // Re-check the backend subscription record after a cached login is restored.
+  useEffect(() => {
+    if (IS_TESTING || !currentUser || currentUser.isGuest) return undefined;
+    let cancelled = false;
+    (async () => {
+      await loadIapData();
+      if (!cancelled) await refreshProStatus();
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id]);
 
   // Report a prayer/content — confirms first, then removes from local feed and notifies backend
   const handleReportContent = (prayer) => {
@@ -1630,6 +1666,7 @@ function App() {
 
   // handleLogout — thin wrapper; auth/storage/notification cleanup lives in hooks/useAuth.js
   const handleLogout = () => {
+    resetRevenueCatUser();
     _authHandleLogout({
       onBeforeLogout: () => {
         setAuthScreen('login');
@@ -1644,6 +1681,29 @@ function App() {
       },
     });
   };
+
+  // A signed session failure must never leave the app showing another
+  // account's cached data or subscription UI.
+  const apiAuthFailureHandledRef = useRef(false);
+  useEffect(() => {
+    const unregister = setApiAuthFailureHandler?.((error) => {
+      if (apiAuthFailureHandledRef.current) return;
+      apiAuthFailureHandledRef.current = true;
+      handleLogout();
+      showModal({
+        icon: '🔐',
+        title: 'Please sign in again',
+        message: error.code === 'USER_ID_MISMATCH'
+          ? 'Your secure session no longer matches this account. Please sign in again.'
+          : 'Your secure session has expired. Please sign in again to continue.',
+        buttons: [{
+          label: 'OK',
+          onPress: () => { apiAuthFailureHandledRef.current = false; },
+        }],
+      });
+    });
+    return unregister;
+  }, []);
 
   // Open any user's public profile from anywhere in the app
   const openUserProfile = (person) => {

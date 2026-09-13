@@ -10,6 +10,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from '../NotificationService';
 import { storage, STORAGE_KEYS } from '../utils/storage';
 import { apiGetUser } from '../services/api';
+import {
+  clearUserSessionToken,
+  getUserSessionToken,
+  setUserSessionToken,
+} from '../services/userSession';
 
 export function useAuth() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -48,6 +53,7 @@ export function useAuth() {
         // The in-memory archiveUnlocked state is reset by App.js's onBeforeLogout callback.
         STORAGE_KEYS.ARCHIVE_UNLOCKED,
       ]);
+      await clearUserSessionToken();
     } catch (error) {
       console.warn('[Storage] Error clearing user data on logout:', error.message);
     }
@@ -58,6 +64,9 @@ export function useAuth() {
   const checkStoredAuth = async () => {
     console.log('[Boot] Reading cached session...');
     try {
+      // Hydrate the Keychain/Keystore-backed token before any background
+      // profile or feature request can run.
+      await getUserSessionToken();
       const userData = await storage.getItem(STORAGE_KEYS.USER_SESSION);
       if (userData) {
         let parsedUserData;
@@ -135,6 +144,16 @@ export function useAuth() {
   // ── Auth actions ────────────────────────────────────────────────────────────
 
   const handleLogin = async (userData) => {
+    if (currentUser?.id && userData?.id && String(currentUser.id) !== String(userData.id)) {
+      await clearUserFromStorage();
+    }
+    const sessionToken = userData?.user_session_token;
+    if (sessionToken) {
+      await setUserSessionToken(sessionToken);
+    } else {
+      // Never let a previous account's signed session authenticate this one.
+      await clearUserSessionToken();
+    }
     setCurrentUser(userData);
     await saveUserToStorage(userData);
 

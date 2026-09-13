@@ -2,13 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
 
-// Entitlement identifiers — must match what was seeded in RevenueCat
-export const ENTITLEMENT_EXTENDED_PRAYER = 'extended_prayer';
-export const ENTITLEMENT_PREMIUM_THEMES   = 'premium_themes';
-
-// Offering keys — one per purchasable feature
-export const OFFERING_EXTENDED_PRAYER = 'extended_prayer_offering';
-export const OFFERING_PREMIUM_THEMES   = 'premium_themes_offering';
+// The app has one RevenueCat entitlement and one current offering.
+export const PRO_ENTITLEMENT = 'Pray Over Us Pro';
+export const OFFERING_DEFAULT = 'default';
 
 const TEST_KEY     = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 const IOS_KEY      = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
@@ -63,7 +59,7 @@ function useSubscriptionContext() {
   const purchase = async (offeringKey) => {
     setIsPurchasing(true);
     try {
-      const offering = offerings?.all?.[offeringKey];
+      const offering = offerings?.all?.[offeringKey || OFFERING_DEFAULT] || offerings?.current;
       if (!offering) throw new Error(`Offering "${offeringKey}" not found`);
       const pkg = offering.availablePackages[0];
       if (!pkg) throw new Error('No package available in offering');
@@ -87,7 +83,7 @@ function useSubscriptionContext() {
   };
 
   const getPriceString = (offeringKey) => {
-    const offering = offerings?.all?.[offeringKey];
+    const offering = offerings?.all?.[offeringKey || OFFERING_DEFAULT] || offerings?.current;
     const pkg = offering?.availablePackages?.[0];
     return pkg?.product?.priceString ?? null;
   };
@@ -101,8 +97,7 @@ function useSubscriptionContext() {
     purchase,
     restore,
     getPriceString,
-    hasExtendedPrayer: hasEntitlement(ENTITLEMENT_EXTENDED_PRAYER),
-    hasPremiumThemes:  hasEntitlement(ENTITLEMENT_PREMIUM_THEMES),
+    isPro: hasEntitlement(PRO_ENTITLEMENT),
   };
 }
 

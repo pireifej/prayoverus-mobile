@@ -13,3 +13,4 @@
 - [React Native archive sheets](react-native-archive-sheets.md) — a flex ScrollView can collapse inside a bottom sheet with only maxHeight; give the sheet an explicit height
 - [RevenueCat Pro entitlement](revenuecat-pro-entitlement.md) — all paid features share one entitlement and the live monthly package from the current offering
 - [Signed backend session tokens](signed-session-token.md) — secure-store the token, preserve Basic auth, and clear it on logout or account switching
+- [Google Play connector routing](google-play-connector-routing.md) — the connected proxy may target the wrong host for Android Publisher API calls

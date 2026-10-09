@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "WeTdbrjHmSTxvj4iS_6jD"
+uri = "file://expo-app/assets/icon.png"
+type = "image"
+title = "Pray Over Us Pro subscription icon"
+description = "Existing app icon; 1024 × 1024 px, RGBA PNG, about 121 KB—fits the requested upload limits."
+logical_id = "86c732b4-90e1-458b-a677-1405bd76d69d"
+content_hash = "sha256:f005e25fe8942049d4bf3ccd78b2fa3d88dc00230143d9edf36dee949b32b029"
+size = 123435
+mtime_ms = 1783209927064
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:40ccfa28-9b7f-4c4f-b8de-d2524b06adaa/86c732b4-90e1-458b-a677-1405bd76d69d/dc6e575c-2c1a-489e-9e3e-76f444c26d64"
+storage_version_token = "1791569011265151"
+content_type = "image/png"

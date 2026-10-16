@@ -3,12 +3,9 @@ name: OTA breaks native-only features
 description: OTA updates importing native modules crash users on App Store binaries that lack the native counterpart
 ---
 
-**Rule:** If an OTA update was previously pushed that broke users on version X, push a counter-OTA by temporarily setting app.json version to X and pushing a fixed bundle, then restore the version.
+**Rule:** Recover a broken OTA only for the affected platform and actual binary runtime, after approval and a native-compatibility audit. Do not assume changing the visible app version retargets an OTA.
 
-**Why:** runtimeVersion policy is appVersion — OTAs only apply to matching versions. A broken OTA for 1.0.27 can only be fixed by another OTA targeting 1.0.27.
+**Why:** Update compatibility follows the configured runtime, which can be static and independent of the app version. A bundle importing a missing native module can crash even when its visible version looks correct.
 
 **How to apply:**
-1. Temporarily set `"version": "X.X.X"` in app.json
-2. Ensure the breaking import is disabled
-3. Run: `EAS_SKIP_AUTO_FINGERPRINT=1 npx eas update --branch production --message "..." --non-interactive`
-4. Restore version in app.json immediately after
+Inspect the affected binary's runtime, platform, channel and running update ID. Match those against live EAS records. Choose an approved rollback-to-embedded or compatible replacement update for affected public users; do not change public update routing to troubleshoot an individual beta tester. A replacement test binary can instead use a separate runtime, synchronized in both Expo configuration and checked-in native resources.

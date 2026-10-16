@@ -24,6 +24,13 @@ Never publish an iOS OTA merely because it works in TestFlight when the TestFlig
 - The production channel serves every compatible iOS binary sharing that runtime, not only TestFlight. Give a native-changed binary a new runtime before using OTA, and wait until that binary is the public App Store version.
 - New iOS store binaries use the dedicated `ios-production` channel; Android stays on `production`. Keep the old iOS `production` channel rolled back to embedded so legacy App Store binaries cannot receive new iOS OTAs.
 
+## Android testing and update identity
+Use the native version code, update ID, and embedded-versus-OTA launch flag together when verifying a tester's installation. Embedded bundles also have update IDs; the presence of an ID alone does not mean an OTA was loaded.
+
+**Why:** An AAB can contain the new code while a tester reports a different running update. A shared visible version is insufficient to establish which binary Play installed, and must not be treated as proof an old OTA replaced the new binary.
+
+**How to apply:** Inspect the exact built AAB's embedded manifest before attributing the problem to OTA selection. Android has a platform-specific runtime override to isolate new binaries from legacy updates while preserving the iOS runtime. Keep the checked-in Android runtime resource synchronized with that override because EAS skips prebuild for this native project. Do not change production update routing to troubleshoot one tester.
+
 ## OTA Rollback
 - `eas update:delete <groupId> --non-interactive` — deletes specific OTA group
 - `eas update:rollback` (no flags) — interactive rollback to embedded
@@ -31,7 +38,6 @@ Never publish an iOS OTA merely because it works in TestFlight when the TestFlig
 - Deleting OTAs from server does NOT clear them from devices that already downloaded — users must delete + reinstall
 
 ## Version Management
-- Always restore app.json `version` to the target (e.g. "1.0.30") after pushing OTAs (which temporarily need the binary's version like "1.0.29")
-- `runtimeVersion.policy: "appVersion"` — OTA matches binary by version string only, no fingerprint
+- Do not infer the update runtime from the visible app version. Inspect the configured per-platform runtime and the native runtime embedded in the target binary; changing the app version alone does not retarget a statically configured runtime.
 - Push OTA command: `cd expo-app && EAS_SKIP_AUTO_FINGERPRINT=1 npx eas update --branch production --message "..." --non-interactive`
 - Recovery command: `eas update:roll-back-to-embedded --branch production --platform ios --runtime-version <binary-runtime> --message "..." --non-interactive`

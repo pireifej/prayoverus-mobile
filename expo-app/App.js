@@ -71,6 +71,7 @@ import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './u
 import { useAuth } from './hooks/useAuth';
 import { usePrayers } from './hooks/usePrayers';
 import { useIap } from './hooks/useIap';
+import { buildLabel } from './utils/buildLabel';
 import ProPurchaseModal from './components/ProPurchaseModal';
 import { parsePrayerRequestLink } from './utils/prayerLinks';
 import { dailyRequestDate, storedDailyRequestCount } from './utils/dailyRequestLimit';
@@ -145,12 +146,15 @@ try {
   });
 } catch (_) {}
 
-// App build tag — show the channel, app version, and the installed OTA update.
-// Embedded/native launches have no OTA ID, so label those explicitly.
-const OTA_UPDATE_ID = typeof Updates.updateId === 'string' && Updates.updateId.length > 0
-  ? Updates.updateId.slice(0, 8)
-  : 'embedded';
-const APP_BUILD = `${Updates.channel || 'local'}-${Constants.expoConfig?.version || '?'} · update ${OTA_UPDATE_ID}`;
+// Embedded bundles also have update IDs. Report the native build and launch
+// source separately so an ID cannot be mistaken for evidence of an OTA launch.
+const APP_BUILD = buildLabel({
+  channel: Updates.channel,
+  version: Constants.expoConfig?.version,
+  buildNumber: Platform.OS === 'android' ? Constants.platform?.android?.versionCode : null,
+  isEmbeddedLaunch: Updates.isEmbeddedLaunch,
+  updateId: Updates.updateId,
+});
 
 // Skip async startup effects during Jest test runs to prevent unclosed timers
 // and spurious "An update to App inside a test was not wrapped in act()" warnings.

@@ -7,4 +7,4 @@ The app's paid feature boundary is the single RevenueCat entitlement `Pray Over 
 
 **Why:** Keeping entitlement and package selection centralized prevents a purchase from unlocking one feature but not another, and lets App Store/Play Store price changes reach the paywall without an app update.
 
-**How to apply:** Route new premium actions through the shared Pro paywall and check the active entitlement returned by RevenueCat. Keep platform product identifiers and prices in RevenueCat configuration.
+**How to apply:** Route new premium actions through the shared Pro paywall and check the active entitlement returned by RevenueCat. Keep platform product identifiers and prices in RevenueCat configuration. For catalog changes, use the connected RevenueCat integration and verify the current offering/package/entitlement relationships; its credentials may not be available to local shell scripts.

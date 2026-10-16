@@ -15,3 +15,10 @@ Free users keep one prayer request per day; additional requests should be blocke
 **Why:** The user selected these boundaries while discussing the subscription transition.
 
 **How to apply:** Use the same `Pray Over Us Pro` entitlement for every gate. A Google Play license-tester account is for test purchases and must not itself grant Pro access.
+
+## Verifying a customer's subscription
+Match the app account's numeric user ID to the RevenueCat App User ID before making a claim about that user's entitlement. An empty email search does not prove that the account has no subscription.
+
+**Why:** RevenueCat email searches can return no match when the customer is identified only by the app's numeric ID. Recent activity and app version are not sufficient evidence of customer identity.
+
+**How to apply:** Obtain the account's support ID from Profile or the backend account lookup, then query that exact RevenueCat customer and its active entitlements. Do not infer the account from a recent anonymous customer.

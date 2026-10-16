@@ -11,6 +11,8 @@ jest.mock('../../services/purchasesClient', () => ({
     getOfferings: jest.fn(),
     purchasePackage: jest.fn(),
     restorePurchases: jest.fn(),
+    getAppUserID: jest.fn().mockResolvedValue('42'),
+    logIn: jest.fn(),
   },
   isAvailable: true,
 }));
@@ -37,7 +39,7 @@ beforeEach(() => jest.clearAllMocks());
 const makeCustomerInfo = (activeEntitlements = []) => ({
   entitlements: {
     active: Object.fromEntries(
-      activeEntitlements.map(identifier => [identifier, { identifier }]),
+      activeEntitlements.map(identifier => [identifier, { identifier, isActive: true }]),
     ),
   },
 });
@@ -53,12 +55,39 @@ const makeOfferings = (monthly = makePackage()) => ({
 });
 
 async function loadDefault(result, customerInfo = makeCustomerInfo([]), monthly = makePackage()) {
+  mockClient.logIn.mockResolvedValue({ customerInfo });
+  await act(async () => { await result.current.identifyRevenueCatUser('42'); });
   mockClient.getCustomerInfo.mockResolvedValue(customerInfo);
   mockClient.getOfferings.mockResolvedValue(makeOfferings(monthly));
   await act(async () => { await result.current.loadIapData(); });
 }
 
 describe('useIap — Pro entitlement and offering', () => {
+  it('does not grant Pro from anonymous or inactive customer data', async () => {
+    const { result } = renderHook(() => useIap());
+    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([PRO_ENTITLEMENT]));
+    mockClient.getOfferings.mockResolvedValue(makeOfferings());
+    await act(async () => { await result.current.loadIapData(); });
+    expect(result.current.isPro).toBe(false);
+    const inactive = makeCustomerInfo([PRO_ENTITLEMENT]);
+    inactive.entitlements.active[PRO_ENTITLEMENT].isActive = false;
+    await loadDefault(result, inactive);
+    expect(result.current.isPro).toBe(false);
+  });
+
+  it('discards a previous customer load that resolves after account switching', async () => {
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result);
+    let resolveOld;
+    mockClient.getCustomerInfo.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }));
+    let pending;
+    await act(async () => { pending = result.current.loadIapData(); });
+    mockClient.getAppUserID.mockResolvedValueOnce('99');
+    mockClient.logIn.mockResolvedValueOnce({ customerInfo: makeCustomerInfo([]) });
+    await act(async () => { await result.current.identifyRevenueCatUser('99'); });
+    await act(async () => { resolveOld(makeCustomerInfo([PRO_ENTITLEMENT])); await pending; });
+    expect(result.current.isPro).toBe(false);
+  });
   it('uses the exact active Pro entitlement for isPro', async () => {
     const { result } = renderHook(() => useIap());
     expect(result.current.isPro).toBe(false);

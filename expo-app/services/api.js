@@ -45,8 +45,29 @@ const notifyAuthFailure = (error) => {
     authFailureHandler?.(error);
   }
   if (error.code === 'PRO_REQUIRED' || error.code === 'DAILY_LIMIT_REACHED') {
-    accessFailureHandler?.(error);
+    if (accessFailureHandler) {
+      error.accessFailureHandled = true;
+      accessFailureHandler(error);
+    }
   }
+};
+
+const createApiError = (status, path, response) => {
+  // Do not let legacy numeric `error: 1` hide the real access error code.
+  const candidates = [
+    response?.error?.code, response?.code, response?.error_code, response?.errorCode,
+    typeof response?.error === 'string' ? response.error : null,
+  ];
+  let code = candidates.find(value => typeof value === 'string' && /^[A-Z][A-Z_]+$/.test(value));
+  let message = response?.message || response?.error?.message;
+  if (!code && status === 403 && path === '/createRequestAndPrayer'
+      && /daily|per day|free.*limit/i.test(message || '')) {
+    code = 'DAILY_LIMIT_REACHED';
+  }
+  if (!message && status === 403 && path === '/createRequestAndPrayer') {
+    message = 'Posting access could not be verified. If you have Pro, restore purchases or sign in again. Otherwise, today’s free request limit may have been reached.';
+  }
+  return new ApiError(message || `API error ${status} on ${path}`, { status, code, response });
 };
 
 export const apiHeaders = async ({ json = true } = {}) => {
@@ -85,11 +106,7 @@ const post = async (path, body) => {
   let response;
   try { response = await res.json(); } catch (_) { response = null; }
   if (!res.ok) {
-    const code = response?.error?.code || response?.error || response?.code;
-    const error = new ApiError(
-      response?.message || response?.error?.message || `API error ${res.status} on ${path}`,
-      { status: res.status, code, response },
-    );
+    const error = createApiError(res.status, path, response);
     notifyAuthFailure(error);
     throw error;
   }
@@ -99,11 +116,7 @@ const post = async (path, body) => {
 const readErrorResponse = async (res, path) => {
   let response;
   try { response = await res.json(); } catch (_) { response = null; }
-  const code = response?.error?.code || response?.error || response?.code;
-  const error = new ApiError(
-    response?.message || response?.error?.message || `API error ${res.status} on ${path}`,
-    { status: res.status, code, response },
-  );
+  const error = createApiError(res.status, path, response);
   notifyAuthFailure(error);
   throw error;
 };

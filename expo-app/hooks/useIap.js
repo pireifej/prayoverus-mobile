@@ -39,15 +39,18 @@ export function useIap() {
   const [iapLoading, setIapLoading]           = useState(false);
   const [iapPurchasing, setIapPurchasing]     = useState(false);
   const [iapModal, setIapModal]               = useState(null);
+  const [identifiedUserId, setIdentifiedUserId] = useState(null);
+  const identityEpoch = useRef(0);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   const hasEntitlement = (key) =>
-    iapCustomerInfo?.entitlements?.active?.[key] !== undefined;
+    !!identifiedUserId && iapCustomerInfo?.entitlements?.active?.[key]?.isActive === true;
 
   // Keep this check explicit: every paid feature uses the same RevenueCat
   // entitlement and there are no per-feature purchase flags anymore.
-  const isPro = iapCustomerInfo?.entitlements?.active?.[PRO_ENTITLEMENT] !== undefined;
+  const isPro = !!identifiedUserId
+    && iapCustomerInfo?.entitlements?.active?.[PRO_ENTITLEMENT]?.isActive === true;
 
   const getIapPrice = (packageOrId = proPackage) => {
     if (packageOrId?.product?.priceString) return packageOrId.product.priceString;
@@ -61,6 +64,7 @@ export function useIap() {
 
   const loadIapData = async () => {
     if (!rcAvailable || !Purchases) return null;
+    const epoch = identityEpoch.current;
     setIapLoading(true);
     try {
       const [info, offerings] = await Promise.all([
@@ -74,6 +78,7 @@ export function useIap() {
         : offerings?.all?.default || offerings?.current || null;
       const monthly = selectMonthlyPackage(offering);
       const appUserId = await Purchases.getAppUserID?.();
+      if (epoch !== identityEpoch.current) return null;
       setIapCustomerInfo(info);
       setIapOffering(offering);
       setProPackage(monthly);
@@ -91,11 +96,17 @@ export function useIap() {
 
   const identifyRevenueCatUser = async (userId) => {
     if (!rcAvailable || !Purchases || !userId) return null;
+    const epoch = ++identityEpoch.current;
+    setIdentifiedUserId(null);
+    setIapCustomerInfo(null);
+    cacheRevenueCatAppUserId(null);
     try {
       const result = await Purchases.logIn?.(String(userId));
       const info = result?.customerInfo || result;
       const appUserId = await Purchases.getAppUserID?.();
+      if (epoch !== identityEpoch.current || String(appUserId) !== String(userId)) return null;
       if (info?.entitlements) setIapCustomerInfo(info);
+      setIdentifiedUserId(String(userId));
       setRevenuecatAppUserId(appUserId || null);
       cacheRevenueCatAppUserId(appUserId || null);
       return info || null;
@@ -106,15 +117,21 @@ export function useIap() {
   };
 
   const resetRevenueCatUser = async () => {
+    const epoch = ++identityEpoch.current;
+    setIdentifiedUserId(null);
+    setIapCustomerInfo(null);
+    setIapModal(null);
     if (!rcAvailable || !Purchases) return;
     try {
       await Purchases.logOut?.();
     } catch (e) {
       console.warn('[IAP] RevenueCat logout failed:', e?.message);
     } finally {
-      setIapCustomerInfo(null);
-      setRevenuecatAppUserId(null);
-      cacheRevenueCatAppUserId(null);
+      if (epoch === identityEpoch.current) {
+        setIapCustomerInfo(null);
+        setRevenuecatAppUserId(null);
+        cacheRevenueCatAppUserId(null);
+      }
     }
   };
 
@@ -172,6 +189,7 @@ export function useIap() {
   // ── Purchase / restore ─────────────────────────────────────────────────────
 
   const doIapPurchase = async (purchasePackage = proPackage, onSuccess) => {
+    const epoch = identityEpoch.current;
     if (!rcAvailable || !Purchases) {
       showToast('Purchases are not available on this device.', '⚠️');
       return;
@@ -181,6 +199,7 @@ export function useIap() {
       const packageToPurchase = purchasePackage?.product ? purchasePackage : proPackage;
       if (!packageToPurchase) throw new Error('Pro subscription not found — check your RevenueCat offering setup.');
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
+      if (epoch !== identityEpoch.current) return;
       setIapCustomerInfo(customerInfo);
       await loadIapData();
       await refreshProStatus();
@@ -193,6 +212,7 @@ export function useIap() {
       }
     } catch (e) {
       if (!e?.userCancelled) {
+        setIapModal(null);
         showModal({ icon: '😔', title: 'Purchase failed', message: e?.message ?? 'Please try again.' });
       }
     } finally {
@@ -202,15 +222,18 @@ export function useIap() {
 
   const doIapRestore = async () => {
     if (!rcAvailable || !Purchases) return;
+    const epoch = identityEpoch.current;
     setIapPurchasing(true);
     try {
       const info = await Purchases.restorePurchases();
+      if (epoch !== identityEpoch.current) return;
       setIapCustomerInfo(info);
       await loadIapData();
       await refreshProStatus();
       showToast('Your purchases have been restored.', '✅');
       setIapModal(null);
     } catch (e) {
+      setIapModal(null);
       showModal({ icon: '😔', title: 'Restore failed', message: e?.message ?? 'Please try again.' });
     } finally {
       setIapPurchasing(false);

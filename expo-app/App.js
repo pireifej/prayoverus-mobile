@@ -71,6 +71,9 @@ import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './u
 import { useAuth } from './hooks/useAuth';
 import { usePrayers } from './hooks/usePrayers';
 import { useIap } from './hooks/useIap';
+import ProPurchaseModal from './components/ProPurchaseModal';
+import { parsePrayerRequestLink } from './utils/prayerLinks';
+import { dailyRequestDate, storedDailyRequestCount } from './utils/dailyRequestLimit';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
@@ -210,7 +213,7 @@ const getGreeting = () => {
   return t('goodEvening');
 };
 
-function App() {
+function AppContent({ iap }) {
   // ── showChurchOnly must be declared before hook calls (needed by usePrayers) ─
   const [showChurchOnly, setShowChurchOnly] = useState(false);
 
@@ -228,8 +231,6 @@ function App() {
     userLang,
     callbacksRef: prayerCallbacksRef,
   });
-
-  const iap = useIap();
 
   // Destructure auth hook
   const {
@@ -318,6 +319,8 @@ function App() {
     ).start();
   }, []);
 
+  const proPaywallRef = React.useRef(presentProPaywall);
+  proPaywallRef.current = presentProPaywall;
   useEffect(() => {
     const unregister = setApiAccessFailureHandler?.((error) => {
       if (error.code === 'DAILY_LIMIT_REACHED') {
@@ -325,10 +328,10 @@ function App() {
           icon: '✨',
           title: 'Daily free limit reached',
           message: error.message || 'Free tier is limited to 1 request per day. Upgrade to Pro for unlimited requests.',
-          buttons: [{ label: 'Upgrade to Pro', onPress: () => presentProPaywall() }],
+          buttons: [{ label: 'Upgrade to Pro', onPress: () => proPaywallRef.current() }, { label: 'Not now', style: 'cancel' }],
         });
       } else {
-        presentProPaywall();
+        proPaywallRef.current();
       }
     });
     return unregister;
@@ -508,7 +511,7 @@ function App() {
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  const hasReachedDailyFreeLimit = !isPro && dailyPostCount >= 1;
+  const hasReachedDailyFreeLimit = !isPro && dailyPostDate === dailyRequestDate() && dailyPostCount >= 1;
 
   useEffect(() => {
     if (!isPro && premiumBgTheme !== null) {
@@ -939,39 +942,33 @@ function App() {
   // Load daily post count from storage, reset if it's a new day
   const loadDailyPostCount = async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const raw = await AsyncStorage.getItem(STORAGE_KEYS.DAILY_POST_TRACKER);
-      if (raw) {
-        const { count, date } = JSON.parse(raw);
-        if (date === today) {
-          setDailyPostCount(count);
-          dailyPostCountRef.current = count;
-          setDailyPostDate(today);
-        } else {
-          // New day — reset
-          setDailyPostCount(0);
-          dailyPostCountRef.current = 0;
-          setDailyPostDate(today);
-          await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: 0, date: today }));
-        }
-      } else {
-        const today2 = new Date().toISOString().slice(0, 10);
-        setDailyPostDate(today2);
-        await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: 0, date: today2 }));
-      }
-    } catch (e) { console.warn('[DailyPost] load error:', e?.message); }
+      const today = dailyRequestDate();
+      const raw = await AsyncStorage.getItem(`${STORAGE_KEYS.DAILY_POST_TRACKER}:${currentUser?.id || 'guest'}`);
+      const count = storedDailyRequestCount(raw, today);
+      setDailyPostCount(count);
+      dailyPostCountRef.current = count;
+      setDailyPostDate(today);
+      return count;
+    } catch (e) {
+      console.warn('[DailyPost] load error:', e?.message);
+      return dailyPostCountRef.current;
+    }
   };
 
   const incrementDailyPostCount = async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = dailyRequestDate();
     const newCount = dailyPostCountRef.current + 1;
     dailyPostCountRef.current = newCount;
     setDailyPostCount(newCount);
     setDailyPostDate(today);
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.DAILY_POST_TRACKER, JSON.stringify({ count: newCount, date: today }));
+      await AsyncStorage.setItem(`${STORAGE_KEYS.DAILY_POST_TRACKER}:${currentUser?.id || 'guest'}`, JSON.stringify({ count: newCount, date: today }));
     } catch (e) { console.warn('[DailyPost] save error:', e?.message); }
   };
+
+  useEffect(() => {
+    if (!IS_TESTING) loadDailyPostCount();
+  }, [currentUser?.id]);
 
   // Function to show interstitial ad (call after every 3rd prayer view)
   const showInterstitialAd = () => {
@@ -1171,12 +1168,11 @@ function App() {
     }
 
     // Check for prayer deep link (e.g., prayoverus.com/index.html?requestId=123)
-    const prayerMatch = route.match(/requestId=(\d+)/);
-    if (prayerMatch && prayerMatch[1]) {
-      const prayerId = parseInt(prayerMatch[1], 10);
+    const prayerId = parsePrayerRequestLink(url);
+    if (prayerId) {
       console.log('📱 Deep link detected: Prayer ID', prayerId);
 
-      if (isInitialUrl && isCheckingAuthRef.current) {
+      if (isCheckingAuthRef.current) {
         console.log('📱 Auth check in progress, storing URL for later processing');
         setPendingInitialUrl(url);
         return;
@@ -1227,10 +1223,10 @@ function App() {
         return;
       }
 
-      const prayerMatch = route.match(/requestId=(\d+)/);
+      const prayerMatch = parsePrayerRequestLink(pendingInitialUrl);
       
-      if (prayerMatch && prayerMatch[1]) {
-        const prayerId = parseInt(prayerMatch[1], 10);
+      if (prayerMatch) {
+        const prayerId = prayerMatch;
         
         if (currentUser) {
           console.log('📱 User is logged in, setting pending prayer ID:', prayerId);
@@ -1615,6 +1611,8 @@ function App() {
     if (IS_TESTING || !currentUser || currentUser.isGuest) return undefined;
     let cancelled = false;
     (async () => {
+      await identifyRevenueCatUser(currentUser.id);
+      if (cancelled) return;
       await loadIapData();
       if (!cancelled) await refreshProStatus();
     })();
@@ -1749,7 +1747,6 @@ function App() {
   const doAddPrayer = async (contentOverride) => {
     // Set loading state
     setIsPosting(true);
-    await incrementDailyPostCount();
     const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
     const prayer = {
       id: Date.now(),
@@ -1766,6 +1763,7 @@ function App() {
     };
     try {
       await savePrayerToAPI(prayer);
+      await incrementDailyPostCount();
       await loadUserPrayers();
       if (newPrayer.isPublic) await loadCommunityPrayers();
       setPostSuccess(true);
@@ -1776,7 +1774,9 @@ function App() {
         setShowTitleInput(false);
         setPostSuccess(false);
       }, 1200);
+      return true;
     } catch (error) {
+      if (error.accessFailureHandled) return false;
       const isNetworkError = error.message.includes('Network request failed') ||
                             error.message.includes('Failed to fetch') ||
                             error.message.includes('timeout');
@@ -1814,16 +1814,16 @@ function App() {
 
   // Handle the daily-post gate, then submit the request.
   const proceedToPost = async (contentOverride) => {
-    if (!isPro && dailyPostCountRef.current >= 1) {
+    if (!isPro && await loadDailyPostCount() >= 1) {
       presentProPaywall();
       return;
     }
-    await doAddPrayer(contentOverride);
+    return doAddPrayer(contentOverride);
   };
 
   const addPrayer = async () => {
     if (currentUser?.isGuest) { showGuestPrompt(); return; }
-    if (!isPro && dailyPostCountRef.current >= 1) {
+    if (!isPro && await loadDailyPostCount() >= 1) {
       presentProPaywall();
       return;
     }
@@ -1902,7 +1902,7 @@ function App() {
       return;
     }
 
-    await proceedToPost(text);
+    return proceedToPost(text);
   };
 
   const savePrayerToAPI = async (prayer) => {
@@ -4180,6 +4180,23 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           style={styles.screenContent}
           contentContainerStyle={{ paddingBottom: 140 }}
         >
+          <View style={{ padding: 16, marginBottom: 12, borderRadius: 16, backgroundColor: '#eff6ff' }}>
+            <Text style={{ color: '#1e3a5f', fontWeight: '800', fontSize: 18 }}>Pray Over Us Pro</Text>
+            <Text style={{ color: '#475569', marginVertical: 8 }}>
+              {isPro ? 'Your Pro subscription is active.' : 'Unlock unlimited requests, full Daily Bread readings and audio, and Prayer Walk.'}
+            </Text>
+            {!isPro && (
+              <TouchableOpacity testID="profile-upgrade-pro" onPress={() => presentProPaywall()} style={{ paddingVertical: 12 }}>
+                <Text style={{ color: '#2563eb', fontWeight: '800' }}>Upgrade to Pro</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={doIapRestore} disabled={iapPurchasing} style={{ paddingVertical: 8 }}>
+              <Text style={{ color: '#2563eb' }}>Restore purchases</Text>
+            </TouchableOpacity>
+            <Text selectable style={{ color: '#64748b', fontSize: 11, marginTop: 8 }}>
+              Support ID: {String(currentUser.id)} · RevenueCat: {iap.revenuecatAppUserId || 'Not connected'}
+            </Text>
+          </View>
           <View style={styles.memberProfileCard}>
             <View style={styles.memberProfileTop}>
               <View style={{ position: 'relative' }}>
@@ -5111,19 +5128,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             <TouchableOpacity 
               style={[
                 styles.npPostButton, 
-                (!newPrayer.content.trim() || isPosting || isCheckingContent || (!isEditing && hasReachedDailyFreeLimit)) && styles.npPostButtonDisabled
+                (!newPrayer.content.trim() || isPosting || isCheckingContent) && styles.npPostButtonDisabled
               ]}
               onPress={async () => {
                 if (isEditing) {
                   await handleUpdatePrayer();
-                } else if (hasReachedDailyFreeLimit) {
-                  presentProPaywall();
                 } else {
-                  await addPrayer();
-                  setCurrentScreen('home');
+                  if (await addPrayer()) setCurrentScreen('home');
                 }
               }}
-              disabled={!newPrayer.content.trim() || isPosting || isCheckingContent || (!isEditing && hasReachedDailyFreeLimit)}
+              disabled={!newPrayer.content.trim() || isPosting || isCheckingContent}
             >
               {(!newPrayer.content.trim() || isPosting || isCheckingContent) ? (
                 isCheckingContent ? (
@@ -6132,59 +6146,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                   activeOpacity={0.85}
                 >
                   <Text style={{ color: '#1e1b4b', fontSize: 16, fontWeight: '800' }}>Praise God! 🙏</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* ── IAP Purchase Modal ── */}
-      <Modal
-        visible={!!iapModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => !iapPurchasing && setIapModal(null)}
-      >
-        <TouchableWithoutFeedback onPress={() => !iapPurchasing && setIapModal(null)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
-            <TouchableWithoutFeedback>
-              <View style={{ backgroundColor: '#1e1b4b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40 }}>
-                <View style={{ width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
-                <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
-                  {iapModal?.title ?? ''}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-                  {iapModal?.description ?? ''}
-                </Text>
-                <TouchableOpacity
-                  style={{ backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, opacity: iapPurchasing ? 0.6 : 1 }}
-                  onPress={() => doIapPurchase(iapModal?.package, iapModal?.onSuccess)}
-                  disabled={iapPurchasing}
-                  activeOpacity={0.85}
-                >
-                  {iapPurchasing
-                    ? <ActivityIndicator color="#1e1b4b" />
-                    : <Text style={{ color: '#1e1b4b', fontSize: 17, fontWeight: '800' }}>
-                        {rcAvailable
-                          ? `Subscribe — ${getIapPrice(iapModal?.package) ?? '…'} / month`
-                          : 'Coming Soon'}
-                      </Text>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={doIapRestore}
-                  disabled={iapPurchasing}
-                  style={{ alignItems: 'center', paddingVertical: 10 }}
-                >
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Already subscribed? Restore purchases</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setIapModal(null)}
-                  disabled={iapPurchasing}
-                  style={{ alignItems: 'center', paddingVertical: 6 }}
-                >
-                  <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
@@ -10617,6 +10578,16 @@ const styles = StyleSheet.create({
 
 // Register the main component
 // Wrap App in the error boundary so render crashes are visible on screen
+function App() {
+  const iap = useIap();
+  return (
+    <>
+      <AppContent iap={iap} />
+      <ProPurchaseModal iap={iap} />
+    </>
+  );
+}
+
 const AppWithBoundary = () => (
   <AppErrorBoundary>
     <App />

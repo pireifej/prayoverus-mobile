@@ -80,3 +80,34 @@ describe('protected API requests', () => {
     expect(accessFailure).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('posting access responses', () => {
+  it('recognizes an access code even when a legacy numeric error flag is present', async () => {
+    const { apiCreatePrayer } = require('../../services/api');
+    const handler = jest.fn();
+    setApiAccessFailureHandler(handler);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 403,
+      json: async () => ({ error: 1, code: 'DAILY_LIMIT_REACHED', message: 'One free request per day.' }),
+    });
+    await expect(apiCreatePrayer({})).rejects.toMatchObject({
+      code: 'DAILY_LIMIT_REACHED', accessFailureHandled: true,
+    });
+    expect(handler).toHaveBeenCalledTimes(1);
+    setApiAccessFailureHandler(null);
+  });
+
+  it('does not present an unknown forbidden response as proof a purchase is required', async () => {
+    const { apiCreatePrayer } = require('../../services/api');
+    const handler = jest.fn();
+    setApiAccessFailureHandler(handler);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 403, json: async () => { throw new Error('Not JSON'); },
+    });
+    await expect(apiCreatePrayer({})).rejects.toMatchObject({
+      status: 403, message: expect.stringContaining('Posting access could not be verified'),
+    });
+    expect(handler).not.toHaveBeenCalled();
+    setApiAccessFailureHandler(null);
+  });
+});

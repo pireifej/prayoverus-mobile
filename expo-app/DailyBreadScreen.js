@@ -103,7 +103,7 @@ export default function DailyBreadScreen({
   bannerAdProps,
   archiveUnlocked,
   onUnlockArchive,
-  isPro = true,
+  isPro = false,
   onOpenProPaywall,
   userId,
   onNewBadge,
@@ -392,7 +392,7 @@ export default function DailyBreadScreen({
             style={[styles.listenBtn, audioStatus === 'playing' && styles.listenBtnActive, audioStatus === 'loading' && { opacity: 0.7 }]}
             onPress={isPro ? handlePlayPause : onOpenProPaywall}
             activeOpacity={0.8}
-            disabled={audioStatus === 'loading' || !isPro}
+            disabled={audioStatus === 'loading'}
           >
             {audioStatus === 'playing' && <SoundWave playing />}
             <Text style={styles.listenBtnText}>{audioLabel}</Text>

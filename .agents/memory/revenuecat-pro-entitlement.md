@@ -8,3 +8,10 @@ The app's paid feature boundary is the single RevenueCat entitlement `Pray Over 
 **Why:** Keeping entitlement and package selection centralized prevents a purchase from unlocking one feature but not another, and lets App Store/Play Store price changes reach the paywall without an app update.
 
 **How to apply:** Route new premium actions through the shared Pro paywall and check the active entitlement returned by RevenueCat. Keep platform product identifiers and prices in RevenueCat configuration. For catalog changes, use the connected RevenueCat integration and verify the current offering/package/entitlement relationships; its credentials may not be available to local shell scripts.
+
+## Confirmed feature-gating decisions
+Free users keep one prayer request per day; additional requests should be blocked with a contextual Pro offer. Keep today's Daily Bread preview free, but gate the full devotional and audio. Add a persistent Pro entry in Profile alongside contextual offers. Prayer Walk is Pro-only.
+
+**Why:** The user selected these boundaries while discussing the subscription transition.
+
+**How to apply:** Use the same `Pray Over Us Pro` entitlement for every gate. A Google Play license-tester account is for test purchases and must not itself grant Pro access.

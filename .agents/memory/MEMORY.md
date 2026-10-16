@@ -14,3 +14,4 @@
 - [RevenueCat Pro entitlement](revenuecat-pro-entitlement.md) — all paid features share one entitlement and the live monthly package from the current offering
 - [Signed backend session tokens](signed-session-token.md) — secure-store the token, preserve Basic auth, and clear it on logout or account switching
 - [Google Play connector routing](google-play-connector-routing.md) — the connected proxy may target the wrong host for Android Publisher API calls
+- [EAS monorepo archive](eas-repo-root-archive.md) — EAS launched from expo-app may archive from Git root; root ignore files govern workspace siblings, not nested .easignore

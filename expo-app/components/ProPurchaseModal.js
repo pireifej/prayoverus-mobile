@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, Text, View } from 'react-native';
 
 // Mounted outside screen-specific returns so every premium entry point works.
 export default function ProPurchaseModal({ iap }) {
@@ -12,7 +12,10 @@ export default function ProPurchaseModal({ iap }) {
       onRequestClose={() => !iapPurchasing && setIapModal(null)}
     >
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: '#1e1b4b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28 }}>
+        <View style={{
+          backgroundColor: '#1e1b4b', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          padding: 28, paddingBottom: Platform.OS === 'android' ? 42 : 28,
+        }}>
           <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 12 }}>
             {iapModal?.title}
           </Text>

@@ -141,7 +141,7 @@ describe('useIap — Pro entitlement and offering', () => {
 
     expect(mockShowModal).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Pray Over Us Pro',
-      message: expect.stringContaining('temporarily unavailable'),
+      message: expect.stringContaining('couldn’t load the monthly plan'),
     }));
   });
 });
@@ -197,10 +197,26 @@ describe('useIap — purchase and restore', () => {
     mockClient.getCustomerInfo.mockResolvedValue(restoredInfo);
     mockClient.restorePurchases.mockResolvedValue(restoredInfo);
 
-    await act(async () => { await result.current.doIapRestore(); });
+    let restoreResult;
+    await act(async () => { restoreResult = await result.current.doIapRestore(); });
 
     expect(mockClient.restorePurchases).toHaveBeenCalledTimes(1);
     expect(result.current.isPro).toBe(true);
+    expect(restoreResult.status).toBe('restored');
+    expect(result.current.iapPurchasing).toBe(false);
+  });
+
+  it('reports when Restore Purchases finds no active Pro subscription', async () => {
+    const { result } = renderHook(() => useIap());
+    await loadDefault(result);
+    mockClient.restorePurchases.mockResolvedValue(makeCustomerInfo([]));
+    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
+
+    let restoreResult;
+    await act(async () => { restoreResult = await result.current.doIapRestore(); });
+
+    expect(restoreResult.status).toBe('none');
+    expect(restoreResult.message).toContain('No active Pray Over Us Pro subscription');
     expect(result.current.iapPurchasing).toBe(false);
   });
 });

@@ -73,6 +73,7 @@ import { usePrayers } from './hooks/usePrayers';
 import { useIap } from './hooks/useIap';
 import { buildLabel } from './utils/buildLabel';
 import ProPurchaseModal from './components/ProPurchaseModal';
+import ProfileProCard from './components/ProfileProCard';
 import { parsePrayerRequestLink } from './utils/prayerLinks';
 import { dailyRequestDate, storedDailyRequestCount } from './utils/dailyRequestLimit';
 import * as Updates from 'expo-updates';
@@ -220,6 +221,8 @@ const getGreeting = () => {
 function AppContent({ iap }) {
   // ── showChurchOnly must be declared before hook calls (needed by usePrayers) ─
   const [showChurchOnly, setShowChurchOnly] = useState(false);
+  const [profileProAction, setProfileProAction] = useState(null);
+  const [profileProMessage, setProfileProMessage] = useState('');
 
   // ── Custom hooks — isolate auth/prayer/IAP logic from the render tree ────────
   // A crash inside any one hook is caught by the AppErrorBoundary and won't
@@ -4184,23 +4187,44 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           style={styles.screenContent}
           contentContainerStyle={{ paddingBottom: 140 }}
         >
-          <View style={{ padding: 16, marginBottom: 12, borderRadius: 16, backgroundColor: '#eff6ff' }}>
-            <Text style={{ color: '#1e3a5f', fontWeight: '800', fontSize: 18 }}>Pray Over Us Pro</Text>
-            <Text style={{ color: '#475569', marginVertical: 8 }}>
-              {isPro ? 'Your Pro subscription is active.' : 'Unlock unlimited requests, full Daily Bread readings and audio, and Prayer Walk.'}
-            </Text>
-            {!isPro && (
-              <TouchableOpacity testID="profile-upgrade-pro" onPress={() => presentProPaywall()} style={{ paddingVertical: 12 }}>
-                <Text style={{ color: '#2563eb', fontWeight: '800' }}>Upgrade to Pro</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={doIapRestore} disabled={iapPurchasing} style={{ paddingVertical: 8 }}>
-              <Text style={{ color: '#2563eb' }}>Restore purchases</Text>
-            </TouchableOpacity>
-            <Text selectable style={{ color: '#64748b', fontSize: 11, marginTop: 8 }}>
-              Support ID: {String(currentUser.id)} · RevenueCat: {iap.revenuecatAppUserId || 'Not connected'}
-            </Text>
-          </View>
+          <ProfileProCard
+            isPro={isPro}
+            price={getIapPrice(proPackage)}
+            upgradeLoading={profileProAction === 'upgrade'}
+            restoreLoading={profileProAction === 'restore' || iapPurchasing}
+            actionMessage={profileProMessage}
+            onUpgrade={async () => {
+              setProfileProAction('upgrade');
+              setProfileProMessage('');
+              try {
+                const opened = await presentProPaywall();
+                if (!opened) {
+                  setProfileProMessage(iap.rcAvailable
+                    ? 'The monthly plan is taking longer to load than expected. Check your connection and try again.'
+                    : 'Google Play billing is unavailable right now. Check your connection and try again.');
+                }
+              } catch (_) {
+                setProfileProMessage('We couldn’t open the subscription plans. Please try again.');
+              } finally {
+                setProfileProAction(null);
+              }
+            }}
+            onRestore={async () => {
+              setProfileProAction('restore');
+              setProfileProMessage('');
+              try {
+                const result = await doIapRestore();
+                setProfileProMessage(result?.message || 'We couldn’t verify purchases. Please try again.');
+              } catch (_) {
+                setProfileProMessage('We couldn’t verify purchases. Please try again.');
+              } finally {
+                setProfileProAction(null);
+              }
+            }}
+          />
+          <Text selectable style={{ color: '#94a3b8', fontSize: 10, marginBottom: 12, textAlign: 'center' }}>
+            Support ID: {String(currentUser.id)} · RevenueCat: {iap.revenuecatAppUserId || 'Not connected'}
+          </Text>
           <View style={styles.memberProfileCard}>
             <View style={styles.memberProfileTop}>
               <View style={{ position: 'relative' }}>

@@ -162,7 +162,18 @@ export function useIap() {
   const presentProPaywall = async (onSuccess) => {
     let monthly = proPackage;
     if (!monthly) {
-      const loaded = await loadIapData();
+      let timeoutId;
+      let loaded;
+      try {
+        loaded = await Promise.race([
+          loadIapData(),
+          new Promise(resolve => {
+            timeoutId = setTimeout(() => resolve(null), 15000);
+          }),
+        ]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
       monthly = loaded?.proPackage || null;
     }
 
@@ -171,8 +182,8 @@ export function useIap() {
         icon: '🕊️',
         title: 'Pray Over Us Pro',
         message: rcAvailable
-          ? 'The Pro subscription is temporarily unavailable. Please try again in a moment.'
-          : 'Pro subscriptions will be available in the next app update.',
+          ? 'We couldn’t load the monthly plan. Check your connection and try again.'
+          : 'Google Play billing is unavailable in this build. Please check the store connection and try again.',
       });
       return false;
     }
@@ -221,20 +232,30 @@ export function useIap() {
   };
 
   const doIapRestore = async () => {
-    if (!rcAvailable || !Purchases) return;
+    if (!rcAvailable || !Purchases) {
+      return {
+        status: 'unavailable',
+        message: 'Google Play billing could not start. Check your connection and try again.',
+      };
+    }
     const epoch = identityEpoch.current;
     setIapPurchasing(true);
     try {
       const info = await Purchases.restorePurchases();
       if (epoch !== identityEpoch.current) return;
       setIapCustomerInfo(info);
-      await loadIapData();
       await refreshProStatus();
-      showToast('Your purchases have been restored.', '✅');
+      const isProRestored = info?.entitlements?.active?.[PRO_ENTITLEMENT]?.isActive === true;
+      const message = isProRestored
+        ? 'Your Pray Over Us Pro subscription was restored.'
+        : 'No active Pray Over Us Pro subscription was found for this Google Play account.';
+      showToast(isProRestored ? 'Pro subscription restored.' : 'No Pro purchase found.', isProRestored ? '✅' : 'ℹ️');
       setIapModal(null);
+      return { status: isProRestored ? 'restored' : 'none', message };
     } catch (e) {
       setIapModal(null);
       showModal({ icon: '😔', title: 'Restore failed', message: e?.message ?? 'Please try again.' });
+      return { status: 'error', message: e?.message || 'Restore could not be completed. Please try again.' };
     } finally {
       setIapPurchasing(false);
     }

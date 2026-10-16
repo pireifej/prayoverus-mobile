@@ -19,6 +19,7 @@ KGP 2.2.x removed `jvmDefault` from `KotlinJvmCompilerOptions`. The `io.invertas
 16.3.0 bundles iOS SDK `Google-Mobile-Ads-SDK 13.1.0`. The iOS 26 Swift crash is prevented by `GADDelayAppMeasurementInit: true` in `infoPlist` (set in app.json), which works regardless of SDK version. Keep this key.
 
 ## Yarn.lock caution
+Additional registry URL variants have appeared in `yarn.lock` and `package-lock.json`, including both `package-firewall.replit.local` and `package-firewall.replit.internal`. Before an EAS build, scan both lockfiles for either hostname and replace matching tarball URLs with the corresponding `https://registry.npmjs.org/` URL.
 EAS uses `yarn.lock` (not `package-lock.json`) since both exist. Running `yarn install` inside Replit resolves packages through `http://package-firewall.replit.local/` which produces internal URLs that EAS cannot reach. After any `yarn install`, run: `sed -i 's|http://package-firewall\.replit\.local/npm/|https://registry.npmjs.org/|g' yarn.lock` before committing.
 
 ## app.json

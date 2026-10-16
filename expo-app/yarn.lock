@@ -3153,7 +3153,7 @@ expo-notifications@~0.32.17:
 
 expo-secure-store@~14.0.1:
   version "14.0.1"
-  resolved "http://package-firewall.replit.internal/npm/expo-secure-store/-/expo-secure-store-14.0.1.tgz"
+  resolved "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-14.0.1.tgz"
   integrity sha512-QUS+j4+UG4jRQalgnpmTvvrFnMVLqPiUZRzYPnG3+JrZ5kwVW2w6YS3WWerPoR7C6g3y/a2htRxRSylsDs+TaQ==
 
 expo-server@^1.0.7:

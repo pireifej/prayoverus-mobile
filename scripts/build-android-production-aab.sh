@@ -28,10 +28,17 @@ echo "Checking Expo authentication..."
 
 echo
 echo "Starting Android production build..."
+BUILD_JSON="$(mktemp)"
+trap 'rm -f "${BUILD_JSON}"' EXIT
+
 "${EAS}" build \
   --platform android \
   --profile production \
+  --wait \
+  --json \
   --non-interactive
 
 echo
-echo "Download the AAB from the EAS build page, then upload it to Google Play Internal testing."
+echo "Verifying the completed Android production artifact..."
+node "${WORKSPACE_DIR}/scripts/verify-android-production-aab.mjs" \
+  --build-json "${BUILD_JSON}"

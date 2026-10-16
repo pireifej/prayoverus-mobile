@@ -98,3 +98,13 @@ temp/
 
 # Attached assets (uploaded during Replit Agent conversations)
 attached_assets/expo-app/firebase-service-account.json
+
+# EAS archives the Git repository root for builds launched from expo-app.
+# Keep workspace caches and uploaded conversation files out of cloud build inputs.
+/.cache/
+/attached_assets/
+
+# Replit-local analysis and Android SDK metadata caches.
+/.config/.android/
+/.config/.semgrep/
+/.config/eas-cli-nodejs/

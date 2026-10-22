@@ -70,12 +70,12 @@ import GroupRosaryScreen from './GroupRosaryScreen';
 import { getRelativeTime, Avatar, RELIGIOUS_EMOJIS, resolveAvatarUri } from './utils';
 import { useAuth } from './hooks/useAuth';
 import { usePrayers } from './hooks/usePrayers';
+import { usePrayerSubmission, isDailyLimitSubmissionError } from './hooks/usePrayerSubmission';
 import { useIap } from './hooks/useIap';
 import { buildLabel } from './utils/buildLabel';
 import ProPurchaseModal from './components/ProPurchaseModal';
 import ProfileProCard from './components/ProfileProCard';
 import { parsePrayerRequestLink } from './utils/prayerLinks';
-import { dailyRequestDate, storedDailyRequestCount } from './utils/dailyRequestLimit';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
@@ -300,7 +300,7 @@ function AppContent({ iap }) {
         <Text style={styles.bottomNavIcon}>🌍</Text>
         <Text style={[styles.bottomNavLabel, currentScreen === 'community' && styles.bottomNavLabelActive]}>{t('community')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.bottomNavCenterButton} onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
+      <TouchableOpacity accessibilityLabel="New prayer request" style={styles.bottomNavCenterButton} onPress={() => { setViewingMember(null); setMemberFeedType(null); setMemberFeedData([]); setEditingPrayer(null); setOriginalPrayerImage(null); setCurrentScreen('newPrayer'); }}>
         <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.bottomNavCenterGradient}>
           <Text style={styles.bottomNavCenterIcon}>✙</Text>
         </LinearGradient>
@@ -330,14 +330,7 @@ function AppContent({ iap }) {
   proPaywallRef.current = presentProPaywall;
   useEffect(() => {
     const unregister = setApiAccessFailureHandler?.((error) => {
-      if (error.code === 'DAILY_LIMIT_REACHED') {
-        showModal({
-          icon: '✨',
-          title: 'Daily free limit reached',
-          message: error.message || 'Free tier is limited to 1 request per day. Upgrade to Pro for unlimited requests.',
-          buttons: [{ label: 'Upgrade to Pro', onPress: () => proPaywallRef.current() }, { label: 'Not now', style: 'cancel' }],
-        });
-      } else {
+      if (error.status === 403 && error.code === 'PRO_REQUIRED') {
         proPaywallRef.current();
       }
     });
@@ -387,9 +380,12 @@ function AppContent({ iap }) {
   const [authInitMode, setAuthInitMode] = useState('login');
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
+  const [isUpdatingPrayer, setIsPosting] = useState(false);
+  const { runSubmission, isSubmitting, dailyLimitReached } =
+    usePrayerSubmission(`${currentUser?.id || 'guest'}:${currentScreen}`);
+  const isPosting = isUpdatingPrayer || isSubmitting;
+  const contentCheckInFlightRef = useRef(false);
   const [isCheckingContent, setIsCheckingContent] = useState(false);
-  const [postSuccess, setPostSuccess] = useState(false);
 
   const postLoadingFloat = useRef(new Animated.Value(0)).current;
   const postLoadingGlow  = useRef(new Animated.Value(0.4)).current;
@@ -499,11 +495,6 @@ function AppContent({ iap }) {
   const pendingAdCallbackRef = useRef(null); // callback to run after ad closes
   const interstitialLoadingInProgressRef = useRef(false); // prevents duplicate concurrent loads
 
-  // Daily post tracking — resets each calendar day
-  const [dailyPostCount, setDailyPostCount] = useState(0);
-  const [dailyPostDate, setDailyPostDate] = useState('');
-  const dailyPostCountRef = useRef(0);
-
   // Rewarded ad state
   const rewardedAdLoadedRef = useRef(false);
   const rewardedAdRef = useRef(null);
@@ -518,7 +509,6 @@ function AppContent({ iap }) {
   const [showPremiumThemePicker, setShowPremiumThemePicker] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  const hasReachedDailyFreeLimit = !isPro && dailyPostDate === dailyRequestDate() && dailyPostCount >= 1;
 
   useEffect(() => {
     if (!isPro && premiumBgTheme !== null) {
@@ -694,7 +684,7 @@ function AppContent({ iap }) {
   }, []);
 
   // Load IAP data on startup
-  useEffect(() => { if (IS_TESTING) return; loadIapData(); loadDailyPostCount(); }, []);
+  useEffect(() => { if (IS_TESTING) return; loadIapData(); }, []);
 
   // Keep the user's Deepen Prayer choice for the next request.
   useEffect(() => {
@@ -945,37 +935,6 @@ function AppContent({ iap }) {
     pendingAdCallbackRef.current = callback;
     showInterstitialAd();
   };
-
-  // Load daily post count from storage, reset if it's a new day
-  const loadDailyPostCount = async () => {
-    try {
-      const today = dailyRequestDate();
-      const raw = await AsyncStorage.getItem(`${STORAGE_KEYS.DAILY_POST_TRACKER}:${currentUser?.id || 'guest'}`);
-      const count = storedDailyRequestCount(raw, today);
-      setDailyPostCount(count);
-      dailyPostCountRef.current = count;
-      setDailyPostDate(today);
-      return count;
-    } catch (e) {
-      console.warn('[DailyPost] load error:', e?.message);
-      return dailyPostCountRef.current;
-    }
-  };
-
-  const incrementDailyPostCount = async () => {
-    const today = dailyRequestDate();
-    const newCount = dailyPostCountRef.current + 1;
-    dailyPostCountRef.current = newCount;
-    setDailyPostCount(newCount);
-    setDailyPostDate(today);
-    try {
-      await AsyncStorage.setItem(`${STORAGE_KEYS.DAILY_POST_TRACKER}:${currentUser?.id || 'guest'}`, JSON.stringify({ count: newCount, date: today }));
-    } catch (e) { console.warn('[DailyPost] save error:', e?.message); }
-  };
-
-  useEffect(() => {
-    if (!IS_TESTING) loadDailyPostCount();
-  }, [currentUser?.id]);
 
   // Function to show interstitial ad (call after every 3rd prayer view)
   const showInterstitialAd = () => {
@@ -1752,8 +1711,6 @@ function AppContent({ iap }) {
   // refreshUserProfile, loadUserPrayers — moved to hooks/useAuth.js and hooks/usePrayers.js
 
   const doAddPrayer = async (contentOverride) => {
-    // Set loading state
-    setIsPosting(true);
     const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
     const prayer = {
       id: Date.now(),
@@ -1768,38 +1725,36 @@ function AppContent({ iap }) {
       date: new Date().toLocaleDateString(),
       prayedFor: false
     };
-    try {
-      await savePrayerToAPI(prayer);
-      await incrementDailyPostCount();
-      await loadUserPrayers();
-      if (newPrayer.isPublic) await loadCommunityPrayers();
-      setPostSuccess(true);
-      maybeRequestReview();
-      setTimeout(() => {
+    return runSubmission(() => savePrayerToAPI(prayer), {
+      onSuccess: () => {
         setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference });
         setPrayerImage(null);
         setShowTitleInput(false);
-        setPostSuccess(false);
-      }, 1200);
-      return true;
-    } catch (error) {
-      if (error.accessFailureHandled) return false;
-      const isNetworkError = error.message.includes('Network request failed') ||
-                            error.message.includes('Failed to fetch') ||
-                            error.message.includes('timeout');
-      if (isNetworkError) {
-        setPrayers([prayer, ...prayers]);
-        if (newPrayer.isPublic) setCommunityPrayers([prayer, ...communityPrayers]);
-        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference });
-        setPrayerImage(null);
-        setShowTitleInput(false);
-        showModal({ icon: '📶', title: 'Offline Mode', message: 'Prayer saved locally. It will sync when you have internet connection.' });
-      } else {
+        setCurrentScreen('home');
+        // Close/reset first. These follow-up reads cannot change the outcome
+        // of the completed submission, even if they are slow or fail.
+        Promise.resolve().then(async () => {
+          await Promise.all([
+            loadUserPrayers(),
+            ...(prayer.isPublic ? [loadCommunityPrayers()] : []),
+          ]);
+          maybeRequestReview();
+        }).catch(error => console.warn('[Prayer] Post-save refresh failed:', error?.message));
+      },
+      onFailure: (error) => {
+        if (isDailyLimitSubmissionError(error)) {
+          showModal({
+            icon: '✨',
+            title: 'Daily free limit reached',
+            message: error.message || 'Free tier is limited to 1 request per day. Upgrade to Pro for unlimited requests.',
+            buttons: [{ label: 'Upgrade to Pro', onPress: () => proPaywallRef.current() }, { label: 'Not now', style: 'cancel' }],
+          });
+          return;
+        }
+        if (error.accessFailureHandled) return;
         showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
-      }
-    } finally {
-      setIsPosting(false);
-    }
+      },
+    });
   };
 
   // Silently check if a prayer request is primarily material — never blocks posting
@@ -1819,21 +1774,24 @@ function AppContent({ iap }) {
     }
   };
 
-  // Handle the daily-post gate, then submit the request.
+  // The server's attempted submission is authoritative, not a cached tally.
   const proceedToPost = async (contentOverride) => {
-    if (!isPro && await loadDailyPostCount() >= 1) {
-      presentProPaywall();
-      return;
-    }
     return doAddPrayer(contentOverride);
   };
 
   const addPrayer = async () => {
+    if (contentCheckInFlightRef.current || isPosting) return false;
     if (currentUser?.isGuest) { showGuestPrompt(); return; }
-    if (!isPro && await loadDailyPostCount() >= 1) {
-      presentProPaywall();
-      return;
+    contentCheckInFlightRef.current = true;
+    try {
+      return await checkAndPostPrayer();
+    } finally {
+      contentCheckInFlightRef.current = false;
+      setIsCheckingContent(false);
     }
+  };
+
+  const checkAndPostPrayer = async () => {
     const text = newPrayer.content.trim();
     if (!text) {
       showModal({ icon: '✏️', title: 'Error', message: 'Please enter your prayer request' });
@@ -1977,7 +1935,6 @@ function AppContent({ iap }) {
         // Clear the idempotency key on successful completion
         setCurrentIdempotencyKey(null);
         setHasShownSuccessForCurrentKey(false);
-        loadCommunityPrayers(); // Refresh community prayers
       } else if (data.error) {
         // API returned an error response: { error: 1, result: "error message" }
         const errorMessage = data.result || 'Unable to save prayer request. Please try again.';
@@ -5135,7 +5092,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
 
           <View style={styles.npPostButtonContainer}>
-            {!isEditing && hasReachedDailyFreeLimit && (
+            {!isEditing && dailyLimitReached && (
               <TouchableOpacity
                 style={{
                   backgroundColor: '#fff7ed',
@@ -5154,6 +5111,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               </TouchableOpacity>
             )}
             <TouchableOpacity 
+              testID="button-submit-prayer"
               style={[
                 styles.npPostButton, 
                 (!newPrayer.content.trim() || isPosting || isCheckingContent) && styles.npPostButtonDisabled
@@ -5162,7 +5120,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 if (isEditing) {
                   await handleUpdatePrayer();
                 } else {
-                  if (await addPrayer()) setCurrentScreen('home');
+                  await addPrayer();
                 }
               }}
               disabled={!newPrayer.content.trim() || isPosting || isCheckingContent}

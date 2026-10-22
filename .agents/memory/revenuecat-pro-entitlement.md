@@ -16,6 +16,13 @@ Free users keep one prayer request per day; additional requests should be blocke
 
 **How to apply:** Use the same `Pray Over Us Pro` entitlement for every gate. A Google Play license-tester account is for test purchases and must not itself grant Pro access.
 
+## Prayer submission outcome
+After a successful prayer submission, clear the form's error and close the screen. Zero remaining allowance after that success is not an error. Show the daily-limit error only when an attempted submission actually returns HTTP 403 with `error: "DAILY_LIMIT_REACHED"`. Prevent duplicate submissions while posting, and ensure delayed quota checks cannot overwrite the successful state.
+
+**Why:** The user explicitly required these semantics to distinguish a successful final free post from a rejected additional post.
+
+**How to apply:** Treat the submission response as authoritative. Do not infer rejection from cached daily counts, remaining allowance, or message text.
+
 ## Verifying a customer's subscription
 Match the app account's numeric user ID to the RevenueCat App User ID before making a claim about that user's entitlement. An empty email search does not prove that the account has no subscription.
 

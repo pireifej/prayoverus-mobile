@@ -44,7 +44,9 @@ const notifyAuthFailure = (error) => {
   ) {
     authFailureHandler?.(error);
   }
-  if (error.code === 'PRO_REQUIRED' || error.code === 'DAILY_LIMIT_REACHED') {
+  // Daily-limit errors belong to the attempted submission's form lifecycle,
+  // not a global handler that can reopen an error after a successful post.
+  if (error.status === 403 && error.code === 'PRO_REQUIRED') {
     if (accessFailureHandler) {
       error.accessFailureHandled = true;
       accessFailureHandler(error);
@@ -60,12 +62,8 @@ const createApiError = (status, path, response) => {
   ];
   let code = candidates.find(value => typeof value === 'string' && /^[A-Z][A-Z_]+$/.test(value));
   let message = response?.message || response?.error?.message;
-  if (!code && status === 403 && path === '/createRequestAndPrayer'
-      && /daily|per day|free.*limit/i.test(message || '')) {
-    code = 'DAILY_LIMIT_REACHED';
-  }
   if (!message && status === 403 && path === '/createRequestAndPrayer') {
-    message = 'Posting access could not be verified. If you have Pro, restore purchases or sign in again. Otherwise, today’s free request limit may have been reached.';
+    message = 'Posting access could not be verified. Please sign in again, or restore purchases if you have Pro.';
   }
   return new ApiError(message || `API error ${status} on ${path}`, { status, code, response });
 };

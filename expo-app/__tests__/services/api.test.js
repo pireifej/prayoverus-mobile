@@ -91,9 +91,9 @@ describe('posting access responses', () => {
       json: async () => ({ error: 1, code: 'DAILY_LIMIT_REACHED', message: 'One free request per day.' }),
     });
     await expect(apiCreatePrayer({})).rejects.toMatchObject({
-      code: 'DAILY_LIMIT_REACHED', accessFailureHandled: true,
+      code: 'DAILY_LIMIT_REACHED', status: 403,
     });
-    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
     setApiAccessFailureHandler(null);
   });
 
@@ -107,6 +107,43 @@ describe('posting access responses', () => {
     await expect(apiCreatePrayer({})).rejects.toMatchObject({
       status: 403, message: expect.stringContaining('Posting access could not be verified'),
     });
+    expect(handler).not.toHaveBeenCalled();
+    setApiAccessFailureHandler(null);
+  });
+
+  it('does not guess the daily-limit code from a forbidden response message', async () => {
+    const { apiCreatePrayer } = require('../../services/api');
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 403,
+      json: async () => ({ message: 'Daily quota could not be verified' }),
+    });
+    await expect(apiCreatePrayer({})).rejects.toMatchObject({ status: 403, code: undefined });
+  });
+
+  it('leaves exact daily-limit failures with the posting form instead of a global popup', async () => {
+    const { apiCreatePrayer } = require('../../services/api');
+    const handler = jest.fn();
+    setApiAccessFailureHandler(handler);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 403,
+      json: async () => ({ error: 'DAILY_LIMIT_REACHED' }),
+    });
+    await expect(apiCreatePrayer({})).rejects.toMatchObject({
+      status: 403, response: { error: 'DAILY_LIMIT_REACHED' },
+    });
+    expect(handler).not.toHaveBeenCalled();
+    setApiAccessFailureHandler(null);
+  });
+
+  it('does not turn a successful response with zero remaining into an access failure', async () => {
+    const { apiCreatePrayer } = require('../../services/api');
+    const handler = jest.fn();
+    setApiAccessFailureHandler(handler);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ success: true, remaining: 0 }),
+    });
+    await expect(apiCreatePrayer({})).resolves.toMatchObject({ success: true, remaining: 0 });
     expect(handler).not.toHaveBeenCalled();
     setApiAccessFailureHandler(null);
   });

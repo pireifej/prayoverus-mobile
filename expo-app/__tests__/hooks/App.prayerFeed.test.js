@@ -23,6 +23,8 @@ const MOCK_USER = {
   faith_rank: null,
   isGuest: false,
 };
+const mockLoadUserPrayers = jest.fn();
+const mockLoadCommunityPrayers = jest.fn();
 
 const MOCK_COMMUNITY_PRAYERS = [
   {
@@ -101,9 +103,9 @@ jest.mock('../../hooks/usePrayers', () => ({
     answeredModal: { visible: false, prayer: null, text: '', isLoading: false },
     setAnsweredModal: jest.fn(),
     loadingAnswered: false,
-    loadCommunityPrayers: jest.fn(),
+    loadCommunityPrayers: mockLoadCommunityPrayers,
     onRefreshCommunity: jest.fn(),
-    loadUserPrayers: jest.fn(),
+    loadUserPrayers: mockLoadUserPrayers,
     prayForRequest: jest.fn(),
     markAsPrayed: jest.fn(),
     recordSwipePrayer: jest.fn(),
@@ -270,7 +272,14 @@ jest.mock('../../i18n', () => {
   return t;
 });
 
+jest.mock('../../AppModals', () => ({
+  showToast: jest.fn(),
+  showModal: jest.fn(),
+}));
+
 jest.mock('../../services/api', () => ({
+  apiCheckContent: jest.fn(() => Promise.resolve({ flagged: false })),
+  apiCreatePrayer: jest.fn(() => Promise.resolve({ success: true, remaining: 0 })),
   apiHeaders: jest.fn(() => ({})),
   apiGetDailyDevotional: jest.fn(() => Promise.resolve({ error: 1 })),
   apiGetPrayerByRequestId: jest.fn(() => Promise.resolve({ error: 1 })),
@@ -309,7 +318,9 @@ jest.mock('../../services/api', () => ({
 
 import React from 'react';
 import { Animated } from 'react-native';
-import { act, render, cleanup } from '@testing-library/react-native';
+import { act, render, cleanup, fireEvent } from '@testing-library/react-native';
+import { apiCreatePrayer, apiCheckContent } from '../../services/api';
+import { showModal } from '../../AppModals';
 
 // App must be imported AFTER all jest.mock() calls are hoisted
 let App;
@@ -319,9 +330,71 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  apiCreatePrayer.mockResolvedValue({ success: true, remaining: 0 });
+  apiCheckContent.mockResolvedValue({ flagged: false });
+  mockLoadUserPrayers.mockResolvedValue(undefined);
+  mockLoadCommunityPrayers.mockResolvedValue(undefined);
   // Animated.loop in App.js creates infinite requestAnimationFrame loops that
   // prevent Jest from exiting. Replace .loop with a no-op for this suite.
   jest.spyOn(Animated, 'loop').mockReturnValue({ start: jest.fn(), stop: jest.fn(), reset: jest.fn() });
+});
+
+describe('App.js — prayer submission completion', () => {
+  const openForm = async () => {
+    const screen = render(<App />);
+    await act(async () => {});
+    fireEvent.press(screen.getByLabelText('New prayer request'));
+    fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), 'Please pray for my family.');
+    return screen;
+  };
+
+  it('closes a successful final free post without waiting for quota/feed refreshes', async () => {
+    let resolvePost, rejectRefresh;
+    apiCreatePrayer.mockImplementationOnce(() => new Promise(resolve => { resolvePost = resolve; }));
+    mockLoadUserPrayers.mockImplementationOnce(() => new Promise((_, reject) => { rejectRefresh = reject; }));
+    const screen = await openForm();
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(1);
+    await act(async () => { resolvePost({ success: true, remaining: 0 }); });
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+    expect(showModal).not.toHaveBeenCalled();
+    await act(async () => {
+      rejectRefresh(Object.assign(new Error('Delayed quota failure'), {
+        status: 403, response: { error: 'DAILY_LIMIT_REACHED' },
+      }));
+    });
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+    expect(showModal).not.toHaveBeenCalled();
+  }, 15000);
+
+  it('shows an exact submission limit error, then clears it when a retry succeeds', async () => {
+    apiCreatePrayer.mockRejectedValueOnce(Object.assign(new Error('Daily limit reached'), {
+      status: 403, response: { error: 'DAILY_LIMIT_REACHED' },
+    }));
+    const screen = await openForm();
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    expect(showModal).toHaveBeenCalledWith(expect.objectContaining({ title: 'Daily free limit reached' }));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('Please pray for my family.');
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(2);
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+    expect(showModal).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByLabelText('New prayer request'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('');
+    expect(screen.queryByText("You've reached today's free request limit. Upgrade to Pro for unlimited daily posts.")).toBeNull();
+  });
+
+  it('closes the form after a successful crisis-dialog submission too', async () => {
+    apiCheckContent.mockResolvedValueOnce({ type: 'crisis' });
+    const screen = await openForm();
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    const dialog = showModal.mock.calls[0][0];
+    await act(async () => {
+      await dialog.buttons.find(button => button.label === 'Post my original prayer').onPress();
+    });
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(1);
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+  });
 });
 
 afterEach(async () => {

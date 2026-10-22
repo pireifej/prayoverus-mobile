@@ -22,3 +22,10 @@ Match the app account's numeric user ID to the RevenueCat App User ID before mak
 **Why:** RevenueCat email searches can return no match when the customer is identified only by the app's numeric ID. Recent activity and app version are not sufficient evidence of customer identity.
 
 **How to apply:** Obtain the account's support ID from Profile or the backend account lookup, then query that exact RevenueCat customer and its active entitlements. Do not infer the account from a recent anonymous customer.
+
+## Apple configuration checks
+Distinguish RevenueCat's App Store Connect API credential from its In-App Purchase subscription key. A store-state lookup can fail because the former is absent even when the latter is configured; this alone does not prove receipt validation or purchases are broken.
+
+**Why:** The live RevenueCat store-state API returned a missing App Store Connect credential error while separately reporting the subscription key as configured.
+
+**How to apply:** Report catalog links, store approval, receipt-validation configuration, and completed device purchase tests as separate checks. Do not call a subscription launch-ready solely because the product appears in RevenueCat or the native checkout opens.

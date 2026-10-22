@@ -23,6 +23,13 @@ After a successful prayer submission, clear the form's error and close the scree
 
 **How to apply:** Treat the submission response as authoritative. Do not infer rejection from cached daily counts, remaining allowance, or message text.
 
+## Pro presentation and dismissal
+The Profile Pro area should be its own separate banner using the paywall's dark-blue background and yellow button theme. The Pro bottom sheet must have an obvious on-screen close control and support outside-tap and downward-swipe dismissal, rather than depending on Android's Back button.
+
+**Why:** The user said the Profile offer blended into the rest of the screen and that the paywall could only be dismissed with Android Back, which is not available on iPhone.
+
+**How to apply:** Preserve the distinct banner treatment and cross-platform dismissal controls when changing the Profile or paywall. Keep dismissal accessible without a physical or system Back button.
+
 ## Verifying a customer's subscription
 Match the app account's numeric user ID to the RevenueCat App User ID before making a claim about that user's entitlement. An empty email search does not prove that the account has no subscription.
 

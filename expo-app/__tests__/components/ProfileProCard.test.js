@@ -16,6 +16,9 @@ beforeEach(() => jest.clearAllMocks());
 
 test('shows a clear monthly Pro offer and wires both purchase actions', () => {
   const screen = render(<ProfileProCard {...baseProps} />);
+  expect(screen.getByTestId('profile-pro-section')).toBeTruthy();
+  expect(screen.getByTestId('profile-pro-banner')).toBeTruthy();
+  expect(screen.getByTestId('profile-pro-section').props.accessibilityLabel).toBe('Pray Over Us Pro membership');
   expect(screen.getByText('MONTHLY · $9.99')).toBeTruthy();
   expect(screen.getByText('Unlimited prayer requests, full Daily Bread readings and audio, and guided Prayer Walk.')).toBeTruthy();
 
@@ -23,6 +26,12 @@ test('shows a clear monthly Pro offer and wires both purchase actions', () => {
   fireEvent.press(screen.getByTestId('profile-restore-purchases'));
   expect(baseProps.onUpgrade).toHaveBeenCalledTimes(1);
   expect(baseProps.onRestore).toHaveBeenCalledTimes(1);
+});
+
+test('keeps the live localized price in the separated membership banner', () => {
+  const screen = render(<ProfileProCard {...baseProps} price="€7,49" />);
+  expect(screen.getByTestId('profile-pro-banner')).toBeTruthy();
+  expect(screen.getByText('MONTHLY · €7,49')).toBeTruthy();
 });
 
 test('shows feedback during plan loading and when billing cannot be verified', () => {
@@ -36,6 +45,7 @@ test('shows feedback during plan loading and when billing cannot be verified', (
 
 test('shows restore progress and active Pro status', () => {
   const screen = render(<ProfileProCard {...baseProps} isPro restoreLoading />);
+  expect(screen.getByTestId('profile-pro-section')).toBeTruthy();
   expect(screen.getByText('YOUR SUBSCRIPTION IS ACTIVE')).toBeTruthy();
   expect(screen.queryByTestId('profile-upgrade-pro')).toBeNull();
   expect(screen.getByText('Checking purchases…')).toBeTruthy();

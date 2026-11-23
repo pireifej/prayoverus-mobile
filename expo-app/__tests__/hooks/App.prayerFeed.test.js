@@ -376,6 +376,8 @@ describe('App.js — prayer submission completion', () => {
     fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
 
     expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(unspokenCopy.message);
+    expect(screen.queryByTestId('optional-title-input')).toBeNull();
+    fireEvent.press(screen.getByTestId('button-add-optional-title'));
     expect(screen.getByTestId('optional-title-input').props.value).toBe(unspokenCopy.title);
     expect(apiCreatePrayer).not.toHaveBeenCalled();
 
@@ -383,7 +385,7 @@ describe('App.js — prayer submission completion', () => {
     expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('');
   });
 
-  it('offers an optional title without a hide-title toggle', async () => {
+  it('toggles the optional title field without losing its draft', async () => {
     const screen = await openForm();
 
     expect(screen.getByTestId('button-add-optional-title')).toBeTruthy();
@@ -391,8 +393,59 @@ describe('App.js — prayer submission completion', () => {
     expect(screen.getByTestId('optional-title-input')).toBeTruthy();
     fireEvent.changeText(screen.getByTestId('optional-title-input'), 'Prayer for my family');
     fireEvent.press(screen.getByTestId('button-add-optional-title'));
+    expect(screen.queryByTestId('optional-title-input')).toBeNull();
+    expect(screen.getByTestId('button-add-optional-title').props.accessibilityState.selected).toBe(false);
+    fireEvent.press(screen.getByTestId('button-add-optional-title'));
     expect(screen.getByTestId('optional-title-input').props.value).toBe('Prayer for my family');
     expect(screen.queryByText('hideTitle')).toBeNull();
+  });
+
+  it('restores the prior body and title after switching unspoken off', async () => {
+    const screen = await openForm();
+    fireEvent.press(screen.getByTestId('button-add-optional-title'));
+    fireEvent.changeText(screen.getByTestId('optional-title-input'), 'My original title');
+    fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), 'My original draft');
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    const confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    act(() => confirmation.buttons.find(button => button.label === 'unspokenIntentReplaceText').onPress());
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(getUnspokenPrayerCopy('en').message);
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('My original draft');
+    expect(screen.getByTestId('optional-title-input').props.value).toBe('My original title');
+  });
+
+  it('keeps edits made to the generated unspoken message when deselected', async () => {
+    const screen = await openForm();
+    fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), '');
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), 'Edited private intention');
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('Edited private intention');
+    expect(screen.getByTestId('checkbox-unspoken-prayer').props.accessibilityState.checked).toBe(false);
+  });
+
+  it('does not restore an old draft after clearing the form', async () => {
+    const screen = await openForm();
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    const confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    act(() => confirmation.buttons.find(button => button.label === 'unspokenIntentReplaceText').onPress());
+    fireEvent.press(screen.getByText('Clear'));
+    const clearConfirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    act(() => clearConfirmation.buttons.find(button => button.label === 'Yes, Clear').onPress());
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('');
+  });
+
+  it('retains the original draft when reopening an unspoken draft', async () => {
+    const screen = await openForm();
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    const confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    act(() => confirmation.buttons.find(button => button.label === 'unspokenIntentReplaceText').onPress());
+    fireEvent.press(screen.getByText('cancelBack'));
+    fireEvent.press(screen.getByLabelText('New prayer request'));
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('Please pray for my family.');
   });
 
   it('groups optional tools and reveals unspoken guidance only when selected', async () => {

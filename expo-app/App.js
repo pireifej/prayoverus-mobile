@@ -341,6 +341,8 @@ function AppContent({ iap }) {
   const [extendedPrayerPreference, setExtendedPrayerPreference] = useState(false);
   const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false, extended: false, isUnspoken: false });
   const unspokenPrayerCopy = getUnspokenPrayerCopy(userLang);
+  const unspokenDraftSnapshotRef = useRef(null);
+  const [pressedComposerTool, setPressedComposerTool] = useState(null);
   const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
@@ -371,6 +373,14 @@ function AppContent({ iap }) {
   }, [prayerModal.loading]);
 
   const [showTitleInput, setShowTitleInput] = useState(false);
+  useEffect(() => {
+    unspokenDraftSnapshotRef.current = null;
+  }, [currentUser?.id]);
+
+  const resetUnspokenDraftSnapshot = () => {
+    unspokenDraftSnapshotRef.current = null;
+  };
+
   const [showPrayerGuidelines, setShowPrayerGuidelines] = useState(false);
   const [helpForm, setHelpForm] = useState({
     message: '',
@@ -1747,6 +1757,7 @@ function AppContent({ iap }) {
           setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
           setPrayerImage(null);
           setShowTitleInput(false);
+          resetUnspokenDraftSnapshot();
           setCurrentScreen('home');
         }
         // Follow-up reads cannot change the outcome of the completed
@@ -1820,24 +1831,36 @@ function AppContent({ iap }) {
 
   const toggleUnspokenPrayer = () => {
     if (newPrayer.isUnspoken) {
+      const snapshot = unspokenDraftSnapshotRef.current;
       setNewPrayer(prev => ({
         ...prev,
         isUnspoken: false,
-        title: prev.title === unspokenPrayerCopy.title ? '' : prev.title,
-        content: prev.content.trim() === unspokenPrayerCopy.message ? '' : prev.content,
+        title: snapshot && prev.title === snapshot.generatedTitle ? snapshot.title : prev.title,
+        content: snapshot && prev.content === snapshot.generatedContent ? snapshot.content : prev.content,
       }));
-      if (newPrayer.title === unspokenPrayerCopy.title) setShowTitleInput(false);
+      if (snapshot) {
+        setShowTitleInput(snapshot.titleVisibilityChanged ? showTitleInput : snapshot.showTitleInput);
+      }
+      resetUnspokenDraftSnapshot();
       return;
     }
 
     const applyTemplate = () => {
+      unspokenDraftSnapshotRef.current = {
+        title: newPrayer.title,
+        content: newPrayer.content,
+        showTitleInput,
+        generatedTitle: unspokenPrayerCopy.title,
+        generatedContent: unspokenPrayerCopy.message,
+        titleVisibilityChanged: false,
+      };
       setNewPrayer(prev => ({
         ...prev,
         isUnspoken: true,
         title: prev.title.trim() ? prev.title : unspokenPrayerCopy.title,
         content: unspokenPrayerCopy.message,
       }));
-      setShowTitleInput(true);
+      setShowTitleInput(false);
     };
 
     if (newPrayer.content.trim() && newPrayer.content.trim() !== unspokenPrayerCopy.message) {
@@ -2703,6 +2726,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
 
   // Open Edit Prayer Screen (reuses new prayer form)
   const handleEditPrayer = (prayer) => {
+    resetUnspokenDraftSnapshot();
     // Pre-populate form with existing prayer data
     setNewPrayer({
       title: prayer.title || '',
@@ -4897,6 +4921,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
               setPrayerImage(null);
               setShowTitleInput(false);
+              resetUnspokenDraftSnapshot();
             }
           }
         ]
@@ -4978,6 +5003,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
             setPrayerImage(null);
             setShowTitleInput(false);
+            resetUnspokenDraftSnapshot();
             setCurrentScreen('home');
             
             showToast('Prayer request updated successfully', '✅');
@@ -5088,7 +5114,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               multiline
               numberOfLines={6}
               value={newPrayer.content}
-              onChangeText={(text) => setNewPrayer({...newPrayer, content: text})}
+              onChangeText={(text) => setNewPrayer(prev => ({...prev, content: text}))}
               editable={!isPosting}
               textAlignVertical="top"
             />
@@ -5098,12 +5124,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 testID="button-add-optional-title"
                 accessibilityRole="button"
                 accessibilityLabel={t('addTitleOptional')}
-                accessibilityState={{ selected: showTitleInput || !!newPrayer.title.trim(), disabled: isPosting }}
-                onPress={() => setShowTitleInput(true)}
+                accessibilityState={{ selected: showTitleInput, disabled: isPosting }}
+                onPress={() => {
+                  if (newPrayer.isUnspoken && unspokenDraftSnapshotRef.current) {
+                    unspokenDraftSnapshotRef.current.titleVisibilityChanged = true;
+                  }
+                  setShowTitleInput(current => !current);
+                }}
+                onPressIn={() => setPressedComposerTool('title')}
+                onPressOut={() => setPressedComposerTool(null)}
                 disabled={isPosting}
-                style={[styles.npToolPill, (showTitleInput || !!newPrayer.title.trim()) && styles.npToolPillActive]}
+                style={[styles.npToolPill, showTitleInput && styles.npToolPillActive, pressedComposerTool === 'title' && styles.npToolPillPressed]}
               >
-                <Text style={[styles.npToolLabel, (showTitleInput || !!newPrayer.title.trim()) && styles.npToolLabelActive]}>
+                <Text style={[styles.npToolLabel, showTitleInput && styles.npToolLabelActive, pressedComposerTool === 'title' && styles.npToolLabelPressed]}>
                   {t('titleTool')}
                 </Text>
               </TouchableOpacity>
@@ -5111,14 +5144,16 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 <TouchableOpacity
                   testID="checkbox-unspoken-prayer"
                   accessibilityRole="checkbox"
-                  accessibilityLabel={t('unspokenIntentOption')}
+                  accessibilityLabel={newPrayer.isUnspoken ? t('unspokenToolRemove') : t('unspokenIntentOption')}
                   accessibilityState={{ checked: !!newPrayer.isUnspoken, disabled: isPosting }}
                   onPress={toggleUnspokenPrayer}
+                  onPressIn={() => setPressedComposerTool('unspoken')}
+                  onPressOut={() => setPressedComposerTool(null)}
                   disabled={isPosting}
-                  style={[styles.npToolPill, newPrayer.isUnspoken && styles.npToolPillActive]}
+                  style={[styles.npToolPill, newPrayer.isUnspoken && styles.npToolPillActive, pressedComposerTool === 'unspoken' && styles.npToolPillPressed]}
                 >
-                  <Text style={[styles.npToolLabel, newPrayer.isUnspoken && styles.npToolLabelActive]}>
-                    {t('unspokenTool')}
+                  <Text style={[styles.npToolLabel, newPrayer.isUnspoken && styles.npToolLabelActive, pressedComposerTool === 'unspoken' && styles.npToolLabelPressed]}>
+                    {newPrayer.isUnspoken ? t('unspokenToolRemove') : t('unspokenTool')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -5126,17 +5161,19 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 accessibilityRole="button"
                 accessibilityLabel={prayerImage ? t('changePhoto') : t('addPhoto')}
                 accessibilityState={{ selected: !!prayerImage, disabled: isPosting }}
-                style={[styles.npToolPill, prayerImage && styles.npToolPillActive]}
+                style={[styles.npToolPill, prayerImage && styles.npToolPillActive, pressedComposerTool === 'photo' && styles.npToolPillPressed]}
                 onPress={pickPrayerImage}
+                onPressIn={() => setPressedComposerTool('photo')}
+                onPressOut={() => setPressedComposerTool(null)}
                 disabled={isPosting}
               >
-                <Text style={[styles.npToolLabel, prayerImage && styles.npToolLabelActive]}>
+                <Text style={[styles.npToolLabel, prayerImage && styles.npToolLabelActive, pressedComposerTool === 'photo' && styles.npToolLabelPressed]}>
                   {t('photoTool')}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {(showTitleInput || newPrayer.title.trim()) && (
+            {showTitleInput && (
               <TextInput
                 testID="optional-title-input"
                 style={styles.npTitleInput}
@@ -5144,7 +5181,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 placeholderTextColor="#94a3b8"
                 accessibilityLabel={t('titleOptionalPlaceholder')}
                 value={newPrayer.title}
-                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+                onChangeText={(text) => setNewPrayer(prev => ({...prev, title: text}))}
                 editable={!isPosting}
                 autoFocus={!newPrayer.title.trim()}
               />
@@ -8884,8 +8921,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f8f6',
   },
   npToolPillActive: {
-    borderColor: '#c8d7d2',
-    backgroundColor: '#edf3f0',
+    borderColor: '#204a39',
+    backgroundColor: '#204a39',
+  },
+  npToolPillPressed: {
+    borderColor: '#507b66',
+    backgroundColor: '#b8d2c3',
   },
   npToolLabel: {
     color: '#58655f',
@@ -8894,7 +8935,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   npToolLabelActive: {
-    color: '#304b42',
+    color: '#ffffff',
+  },
+  npToolLabelPressed: {
+    color: '#183c2e',
   },
   npUnspokenHelper: {
     color: '#6e7d74',

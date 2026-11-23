@@ -382,6 +382,7 @@ function AppContent({ iap }) {
   const [authInitMode, setAuthInitMode] = useState('login');
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
+  const quickUnspokenIdempotencyKeyRef = useRef(null);
   const [isUpdatingPrayer, setIsPosting] = useState(false);
   const { runSubmission, isSubmitting, dailyLimitReached } =
     usePrayerSubmission(`${currentUser?.id || 'guest'}:${currentScreen}`);
@@ -1712,29 +1713,44 @@ function AppContent({ iap }) {
 
   // refreshUserProfile, loadUserPrayers — moved to hooks/useAuth.js and hooks/usePrayers.js
 
-  const doAddPrayer = async (contentOverride) => {
-    const prayerTitle = newPrayer.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
+  const doAddPrayer = async (
+    contentOverride,
+    draft = newPrayer,
+    {
+      preserveComposer = false,
+      imageOverride = prayerImage,
+      allowRepeat = false,
+      idempotencyKeyOverride = null,
+    } = {},
+  ) => {
+    const prayerTitle = draft.title.trim() || `${currentUser?.firstName}'s Prayer Request`;
     const prayer = {
       id: Date.now(),
       title: prayerTitle,
-      content: contentOverride ?? newPrayer.content,
-      isPublic: newPrayer.isPublic,
-      isSilent: !!newPrayer.isSilent,
-      extended: !!newPrayer.extended,
+      content: contentOverride ?? draft.content,
+      isPublic: draft.isPublic,
+      isSilent: !!draft.isSilent,
+      extended: !!draft.extended,
       author: currentUser?.firstName || 'You',
       userId: currentUser?.id,
       timestamp: new Date().toISOString(),
       date: new Date().toLocaleDateString(),
       prayedFor: false
     };
-    return runSubmission(() => savePrayerToAPI(prayer), {
+    return runSubmission(() => savePrayerToAPI(prayer, imageOverride, idempotencyKeyOverride), {
+      allowRepeat,
       onSuccess: () => {
-        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
-        setPrayerImage(null);
-        setShowTitleInput(false);
-        setCurrentScreen('home');
-        // Close/reset first. These follow-up reads cannot change the outcome
-        // of the completed submission, even if they are slow or fail.
+        if (idempotencyKeyOverride && quickUnspokenIdempotencyKeyRef.current === idempotencyKeyOverride) {
+          quickUnspokenIdempotencyKeyRef.current = null;
+        }
+        if (!preserveComposer) {
+          setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
+          setPrayerImage(null);
+          setShowTitleInput(false);
+          setCurrentScreen('home');
+        }
+        // Follow-up reads cannot change the outcome of the completed
+        // submission, even if they are slow or fail.
         Promise.resolve().then(async () => {
           await Promise.all([
             loadUserPrayers(),
@@ -1759,41 +1775,47 @@ function AppContent({ iap }) {
     });
   };
 
-  const openUnspokenPrayerComposer = () => {
-    const { title, message } = unspokenPrayerCopy;
-    const openPrefilledComposer = () => {
-      setViewingMember(null);
-      setMemberFeedType(null);
-      setMemberFeedData([]);
-      setEditingPrayer(null);
-      setOriginalPrayerImage(null);
-      setPrayerImage(null);
-      setNewPrayer({
-        title,
-        content: message,
-        isPublic: true,
-        isSilent: false,
-        extended: extendedPrayerPreference,
-        isUnspoken: true,
-      });
-      setShowTitleInput(true);
-      setCurrentScreen('newPrayer');
-    };
-
-    if (newPrayer.content.trim() && !newPrayer.isUnspoken) {
-      showModal({
-        icon: '🙏',
-        title: t('unspokenIntentReplaceDraftTitle'),
-        message: t('unspokenIntentReplaceDraftMessage'),
-        buttons: [
-          { label: t('unspokenIntentKeepDraft'), style: 'cancel' },
-          { label: t('unspokenIntentUse'), onPress: openPrefilledComposer },
-        ],
-      });
+  const confirmUnspokenPrayerPost = () => {
+    if (isPosting) return;
+    if (currentUser?.isGuest) {
+      showGuestPrompt();
       return;
     }
 
-    openPrefilledComposer();
+    const { title, message } = unspokenPrayerCopy;
+    const unspokenDraft = {
+      title,
+      content: message,
+      isPublic: true,
+      isSilent: false,
+      extended: false,
+      isUnspoken: true,
+    };
+
+    showModal({
+      icon: '🙏',
+      title: t('unspokenIntentConfirmTitle'),
+      message: `${t('unspokenIntentConfirmMessage')}\n\n“${message}”`,
+      buttons: [
+        { label: t('unspokenIntentConfirmCancel'), style: 'cancel' },
+        {
+          label: t('unspokenIntentConfirmPost'),
+          onPress: () => {
+            if (isPosting) return;
+            if (!quickUnspokenIdempotencyKeyRef.current) {
+              quickUnspokenIdempotencyKeyRef.current =
+                'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            }
+            void doAddPrayer(undefined, unspokenDraft, {
+              preserveComposer: true,
+              imageOverride: null,
+              allowRepeat: true,
+              idempotencyKeyOverride: quickUnspokenIdempotencyKeyRef.current,
+            });
+          },
+        },
+      ],
+    });
   };
 
   const toggleUnspokenPrayer = () => {
@@ -1947,21 +1969,27 @@ function AppContent({ iap }) {
     return proceedToPost(text);
   };
 
-  const savePrayerToAPI = async (prayer) => {
+  const savePrayerToAPI = async (
+    prayer,
+    imageOverride = prayerImage,
+    idempotencyKeyOverride = null,
+  ) => {
     try {
       // Generate unique idempotency key ONLY if we don't have one (for retries)
-      let idempotencyKey = currentIdempotencyKey;
+      let idempotencyKey = idempotencyKeyOverride || currentIdempotencyKey;
       if (!idempotencyKey) {
         idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        setCurrentIdempotencyKey(idempotencyKey);
-        setHasShownSuccessForCurrentKey(false); // Reset success flag for new key
+        if (!idempotencyKeyOverride) {
+          setCurrentIdempotencyKey(idempotencyKey);
+          setHasShownSuccessForCurrentKey(false); // Reset success flag for new key
+        }
       }
       
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       let data;
       
       // If there's an image, use FormData (multipart), otherwise use JSON
-      if (prayerImage) {
+      if (imageOverride) {
         const formData = new FormData();
         formData.append('requestText', prayer.content);
         formData.append('requestTitle', prayer.title);
@@ -1973,10 +2001,10 @@ function AppContent({ iap }) {
         formData.append('lang', userLang);
         if (!prayer.isPublic) formData.append('myChurchOnly', 'true');
         if (prayer.isSilent) formData.append('isTest', 'true');
-        const uriParts = prayerImage.split('.');
+        const uriParts = imageOverride.split('.');
         const fileExtension = uriParts[uriParts.length - 1];
         formData.append('image', {
-          uri: prayerImage,
+          uri: imageOverride,
           type: `image/${fileExtension}`,
           name: `prayer.${fileExtension}`,
         });
@@ -2009,8 +2037,8 @@ function AppContent({ iap }) {
           showToast(data.message || 'Your prayer has been shared!', '🙏');
           setHasShownSuccessForCurrentKey(true);
         }
-        // Clear the idempotency key on successful completion
-        setCurrentIdempotencyKey(null);
+        // Preserve a normal composer retry key when a separate quick request succeeds.
+        if (!idempotencyKeyOverride) setCurrentIdempotencyKey(null);
         setHasShownSuccessForCurrentKey(false);
       } else if (data.error) {
         // API returned an error response: { error: 1, result: "error message" }
@@ -5008,15 +5036,35 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           </View>
 
           <View style={styles.newPrayerForm}>
-            {showTitleInput && (
+            {showTitleInput || newPrayer.title.trim() ? (
               <TextInput
+                testID="optional-title-input"
                 style={styles.npTitleInput}
-                placeholder={`${currentUser?.firstName}'s Prayer Request`}
+                placeholder={t('titleOptionalPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 value={newPrayer.title}
                 onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
                 editable={!isPosting}
+                autoFocus={!newPrayer.title.trim()}
               />
+            ) : (
+              <TouchableOpacity
+                testID="button-add-optional-title"
+                accessibilityRole="button"
+                accessibilityLabel={t('addTitleOptional')}
+                onPress={() => setShowTitleInput(true)}
+                disabled={isPosting}
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingVertical: 8,
+                  paddingRight: 12,
+                  marginBottom: 4,
+                }}
+              >
+                <Text style={{ color: '#64748b', fontSize: 14, fontWeight: '600' }}>
+                  + {t('addTitleOptional')}
+                </Text>
+              </TouchableOpacity>
             )}
             
             <TextInput
@@ -5090,17 +5138,6 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             )}
             
             <View style={styles.npOptionRow}>
-              <TouchableOpacity 
-                style={[styles.npOptionPill, showTitleInput && styles.npOptionPillActive]}
-                onPress={() => setShowTitleInput(!showTitleInput)}
-                disabled={isPosting}
-              >
-                <Text style={styles.npOptionPillIcon}>📝</Text>
-                <Text style={[styles.npOptionPillLabel, showTitleInput && styles.npOptionPillLabelActive]}>
-                  {showTitleInput ? t('hideTitle') : t('addTitle')}
-                </Text>
-              </TouchableOpacity>
-              
               <TouchableOpacity 
                 style={[styles.npOptionPill, prayerImage && styles.npOptionPillActive]}
                 onPress={pickPrayerImage}
@@ -5924,32 +5961,24 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           testID="button-unspoken-prayer-quick"
           accessibilityRole="button"
           accessibilityLabel={t('unspokenIntentQuick')}
-          onPress={openUnspokenPrayerComposer}
+          onPress={confirmUnspokenPrayerPost}
+          disabled={isPosting}
           activeOpacity={0.8}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            marginHorizontal: 15,
-            marginTop: -8,
+            alignSelf: 'center',
+            marginTop: 2,
             marginBottom: 18,
-            paddingVertical: 13,
-            paddingHorizontal: 16,
-            backgroundColor: '#eff6ff',
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: '#bfdbfe',
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            opacity: isPosting ? 0.5 : 1,
           }}
         >
-          <Text style={{ fontSize: 20, marginRight: 11 }}>🙏</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
-              {t('unspokenIntentQuick')}
-            </Text>
-            <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-              {t('unspokenIntentQuickHint')}
-            </Text>
-          </View>
-          <Text style={{ color: '#2563eb', fontSize: 20, fontWeight: '700' }}>›</Text>
+          <Text style={{ fontSize: 15, marginRight: 7 }}>🙏</Text>
+          <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '600' }}>
+            {t('unspokenIntentQuick')}
+          </Text>
         </TouchableOpacity>
 
         {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}

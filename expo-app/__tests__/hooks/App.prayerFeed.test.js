@@ -376,29 +376,80 @@ describe('App.js — prayer submission completion', () => {
     fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
 
     expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(unspokenCopy.message);
-    expect(screen.getByPlaceholderText("Jane's Prayer Request").props.value).toBe(unspokenCopy.title);
+    expect(screen.getByTestId('optional-title-input').props.value).toBe(unspokenCopy.title);
     expect(apiCreatePrayer).not.toHaveBeenCalled();
 
     fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
     expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('');
   });
 
-  it('opens the home shortcut as a reviewed draft and submits it through the standard request flow', async () => {
+  it('offers an optional title without a hide-title toggle', async () => {
+    const screen = await openForm();
+
+    expect(screen.getByTestId('button-add-optional-title')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('button-add-optional-title'));
+    expect(screen.getByTestId('optional-title-input')).toBeTruthy();
+    expect(screen.queryByText('hideTitle')).toBeNull();
+  });
+
+  it('confirms and posts the home unspoken shortcut through the standard request flow', async () => {
     const unspokenCopy = getUnspokenPrayerCopy('en');
     const screen = render(<App />);
     await act(async () => {});
 
     fireEvent.press(screen.getByTestId('button-unspoken-prayer-quick'));
-    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(unspokenCopy.message);
     expect(apiCreatePrayer).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
 
-    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    const confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    expect(confirmation.title).toBe('unspokenIntentConfirmTitle');
+    expect(confirmation.message).toContain(unspokenCopy.message);
+    const postButton = confirmation.buttons.find(button => button.label === 'unspokenIntentConfirmPost');
+    expect(postButton).toBeTruthy();
+
+    await act(async () => { await postButton.onPress(); });
 
     expect(apiCreatePrayer).toHaveBeenCalledWith(expect.objectContaining({
       requestText: unspokenCopy.message,
       requestTitle: unspokenCopy.title,
     }));
     expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+  });
+
+  it('allows each separately confirmed home unspoken action to submit', async () => {
+    const screen = render(<App />);
+    await act(async () => {});
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      fireEvent.press(screen.getByTestId('button-unspoken-prayer-quick'));
+      const confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+      const postButton = confirmation.buttons.find(button => button.label === 'unspokenIntentConfirmPost');
+      await act(async () => { await postButton.onPress(); });
+    }
+
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses the unspoken idempotency key after a failed attempt', async () => {
+    apiCreatePrayer.mockRejectedValueOnce(new Error('Network unavailable'));
+    const screen = render(<App />);
+    await act(async () => {});
+
+    fireEvent.press(screen.getByTestId('button-unspoken-prayer-quick'));
+    let confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    await act(async () => {
+      await confirmation.buttons.find(button => button.label === 'unspokenIntentConfirmPost').onPress();
+    });
+    const firstKey = apiCreatePrayer.mock.calls[0][0].idempotencyKey;
+
+    fireEvent.press(screen.getByTestId('button-unspoken-prayer-quick'));
+    confirmation = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    await act(async () => {
+      await confirmation.buttons.find(button => button.label === 'unspokenIntentConfirmPost').onPress();
+    });
+
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(2);
+    expect(apiCreatePrayer.mock.calls[1][0].idempotencyKey).toBe(firstKey);
   });
 
   it('shows an exact submission limit error, then clears it when a retry succeeds', async () => {

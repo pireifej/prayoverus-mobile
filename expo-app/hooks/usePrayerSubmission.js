@@ -24,7 +24,7 @@ export function usePrayerSubmission(formKey) {
     return () => { generationRef.current += 1; };
   }, [formKey]);
 
-  const runSubmission = async (submit, { onSuccess, onFailure } = {}) => {
+  const runSubmission = async (submit, { onSuccess, onFailure, allowRepeat = false } = {}) => {
     if (formKey !== currentFormKeyRef.current || attemptRef.current || completedRef.current) return false;
     const attempt = { generation: generationRef.current };
     attemptRef.current = attempt;
@@ -41,7 +41,7 @@ export function usePrayerSubmission(formKey) {
         return false;
       }
       if (attempt.generation !== generationRef.current) return false;
-      completedRef.current = true;
+      completedRef.current = !allowRepeat;
       setError(null);
       // Keep UI completion separate from the submit catch: a refresh failure
       // must never turn an already-created prayer into a failed submission.

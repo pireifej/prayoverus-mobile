@@ -318,7 +318,7 @@ jest.mock('../../services/api', () => ({
 
 import React from 'react';
 import { Animated } from 'react-native';
-import { act, render, cleanup, fireEvent } from '@testing-library/react-native';
+import { act, render, cleanup, fireEvent, within } from '@testing-library/react-native';
 import { apiCreatePrayer, apiCheckContent } from '../../services/api';
 import { showModal } from '../../AppModals';
 import { getUnspokenPrayerCopy } from '../../utils/unspokenPrayer';
@@ -389,7 +389,64 @@ describe('App.js — prayer submission completion', () => {
     expect(screen.getByTestId('button-add-optional-title')).toBeTruthy();
     fireEvent.press(screen.getByTestId('button-add-optional-title'));
     expect(screen.getByTestId('optional-title-input')).toBeTruthy();
+    fireEvent.changeText(screen.getByTestId('optional-title-input'), 'Prayer for my family');
+    fireEvent.press(screen.getByTestId('button-add-optional-title'));
+    expect(screen.getByTestId('optional-title-input').props.value).toBe('Prayer for my family');
     expect(screen.queryByText('hideTitle')).toBeNull();
+  });
+
+  it('groups optional tools and reveals unspoken guidance only when selected', async () => {
+    const screen = await openForm();
+    const tools = within(screen.getByTestId('composer-tools'));
+    expect(tools.getByTestId('button-add-optional-title')).toBeTruthy();
+    expect(tools.getByTestId('checkbox-unspoken-prayer')).toBeTruthy();
+    expect(tools.getByLabelText('addPhoto')).toBeTruthy();
+    expect(screen.queryByText('unspokenIntentHelper')).toBeNull();
+    expect(screen.getByTestId('composer-audience')).toBeTruthy();
+    expect(screen.queryByTestId('admin-test-post')).toBeNull();
+
+    fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), '');
+    fireEvent.press(tools.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByText('unspokenIntentHelper')).toBeTruthy();
+    expect(screen.getByTestId('checkbox-unspoken-prayer').props.accessibilityState.checked).toBe(true);
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.queryByText('unspokenIntentHelper')).toBeNull();
+  });
+
+  it('keeps the admin test-post control separate and preserves its submission flags', async () => {
+    const originalEmail = MOCK_USER.email;
+    MOCK_USER.email = 'pireifej@gmail.com';
+    try {
+      const screen = await openForm();
+      expect(within(screen.getByTestId('composer-tools')).queryByTestId('admin-test-post')).toBeNull();
+      fireEvent.press(screen.getByTestId('admin-test-post'));
+      await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+      expect(apiCreatePrayer).toHaveBeenCalledWith(expect.objectContaining({
+        isTest: true,
+        sendEmail: 'false',
+      }));
+    } finally {
+      MOCK_USER.email = originalEmail;
+    }
+  });
+
+  it('lets church members choose their audience from the author header', async () => {
+    const originalChurch = MOCK_USER.churchName;
+    MOCK_USER.churchName = 'Community Church';
+    try {
+      const screen = await openForm();
+      fireEvent.press(screen.getByLabelText('audienceLabel: audienceEveryone'));
+      const picker = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+      act(() => picker.buttons.find(button => button.label === 'Community Church').onPress());
+      expect(screen.getByLabelText('audienceLabel: Community Church')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('audienceLabel: Community Church'));
+      const secondPicker = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+      act(() => secondPicker.buttons.find(button => button.label === 'audienceEveryone').onPress());
+      expect(screen.getByLabelText('audienceLabel: audienceEveryone')).toBeTruthy();
+    } finally {
+      if (originalChurch === undefined) delete MOCK_USER.churchName;
+      else MOCK_USER.churchName = originalChurch;
+    }
   });
 
   it('confirms and posts the home unspoken shortcut through the standard request flow', async () => {

@@ -5024,7 +5024,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               <Image source={{ uri: myPicUri }} style={styles.npComposerAvatar} />
             ) : (
               <View style={[styles.npComposerAvatar, styles.npComposerAvatarPlaceholder]}>
-                <Text style={{ fontSize: 20 }}>👤</Text>
+                <Text style={styles.npComposerAvatarInitial}>
+                  {(currentUser?.firstName || 'Y').charAt(0).toUpperCase()}
+                </Text>
               </View>
             )}
             <View style={styles.npComposerInfo}>
@@ -5033,44 +5035,56 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 {isEditing ? t('editPrayerHint') : (() => { const d = new Date(); const day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000); return t('heartPrompts')[day % 10]; })()}
               </Text>
             </View>
+            <View testID="composer-audience" style={styles.npAudienceWrap}>
+              {!isEditing && currentUser?.churchName && currentUser.churchName !== 'None' ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('audienceLabel')}: ${newPrayer.isPublic ? t('audienceEveryone') : currentUser.churchName}`}
+                  accessibilityState={{ selected: true, disabled: isPosting }}
+                  onPress={() => showModal({
+                    title: t('audienceLabel'),
+                    message: t('audienceChoose'),
+                    buttons: [
+                      {
+                        label: t('audienceEveryone'),
+                        onPress: () => setNewPrayer(prev => ({ ...prev, isPublic: true })),
+                      },
+                      {
+                        label: currentUser.churchName,
+                        onPress: () => setNewPrayer(prev => ({ ...prev, isPublic: false })),
+                      },
+                      { label: t('cancelBtn'), style: 'cancel' },
+                    ],
+                  })}
+                  disabled={isPosting}
+                  style={styles.npAudiencePill}
+                >
+                  <Text style={styles.npAudienceCaption}>{t('audienceLabel')}</Text>
+                  <Text style={styles.npAudienceValue} numberOfLines={1}>
+                    {newPrayer.isPublic ? t('audienceEveryone') : currentUser.churchName}
+                  </Text>
+                  <Text style={styles.npAudienceChevron}>⌄</Text>
+                </TouchableOpacity>
+              ) : (
+                <View
+                  accessibilityLabel={`${t('audienceLabel')}: ${newPrayer.isPublic ? t('audienceEveryone') : (currentUser?.churchName || t('audienceEveryone'))}`}
+                  style={styles.npAudiencePill}
+                >
+                  <Text style={styles.npAudienceCaption}>{t('audienceLabel')}</Text>
+                  <Text style={styles.npAudienceValue} numberOfLines={1}>
+                    {newPrayer.isPublic ? t('audienceEveryone') : (currentUser?.churchName || t('audienceEveryone'))}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
 
           <View style={styles.newPrayerForm}>
-            {showTitleInput || newPrayer.title.trim() ? (
-              <TextInput
-                testID="optional-title-input"
-                style={styles.npTitleInput}
-                placeholder={t('titleOptionalPlaceholder')}
-                placeholderTextColor="#94a3b8"
-                value={newPrayer.title}
-                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
-                editable={!isPosting}
-                autoFocus={!newPrayer.title.trim()}
-              />
-            ) : (
-              <TouchableOpacity
-                testID="button-add-optional-title"
-                accessibilityRole="button"
-                accessibilityLabel={t('addTitleOptional')}
-                onPress={() => setShowTitleInput(true)}
-                disabled={isPosting}
-                style={{
-                  alignSelf: 'flex-start',
-                  paddingVertical: 8,
-                  paddingRight: 12,
-                  marginBottom: 4,
-                }}
-              >
-                <Text style={{ color: '#64748b', fontSize: 14, fontWeight: '600' }}>
-                  + {t('addTitleOptional')}
-                </Text>
-              </TouchableOpacity>
-            )}
-            
             <TextInput
               style={styles.npTextArea}
               placeholder={t('shareWithCommunity')}
               placeholderTextColor="#94a3b8"
+              accessibilityLabel={t('prayerPlaceholder')}
               multiline
               numberOfLines={6}
               value={newPrayer.content}
@@ -5079,47 +5093,65 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               textAlignVertical="top"
             />
 
-            {!isEditing && (
+            <View testID="composer-tools" style={styles.npComposerTools}>
               <TouchableOpacity
-                testID="checkbox-unspoken-prayer"
-                accessibilityRole="checkbox"
-                accessibilityLabel={t('unspokenIntentOption')}
-                accessibilityState={{ checked: !!newPrayer.isUnspoken }}
-                onPress={toggleUnspokenPrayer}
+                testID="button-add-optional-title"
+                accessibilityRole="button"
+                accessibilityLabel={t('addTitleOptional')}
+                accessibilityState={{ selected: showTitleInput || !!newPrayer.title.trim(), disabled: isPosting }}
+                onPress={() => setShowTitleInput(true)}
                 disabled={isPosting}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  marginTop: 12,
-                  padding: 12,
-                  borderRadius: 12,
-                  backgroundColor: newPrayer.isUnspoken ? '#eff6ff' : '#f8fafc',
-                  borderWidth: 1,
-                  borderColor: newPrayer.isUnspoken ? '#93c5fd' : '#e2e8f0',
-                }}
+                style={[styles.npToolPill, (showTitleInput || !!newPrayer.title.trim()) && styles.npToolPillActive]}
               >
-                <View style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  marginRight: 10,
-                  borderWidth: 2,
-                  borderColor: newPrayer.isUnspoken ? '#2563eb' : '#94a3b8',
-                  backgroundColor: newPrayer.isUnspoken ? '#2563eb' : 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {newPrayer.isUnspoken && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
-                    {t('unspokenIntentOption')}
-                  </Text>
-                  <Text style={{ color: '#64748b', fontSize: 12, marginTop: 3, lineHeight: 17 }}>
-                    {t('unspokenIntentHelper')}
-                  </Text>
-                </View>
+                <Text style={[styles.npToolLabel, (showTitleInput || !!newPrayer.title.trim()) && styles.npToolLabelActive]}>
+                  {t('titleTool')}
+                </Text>
               </TouchableOpacity>
+              {!isEditing && (
+                <TouchableOpacity
+                  testID="checkbox-unspoken-prayer"
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={t('unspokenIntentOption')}
+                  accessibilityState={{ checked: !!newPrayer.isUnspoken, disabled: isPosting }}
+                  onPress={toggleUnspokenPrayer}
+                  disabled={isPosting}
+                  style={[styles.npToolPill, newPrayer.isUnspoken && styles.npToolPillActive]}
+                >
+                  <Text style={[styles.npToolLabel, newPrayer.isUnspoken && styles.npToolLabelActive]}>
+                    {t('unspokenTool')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={prayerImage ? t('changePhoto') : t('addPhoto')}
+                accessibilityState={{ selected: !!prayerImage, disabled: isPosting }}
+                style={[styles.npToolPill, prayerImage && styles.npToolPillActive]}
+                onPress={pickPrayerImage}
+                disabled={isPosting}
+              >
+                <Text style={[styles.npToolLabel, prayerImage && styles.npToolLabelActive]}>
+                  {t('photoTool')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {(showTitleInput || newPrayer.title.trim()) && (
+              <TextInput
+                testID="optional-title-input"
+                style={styles.npTitleInput}
+                placeholder={t('titleOptionalPlaceholder')}
+                placeholderTextColor="#94a3b8"
+                accessibilityLabel={t('titleOptionalPlaceholder')}
+                value={newPrayer.title}
+                onChangeText={(text) => setNewPrayer({...newPrayer, title: text})}
+                editable={!isPosting}
+                autoFocus={!newPrayer.title.trim()}
+              />
+            )}
+
+            {!isEditing && newPrayer.isUnspoken && (
+              <Text style={styles.npUnspokenHelper}>{t('unspokenIntentHelper')}</Text>
             )}
             
             {prayerImage && (
@@ -5136,64 +5168,21 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </TouchableOpacity>
               </View>
             )}
-            
-            <View style={styles.npOptionRow}>
-              <TouchableOpacity 
-                style={[styles.npOptionPill, prayerImage && styles.npOptionPillActive]}
-                onPress={pickPrayerImage}
-                disabled={isPosting}
-              >
-                <Text style={styles.npOptionPillIcon}>📷</Text>
-                <Text style={[styles.npOptionPillLabel, prayerImage && styles.npOptionPillLabelActive]}>
-                  {prayerImage ? t('changePhoto') : t('addPhoto')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            
-            {currentUser?.churchName && currentUser.churchName !== 'None' && (
-              <View style={styles.npVisibilitySection}>
-                <Text style={styles.npVisibilityTitle}>{t('whoCanSee')}</Text>
-                <View style={styles.npSegmentedControl}>
-                  <TouchableOpacity 
-                    style={[styles.npSegment, newPrayer.isPublic && styles.npSegmentActive]}
-                    onPress={() => setNewPrayer({...newPrayer, isPublic: true})}
-                    disabled={isPosting}
-                  >
-                    <Text style={[styles.npSegmentText, newPrayer.isPublic && styles.npSegmentTextActive]}>
-                      {t('everyone')}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.npSegment, !newPrayer.isPublic && styles.npSegmentActive]}
-                    onPress={() => setNewPrayer({...newPrayer, isPublic: false})}
-                    disabled={isPosting}
-                  >
-                    <Text style={[styles.npSegmentText, !newPrayer.isPublic && styles.npSegmentTextActive]}>
-                      ⛪ {currentUser.churchName}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
 
             {isAdminUser && (
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, paddingVertical: 6 }}
+                testID="admin-test-post"
+                accessibilityRole="checkbox"
+                accessibilityLabel={t('testPost')}
+                accessibilityState={{ checked: !!newPrayer.isSilent, disabled: isPosting }}
+                style={styles.npAdminTestPost}
                 onPress={() => setNewPrayer({ ...newPrayer, isSilent: !newPrayer.isSilent })}
                 disabled={isPosting}
               >
-                <View style={{
-                  width: 22, height: 22, borderRadius: 6, marginRight: 10,
-                  borderWidth: 2, borderColor: newPrayer.isSilent ? '#2563eb' : '#94a3b8',
-                  backgroundColor: newPrayer.isSilent ? '#2563eb' : 'transparent',
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {newPrayer.isSilent && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                <View style={[styles.npCheckMark, newPrayer.isSilent && styles.npCheckMarkChecked]}>
+                  {newPrayer.isSilent && <Text style={styles.npCheckMarkText}>✓</Text>}
                 </View>
-                <Text style={{ fontSize: 14, color: '#475569', fontWeight: '600' }}>
-                  🔕 Test post (no notifications)
-                </Text>
+                <Text style={styles.npAdminTestText}>{t('testPost')}</Text>
               </TouchableOpacity>
             )}
 
@@ -5202,7 +5191,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginTop: 18,
+                marginTop: 14,
                 paddingVertical: 12,
                 paddingHorizontal: 14,
                 borderRadius: 14,
@@ -5224,12 +5213,12 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             >
               <View style={{ flex: 1, marginRight: 12 }}>
                 <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
-                  Deepen Prayer (Extended Mode) {!isPro ? '🔒' : ''}
+                  Deepen prayer {!isPro ? '· Pro' : ''}
                 </Text>
                 <Text style={{ color: '#64748b', fontSize: 12, marginTop: 3, lineHeight: 17 }}>
                   {isPro
-                    ? 'Create a longer, more detailed prayer for this request.'
-                    : 'Available with Pray Over Us Pro.'}
+                    ? 'Longer, more detailed prayer'
+                    : 'Available with Pro'}
                 </Text>
               </View>
               <Switch
@@ -5961,24 +5950,32 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
           testID="button-unspoken-prayer-quick"
           accessibilityRole="button"
           accessibilityLabel={t('unspokenIntentQuick')}
+          accessibilityState={{ disabled: isPosting }}
           onPress={confirmUnspokenPrayerPost}
           disabled={isPosting}
           activeOpacity={0.8}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            alignSelf: 'center',
-            marginTop: 2,
+            justifyContent: 'space-between',
+            alignSelf: 'stretch',
+            marginHorizontal: 15,
+            marginTop: 0,
             marginBottom: 18,
-            paddingVertical: 8,
-            paddingHorizontal: 12,
+            paddingVertical: 13,
+            paddingHorizontal: 16,
+            minHeight: 48,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: '#d7dce2',
+            backgroundColor: '#f4f5f6',
             opacity: isPosting ? 0.5 : 1,
           }}
         >
-          <Text style={{ fontSize: 15, marginRight: 7 }}>🙏</Text>
-          <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '600' }}>
+          <Text style={{ color: '#263746', fontSize: 14, fontWeight: '600', flex: 1 }}>
             {t('unspokenIntentQuick')}
           </Text>
+          <Text accessible={false} style={{ color: '#425563', fontSize: 20, marginLeft: 12 }}>›</Text>
         </TouchableOpacity>
 
         {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}
@@ -8752,6 +8749,7 @@ const styles = StyleSheet.create({
   },
   npComposerHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
@@ -8771,12 +8769,18 @@ const styles = StyleSheet.create({
     borderColor: '#dbeafe',
   },
   npComposerAvatarPlaceholder: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#f0e9df',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  npComposerAvatarInitial: {
+    color: '#665746',
+    fontSize: 19,
+    fontWeight: '700',
+  },
   npComposerInfo: {
     flex: 1,
+    minWidth: 100,
   },
   npComposerName: {
     fontSize: 17,
@@ -8788,11 +8792,51 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 2,
   },
+  npAudienceWrap: {
+    marginLeft: 8,
+    maxWidth: '42%',
+  },
+  npAudiencePill: {
+    minHeight: 48,
+    minWidth: 88,
+    maxWidth: 170,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0d9cf',
+    backgroundColor: '#faf8f4',
+  },
+  npAudienceCaption: {
+    width: '100%',
+    color: '#827664',
+    fontSize: 10,
+    lineHeight: 13,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  npAudienceValue: {
+    color: '#514638',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  npAudienceChevron: {
+    color: '#827664',
+    fontSize: 15,
+    marginLeft: 4,
+    lineHeight: 16,
+  },
   newPrayerForm: {
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
     padding: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     shadowColor: '#000',
@@ -8815,10 +8859,84 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#334155',
     lineHeight: 24,
-    minHeight: 140,
+    minHeight: 190,
     textAlignVertical: 'top',
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 4,
+  },
+  npComposerTools: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f4',
+  },
+  npToolPill: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#e1e5e4',
+    backgroundColor: '#f7f8f6',
+  },
+  npToolPillActive: {
+    borderColor: '#c8d7d2',
+    backgroundColor: '#edf3f0',
+  },
+  npToolLabel: {
+    color: '#58655f',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  npToolLabelActive: {
+    color: '#304b42',
+  },
+  npUnspokenHelper: {
+    color: '#6e7d74',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
+    marginHorizontal: 4,
+  },
+  npAdminTestPost: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#faf8f4',
+    borderWidth: 1,
+    borderColor: '#ece5dc',
+  },
+  npCheckMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#94a3b8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  npCheckMarkChecked: {
+    borderColor: '#2563eb',
+    backgroundColor: '#2563eb',
+  },
+  npCheckMarkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  npAdminTestText: {
+    color: '#5a554d',
+    fontSize: 13,
+    fontWeight: '600',
   },
   npImagePreview: {
     position: 'relative',
@@ -8849,78 +8967,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  npOptionRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  npOptionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: '#f1f5f9',
-    minHeight: 44,
-  },
-  npOptionPillActive: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  npOptionPillIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  npOptionPillLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  npOptionPillLabelActive: {
-    color: '#2563eb',
-  },
-  npVisibilitySection: {
-    marginTop: 16,
-  },
-  npVisibilityTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 10,
-  },
-  npSegmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 4,
-  },
-  npSegment: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  npSegmentActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  npSegmentText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  npSegmentTextActive: {
-    color: '#0f172a',
   },
   npPostButtonContainer: {
     paddingHorizontal: 16,

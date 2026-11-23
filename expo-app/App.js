@@ -5061,6 +5061,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 {isEditing ? t('editPrayerHint') : (() => { const d = new Date(); const day = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000); return t('heartPrompts')[day % 10]; })()}
               </Text>
             </View>
+            {typeof currentUser?.churchName === 'string'
+              && currentUser.churchName.trim() !== ''
+              && currentUser.churchName.trim().toLowerCase() !== 'none' && (
             <View testID="composer-audience" style={styles.npAudienceWrap}>
               {!isEditing && currentUser?.churchName && currentUser.churchName !== 'None' ? (
                 <TouchableOpacity
@@ -5103,6 +5106,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
                 </View>
               )}
             </View>
+            )}
           </View>
 
           <View style={styles.newPrayerForm}>
@@ -5872,7 +5876,9 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         {/* ── Community encouragement ── */}
         {!showMyRequestsOnly && (
           <View style={styles.taglineStrip}>
-            <Text style={styles.taglineStripText}>{t('prayersMakeADifference')}</Text>
+            <Text testID="community-encouragement" style={styles.taglineStripText}>
+              {t('prayersMakeADifference')}
+            </Text>
           </View>
         )}
 
@@ -9711,11 +9717,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taglineStripText: {
+    width: '100%',
     fontSize: 13,
+    lineHeight: 19,
     color: '#4f46e5',
     fontWeight: '600',
     letterSpacing: 0.3,
     fontStyle: 'italic',
+    textAlign: 'center',
+    includeFontPadding: false,
   },
 
   // ── Points Guide Card ─────────────────────────────────────────

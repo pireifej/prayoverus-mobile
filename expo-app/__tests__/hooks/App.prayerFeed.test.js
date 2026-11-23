@@ -317,7 +317,7 @@ jest.mock('../../services/api', () => ({
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { Animated } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 import { act, render, cleanup, fireEvent, within } from '@testing-library/react-native';
 import { apiCreatePrayer, apiCheckContent } from '../../services/api';
 import { showModal } from '../../AppModals';
@@ -455,7 +455,7 @@ describe('App.js — prayer submission completion', () => {
     expect(tools.getByTestId('checkbox-unspoken-prayer')).toBeTruthy();
     expect(tools.getByLabelText('addPhoto')).toBeTruthy();
     expect(screen.queryByText('unspokenIntentHelper')).toBeNull();
-    expect(screen.getByTestId('composer-audience')).toBeTruthy();
+    expect(screen.queryByTestId('composer-audience')).toBeNull();
     expect(screen.queryByTestId('admin-test-post')).toBeNull();
 
     fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), '');
@@ -500,6 +500,33 @@ describe('App.js — prayer submission completion', () => {
       if (originalChurch === undefined) delete MOCK_USER.churchName;
       else MOCK_USER.churchName = originalChurch;
     }
+  });
+
+  it.each([undefined, '', '  ', 'None', ' none '])('hides the audience without a church (%s) and posts publicly', async churchName => {
+    const originalChurch = MOCK_USER.churchName;
+    MOCK_USER.churchName = churchName;
+    try {
+      const screen = await openForm();
+      expect(screen.queryByTestId('composer-audience')).toBeNull();
+      await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+      expect(apiCreatePrayer).toHaveBeenCalledTimes(1);
+      expect(apiCreatePrayer.mock.calls[0][0].myChurchOnly).toBeUndefined();
+    } finally {
+      if (originalChurch === undefined) delete MOCK_USER.churchName;
+      else MOCK_USER.churchName = originalChurch;
+    }
+  });
+
+  it('lets the community encouragement wrap within the available width', async () => {
+    const screen = render(<App />);
+    await act(async () => {});
+    const encouragement = screen.getByTestId('community-encouragement');
+    expect(encouragement.props.children).toBe('prayersMakeADifference');
+    expect(encouragement.props.numberOfLines).toBeUndefined();
+    expect(StyleSheet.flatten(encouragement.props.style)).toEqual(expect.objectContaining({
+      width: '100%',
+      textAlign: 'center',
+    }));
   });
 
   it('confirms and posts the home unspoken shortcut through the standard request flow', async () => {

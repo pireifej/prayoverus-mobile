@@ -57,6 +57,18 @@ const translations = {
 
     // Share prayer button
     sharePrayerRequest: 'Share a Prayer Request',
+    unspokenIntentOption: 'Post an unspoken intention',
+    unspokenIntentHelper: 'We’ll add a private-intention message. This does not hide your name, and it still uses today’s request.',
+    unspokenIntentReplaceDraftTitle: 'Replace your current draft?',
+    unspokenIntentReplaceDraftMessage: 'The unspoken-intention message will replace the text in your current draft.',
+    unspokenIntentKeepDraft: 'Keep draft',
+    unspokenIntentUse: 'Use private intention',
+    unspokenIntentReplaceTitle: 'Use a private-intention message?',
+    unspokenIntentReplaceMessage: 'This will replace your current draft text with a standard unspoken prayer request.',
+    unspokenIntentKeepText: 'Keep my text',
+    unspokenIntentReplaceText: 'Replace text',
+    unspokenIntentQuick: 'Start an unspoken request',
+    unspokenIntentQuickHint: 'Opens a prefilled request for you to review',
 
     // Prayer cards / actions
     prayForThis: '🙏 Pray for this',
@@ -298,6 +310,18 @@ const translations = {
 
     // Share prayer button
     sharePrayerRequest: 'Compartir una Petición de Oración',
+    unspokenIntentOption: 'Publicar una intención sin detalles',
+    unspokenIntentHelper: 'Agregaremos un mensaje de intención privada. Esto no oculta tu nombre y cuenta como tu petición de hoy.',
+    unspokenIntentReplaceDraftTitle: '¿Reemplazar tu borrador actual?',
+    unspokenIntentReplaceDraftMessage: 'El mensaje de intención privada reemplazará el texto de tu borrador actual.',
+    unspokenIntentKeepDraft: 'Conservar borrador',
+    unspokenIntentUse: 'Usar intención privada',
+    unspokenIntentReplaceTitle: '¿Usar un mensaje de intención privada?',
+    unspokenIntentReplaceMessage: 'Esto reemplazará el texto actual con una petición de oración privada estándar.',
+    unspokenIntentKeepText: 'Conservar mi texto',
+    unspokenIntentReplaceText: 'Reemplazar texto',
+    unspokenIntentQuick: 'Iniciar una petición sin detalles',
+    unspokenIntentQuickHint: 'Abre una petición lista para que la revises',
 
     // Prayer cards / actions
     prayForThis: '🙏 Orar por esto',

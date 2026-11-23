@@ -43,3 +43,10 @@ Distinguish RevenueCat's App Store Connect API credential from its In-App Purcha
 **Why:** The live RevenueCat store-state API returned a missing App Store Connect credential error while separately reporting the subscription key as configured.
 
 **How to apply:** Report catalog links, store approval, receipt-validation configuration, and completed device purchase tests as separate checks. Do not call a subscription launch-ready solely because the product appears in RevenueCat or the native checkout opens.
+
+## Unspoken prayer requests
+Unspoken requests use a generic private-intention message, remain attributed according to the user's normal name/visibility settings, and consume the same daily request allowance. Keep this separate from anonymity.
+
+**Why:** The user approved this behavior for the unspoken-request flow.
+
+**How to apply:** Prefill the message rather than inventing personal details; route it through the normal submission and server quota path.

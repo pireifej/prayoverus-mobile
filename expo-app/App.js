@@ -76,6 +76,7 @@ import { buildLabel } from './utils/buildLabel';
 import ProPurchaseModal from './components/ProPurchaseModal';
 import ProfileProCard from './components/ProfileProCard';
 import { parsePrayerRequestLink } from './utils/prayerLinks';
+import { getUnspokenPrayerCopy } from './utils/unspokenPrayer';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
@@ -338,7 +339,8 @@ function AppContent({ iap }) {
   }, []);
 
   const [extendedPrayerPreference, setExtendedPrayerPreference] = useState(false);
-  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false, extended: false });
+  const [newPrayer, setNewPrayer] = useState({ title: '', content: '', isPublic: true, isSilent: false, extended: false, isUnspoken: false });
+  const unspokenPrayerCopy = getUnspokenPrayerCopy(userLang);
   const isAdminUser = currentUser?.email === 'pireifej@gmail.com';
   const [prayerImage, setPrayerImage] = useState(null);
   const [editingPrayer, setEditingPrayer] = useState(null); // null = new prayer, object = editing existing
@@ -1727,7 +1729,7 @@ function AppContent({ iap }) {
     };
     return runSubmission(() => savePrayerToAPI(prayer), {
       onSuccess: () => {
-        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
         setPrayerImage(null);
         setShowTitleInput(false);
         setCurrentScreen('home');
@@ -1755,6 +1757,81 @@ function AppContent({ iap }) {
         showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
       },
     });
+  };
+
+  const openUnspokenPrayerComposer = () => {
+    const { title, message } = unspokenPrayerCopy;
+    const openPrefilledComposer = () => {
+      setViewingMember(null);
+      setMemberFeedType(null);
+      setMemberFeedData([]);
+      setEditingPrayer(null);
+      setOriginalPrayerImage(null);
+      setPrayerImage(null);
+      setNewPrayer({
+        title,
+        content: message,
+        isPublic: true,
+        isSilent: false,
+        extended: extendedPrayerPreference,
+        isUnspoken: true,
+      });
+      setShowTitleInput(true);
+      setCurrentScreen('newPrayer');
+    };
+
+    if (newPrayer.content.trim() && !newPrayer.isUnspoken) {
+      showModal({
+        icon: '🙏',
+        title: t('unspokenIntentReplaceDraftTitle'),
+        message: t('unspokenIntentReplaceDraftMessage'),
+        buttons: [
+          { label: t('unspokenIntentKeepDraft'), style: 'cancel' },
+          { label: t('unspokenIntentUse'), onPress: openPrefilledComposer },
+        ],
+      });
+      return;
+    }
+
+    openPrefilledComposer();
+  };
+
+  const toggleUnspokenPrayer = () => {
+    if (newPrayer.isUnspoken) {
+      setNewPrayer(prev => ({
+        ...prev,
+        isUnspoken: false,
+        title: prev.title === unspokenPrayerCopy.title ? '' : prev.title,
+        content: prev.content.trim() === unspokenPrayerCopy.message ? '' : prev.content,
+      }));
+      if (newPrayer.title === unspokenPrayerCopy.title) setShowTitleInput(false);
+      return;
+    }
+
+    const applyTemplate = () => {
+      setNewPrayer(prev => ({
+        ...prev,
+        isUnspoken: true,
+        title: prev.title.trim() ? prev.title : unspokenPrayerCopy.title,
+        content: unspokenPrayerCopy.message,
+      }));
+      setShowTitleInput(true);
+    };
+
+    if (newPrayer.content.trim() && newPrayer.content.trim() !== unspokenPrayerCopy.message) {
+      showModal({
+        icon: '🙏',
+        title: t('unspokenIntentReplaceTitle'),
+        message: t('unspokenIntentReplaceMessage'),
+        buttons: [
+          { label: t('unspokenIntentKeepText'), style: 'cancel' },
+          { label: t('unspokenIntentReplaceText'), onPress: applyTemplate },
+        ],
+      });
+      return;
+    }
+
+    applyTemplate();
   };
 
   // Silently check if a prayer request is primarily material — never blocks posting
@@ -2604,6 +2681,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
       content: prayer.content || '',
       isPublic: prayer.isPublic !== false, // Default to true if not specified
       extended: extendedPrayerPreference,
+      isUnspoken: false,
     });
     // Use 'picture' field (from API) - may need to construct full URL
     let existingImage = prayer.picture || null;
@@ -4768,7 +4846,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         // When editing, just go back without saving draft message
         setEditingPrayer(null);
         setOriginalPrayerImage(null);
-        setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
+        setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
         setPrayerImage(null);
         setShowTitleInput(false);
       } else if (hasContent) {
@@ -4788,7 +4866,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             label: 'Yes, Clear',
             style: 'destructive',
             onPress: () => {
-              setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
+              setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
               setPrayerImage(null);
               setShowTitleInput(false);
             }
@@ -4869,7 +4947,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             // Reset form and go back
             setEditingPrayer(null);
             setOriginalPrayerImage(null);
-            setNewPrayer({ title: '', content: '', isPublic: true, extended: extendedPrayerPreference });
+            setNewPrayer({ title: '', content: '', isPublic: true, isSilent: false, extended: extendedPrayerPreference, isUnspoken: false });
             setPrayerImage(null);
             setShowTitleInput(false);
             setCurrentScreen('home');
@@ -4952,6 +5030,49 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               editable={!isPosting}
               textAlignVertical="top"
             />
+
+            {!isEditing && (
+              <TouchableOpacity
+                testID="checkbox-unspoken-prayer"
+                accessibilityRole="checkbox"
+                accessibilityLabel={t('unspokenIntentOption')}
+                accessibilityState={{ checked: !!newPrayer.isUnspoken }}
+                onPress={toggleUnspokenPrayer}
+                disabled={isPosting}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  marginTop: 12,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: newPrayer.isUnspoken ? '#eff6ff' : '#f8fafc',
+                  borderWidth: 1,
+                  borderColor: newPrayer.isUnspoken ? '#93c5fd' : '#e2e8f0',
+                }}
+              >
+                <View style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  marginRight: 10,
+                  borderWidth: 2,
+                  borderColor: newPrayer.isUnspoken ? '#2563eb' : '#94a3b8',
+                  backgroundColor: newPrayer.isUnspoken ? '#2563eb' : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {newPrayer.isUnspoken && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>✓</Text>}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
+                    {t('unspokenIntentOption')}
+                  </Text>
+                  <Text style={{ color: '#64748b', fontSize: 12, marginTop: 3, lineHeight: 17 }}>
+                    {t('unspokenIntentHelper')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
             
             {prayerImage && (
               <View style={styles.npImagePreview}>
@@ -5797,6 +5918,38 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         >
           <Animated.Text style={[styles.sharePrayerButtonIcon, { transform: [{ scale: prayerHandsPulse }] }]}>🙏</Animated.Text>
           <Text style={styles.sharePrayerButtonText}>{t('sharePrayerRequest')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          testID="button-unspoken-prayer-quick"
+          accessibilityRole="button"
+          accessibilityLabel={t('unspokenIntentQuick')}
+          onPress={openUnspokenPrayerComposer}
+          activeOpacity={0.8}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginHorizontal: 15,
+            marginTop: -8,
+            marginBottom: 18,
+            paddingVertical: 13,
+            paddingHorizontal: 16,
+            backgroundColor: '#eff6ff',
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: '#bfdbfe',
+          }}
+        >
+          <Text style={{ fontSize: 20, marginRight: 11 }}>🙏</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: '700' }}>
+              {t('unspokenIntentQuick')}
+            </Text>
+            <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
+              {t('unspokenIntentQuickHint')}
+            </Text>
+          </View>
+          <Text style={{ color: '#2563eb', fontSize: 20, fontWeight: '700' }}>›</Text>
         </TouchableOpacity>
 
         {/* Banner Ad - only show if AdMob is available (not in Expo Go) */}

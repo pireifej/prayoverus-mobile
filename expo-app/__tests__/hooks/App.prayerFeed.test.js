@@ -321,6 +321,7 @@ import { Animated } from 'react-native';
 import { act, render, cleanup, fireEvent } from '@testing-library/react-native';
 import { apiCreatePrayer, apiCheckContent } from '../../services/api';
 import { showModal } from '../../AppModals';
+import { getUnspokenPrayerCopy } from '../../utils/unspokenPrayer';
 
 // App must be imported AFTER all jest.mock() calls are hoisted
 let App;
@@ -366,6 +367,39 @@ describe('App.js — prayer submission completion', () => {
     expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
     expect(showModal).not.toHaveBeenCalled();
   }, 15000);
+
+  it('prefills the unspoken option in the composer without posting until reviewed', async () => {
+    const unspokenCopy = getUnspokenPrayerCopy('en');
+    const screen = render(<App />);
+    await act(async () => {});
+    fireEvent.press(screen.getByLabelText('New prayer request'));
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(unspokenCopy.message);
+    expect(screen.getByPlaceholderText("Jane's Prayer Request").props.value).toBe(unspokenCopy.title);
+    expect(apiCreatePrayer).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('');
+  });
+
+  it('opens the home shortcut as a reviewed draft and submits it through the standard request flow', async () => {
+    const unspokenCopy = getUnspokenPrayerCopy('en');
+    const screen = render(<App />);
+    await act(async () => {});
+
+    fireEvent.press(screen.getByTestId('button-unspoken-prayer-quick'));
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe(unspokenCopy.message);
+    expect(apiCreatePrayer).not.toHaveBeenCalled();
+
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+
+    expect(apiCreatePrayer).toHaveBeenCalledWith(expect.objectContaining({
+      requestText: unspokenCopy.message,
+      requestTitle: unspokenCopy.title,
+    }));
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
+  });
 
   it('shows an exact submission limit error, then clears it when a retry succeeds', async () => {
     apiCreatePrayer.mockRejectedValueOnce(Object.assign(new Error('Daily limit reached'), {

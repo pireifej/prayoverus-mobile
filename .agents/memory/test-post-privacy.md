@@ -1,10 +1,10 @@
 ---
-name: Admin test prayer privacy
-description: Product requirement for the private test-post mode in Pray Over Us.
+name: Admin test prayer visibility
+description: User clarification about visibility of admin test requests.
 ---
 
-Admin test prayer requests should be visible only to their author. Do not describe a test post as "Only me" until that visibility is enforced and verified on the backend.
+Admin test requests may be visible to everyone. Only the admin test option needs to be restricted to the main admin account; author-only request visibility is not required.
 
-**Why:** The user wants to keep test posts for themselves only. Disabling notifications does not establish who can read a request.
+**Why:** The user clarified that public test requests are OK because they delete them soon afterward.
 
-**How to apply:** When changing the composer, feed, request detail, or test-post flow, preserve this distinction and verify author-only access across all server read paths before making privacy claims in the UI.
+**How to apply:** Preserve the admin-only test control and existing notification suppression. Do not introduce private test-post behavior based on the earlier interpretation.

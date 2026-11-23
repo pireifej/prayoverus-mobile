@@ -15,4 +15,4 @@
 - [Signed backend session tokens](signed-session-token.md) — secure-store the token, preserve Basic auth, and clear it on logout or account switching
 - [Google Play connector routing](google-play-connector-routing.md) — the connected proxy may target the wrong host for Android Publisher API calls
 - [EAS monorepo archive](eas-repo-root-archive.md) — EAS launched from expo-app may archive from Git root; root ignore files govern workspace siblings, not nested .easignore
-- [Admin test prayer privacy](test-post-privacy.md) — test posts should be visible only to their author; suppressing notifications alone is not privacy
+- [Admin test prayer visibility](test-post-privacy.md) — test requests may be public; only the test option is admin-only, and the user deletes test requests afterward.

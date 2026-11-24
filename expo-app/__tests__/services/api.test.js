@@ -41,8 +41,8 @@ describe('protected API requests', () => {
     await apiGoogleLogin({ access_token: 'google-provider-token' });
     expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toMatchObject({
       access_token: 'google-provider-token',
-      revenuecatAppUserId: 'rc-user-123',
     });
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).revenuecatAppUserId).toBeUndefined();
 
     await apiSocialLogin({ provider: 'facebook', access_token: 'facebook-provider-token' });
     expect(JSON.parse(global.fetch.mock.calls[1][1].body)).toMatchObject({
@@ -78,6 +78,45 @@ describe('protected API requests', () => {
       code: 'PRO_REQUIRED',
     });
     expect(accessFailure).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('subscription API contract', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+  });
+  it('sends an empty identity body, exact explicit status payload, and GET policy', async () => {
+    const { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } = require('../../services/api');
+    await apiGetSubscriptionIdentity();
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({});
+    await apiGetProStatus({ revenuecatAppUserId: 'server-issued', refresh: true });
+    expect(JSON.parse(global.fetch.mock.calls[1][1].body)).toEqual({ revenuecatAppUserId: 'server-issued', refresh: true });
+    await apiGetAccessPolicy();
+    expect(global.fetch.mock.calls[2][1].method).toBe('GET');
+    expect(global.fetch.mock.calls[2][1].body).toBeUndefined();
+  });
+  it('separates viewed member from the authenticated viewer', async () => {
+    const { apiGetPrayedFor } = require('../../services/api');
+    await apiGetPrayedFor('target', 'viewer', 'es');
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
+      targetUserId: 'target', userId: 'viewer', lang: 'es',
+    });
+  });
+  it('ignores an old session failure after a new account signs in', async () => {
+    const { apiGetProStatus } = require('../../services/api');
+    const { setUserSessionToken } = require('../../services/userSession');
+    const handler = jest.fn();
+    setApiAuthFailureHandler(handler);
+    let respond;
+    global.fetch.mockImplementationOnce(() => new Promise(resolve => { respond = resolve; }));
+    const pending = apiGetProStatus();
+    await new Promise(resolve => setImmediate(resolve));
+    await setUserSessionToken('next-account-session');
+    respond({ ok: false, status: 401, json: async () => ({ error: 'USER_SESSION_REQUIRED' }) });
+    await expect(pending).rejects.toMatchObject({ status: 401 });
+    expect(handler).not.toHaveBeenCalled();
+    setApiAuthFailureHandler(null);
+    await setUserSessionToken('signed-session');
   });
 });
 

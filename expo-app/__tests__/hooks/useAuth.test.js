@@ -56,12 +56,18 @@ jest.mock('../../NotificationService', () => ({
 jest.mock('../../services/api', () => ({
   apiGetUser: jest.fn(() => Promise.resolve([])),
 }));
+jest.mock('../../services/userSession', () => ({
+  getUserSessionToken: jest.fn().mockResolvedValue('secure-session'),
+  setUserSessionToken: jest.fn().mockResolvedValue('secure-session'),
+  clearUserSessionToken: jest.fn().mockResolvedValue(),
+}));
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 import { renderHook, act } from '@testing-library/react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { storage, STORAGE_KEYS } from '../../utils/storage';
+import { getUserSessionToken, setUserSessionToken, clearUserSessionToken } from '../../services/userSession';
 
 const VALID_USER = {
   id: '42',
@@ -69,12 +75,14 @@ const VALID_USER = {
   lastName: 'Doe',
   email: 'jane@example.com',
   churchId: '1',
+  user_session_token: 'secure-session',
 };
 
 beforeEach(() => {
   // Clear in-memory store and reset mocks before each test
   Object.keys(mockStorageData).forEach(k => delete mockStorageData[k]);
   jest.clearAllMocks();
+  getUserSessionToken.mockResolvedValue('secure-session');
 });
 
 describe('useAuth — cold-launch session restore', () => {
@@ -145,9 +153,38 @@ describe('useAuth — handleLogin', () => {
     expect(result.current.currentUser).toMatchObject({ id: VALID_USER.id });
     expect(storage.setItem).toHaveBeenCalledWith(
       STORAGE_KEYS.USER_SESSION,
-      JSON.stringify(VALID_USER),
+      JSON.stringify(Object.fromEntries(Object.entries(VALID_USER).filter(([key]) => key !== 'user_session_token'))),
     );
+    expect(result.current.currentUser.user_session_token).toBeUndefined();
+    expect(setUserSessionToken).toHaveBeenCalledWith('secure-session');
   });
+
+  it('rejects a login response without a signed session', async () => {
+    const { result } = renderHook(() => useAuth());
+    let accepted;
+    await act(async () => { accepted = await result.current.handleLogin({ id: '42' }); });
+    expect(accepted).toBe(false);
+    expect(result.current.currentUser).toBeNull();
+    expect(clearUserSessionToken).toHaveBeenCalled();
+  });
+});
+
+test('strips legacy profile credentials while retaining a valid secure session', async () => {
+  mockStorageData[STORAGE_KEYS.USER_SESSION] = JSON.stringify(VALID_USER);
+  const { result } = renderHook(() => useAuth());
+  await act(async () => { await result.current.checkStoredAuth(); });
+  expect(result.current.currentUser.id).toBe('42');
+  expect(JSON.parse(mockStorageData[STORAGE_KEYS.USER_SESSION]).user_session_token).toBeUndefined();
+  expect(result.current.currentUser.user_session_token).toBeUndefined();
+});
+
+test('does not recover a missing secure session from an insecure legacy token', async () => {
+  getUserSessionToken.mockResolvedValue(null);
+  mockStorageData[STORAGE_KEYS.USER_SESSION] = JSON.stringify(VALID_USER);
+  const { result } = renderHook(() => useAuth());
+  await act(async () => { await result.current.checkStoredAuth(); });
+  expect(result.current.currentUser).toBeNull();
+  expect(setUserSessionToken).not.toHaveBeenCalled();
 });
 
 describe('useAuth — handleLogout', () => {
@@ -164,7 +201,7 @@ describe('useAuth — handleLogout', () => {
 
     expect(result.current.currentUser).not.toBeNull();
 
-    act(() => {
+    await act(async () => {
       result.current.handleLogout();
     });
 
@@ -195,11 +232,28 @@ describe('useAuth — handleLogout', () => {
 
     const onBeforeLogout = jest.fn();
 
-    act(() => {
+    await act(async () => {
       result.current.handleLogout({ onBeforeLogout });
     });
 
     expect(onBeforeLogout).toHaveBeenCalledTimes(1);
     expect(result.current.currentUser).toBeNull();
   });
+});
+
+test('ignores an old profile refresh that resolves after an account change', async () => {
+  const { apiGetUser } = require('../../services/api');
+  const { result } = renderHook(() => useAuth());
+  await act(async () => { await result.current.handleLogin(VALID_USER); });
+  let resolveProfile;
+  apiGetUser.mockReturnValueOnce(new Promise(resolve => { resolveProfile = resolve; }));
+  let pending;
+  await act(async () => { pending = result.current.refreshUserProfile(); });
+  await act(async () => {
+    result.current.handleLogout();
+    await result.current.handleLogin({ ...VALID_USER, id: '99', user_session_token: 'other-session' });
+  });
+  await act(async () => { resolveProfile([{ real_name: 'Old account' }]); await pending; });
+  expect(result.current.currentUser.id).toBe('99');
+  expect(JSON.parse(mockStorageData[STORAGE_KEYS.USER_SESSION]).id).toBe('99');
 });

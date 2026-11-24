@@ -25,8 +25,8 @@ try {
       (__DEV__ || Platform.OS === 'web')
         ? RC_TEST_KEY
         : Platform.OS === 'ios'
-          ? RC_IOS_KEY || RC_TEST_KEY
-          : RC_ANDROID_KEY || RC_TEST_KEY;
+          ? RC_IOS_KEY
+          : RC_ANDROID_KEY;
 
     if (key) {
       // Verbose logging only in dev — DEBUG level causes extra native traffic in

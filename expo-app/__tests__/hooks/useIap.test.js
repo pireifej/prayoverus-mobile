@@ -1,222 +1,289 @@
-/**
- * RevenueCat Pro subscription contract.
- *
- * The app has one entitlement and reads the monthly package from the current
- * offering. No feature-specific products or entitlements belong in this test.
- */
 jest.mock('../../services/purchasesClient', () => ({
-  __esModule: true,
   client: {
-    getCustomerInfo: jest.fn(),
-    getOfferings: jest.fn(),
-    purchasePackage: jest.fn(),
-    restorePurchases: jest.fn(),
-    getAppUserID: jest.fn().mockResolvedValue('42'),
-    logIn: jest.fn(),
+    getCustomerInfo: jest.fn(), getOfferings: jest.fn(), purchasePackage: jest.fn(),
+    restorePurchases: jest.fn(), getAppUserID: jest.fn(), logIn: jest.fn(),
   },
   isAvailable: true,
 }));
-
-jest.mock('../../AppModals', () => ({
-  __esModule: true,
-  showToast: jest.fn(),
-  showModal: jest.fn(),
+jest.mock('../../services/userSession', () => ({
+  getUserSessionToken: jest.fn().mockResolvedValue('session'),
+  setRevenueCatAppUserId: jest.fn(),
 }));
+jest.mock('../../services/api', () => ({
+  apiGetSubscriptionIdentity: jest.fn(), apiGetProStatus: jest.fn(), apiGetAccessPolicy: jest.fn(),
+}));
+jest.mock('../../AppModals', () => ({ showToast: jest.fn(), showModal: jest.fn() }));
 
-import { renderHook, act } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import { useIap, PRO_ENTITLEMENT } from '../../hooks/useIap';
+import { client } from '../../services/purchasesClient';
+import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } from '../../services/api';
+import { getUserSessionToken } from '../../services/userSession';
+import { showModal, showToast } from '../../AppModals';
 
-let mockClient;
-let mockShowModal;
-
-beforeAll(() => {
-  mockClient = require('../../services/purchasesClient').client;
-  mockShowModal = require('../../AppModals').showModal;
+const ID = 'pou_v1_account42';
+const identity = (id = ID) => ({ revenuecatAppUserId: id, entitlement: PRO_ENTITLEMENT, requiresSdkLogin: true });
+const status = (isPro = false, extra = {}) => ({
+  ...identity(), isPro, identityVerificationRequired: false, ...extra,
 });
-
-beforeEach(() => jest.clearAllMocks());
-
-const makeCustomerInfo = (activeEntitlements = []) => ({
-  entitlements: {
-    active: Object.fromEntries(
-      activeEntitlements.map(identifier => [identifier, { identifier, isActive: true }]),
-    ),
-  },
+const policy = enabled => ({
+  contentPaywallEnabled: enabled, dailyBread: { requiresPro: enabled },
+  prayerWalk: { requiresPro: enabled }, extendedPrayer: { requiresPro: true },
 });
-
-const makePackage = (identifier = '$rc_monthly', priceString = '$9.99') => ({
-  identifier,
-  packageType: 'MONTHLY',
-  product: { identifier: 'pray_over_us_pro_monthly', priceString, title: 'Pray Over Us Pro' },
+const info = (paid = false) => ({
+  entitlements: { active: paid ? { [PRO_ENTITLEMENT]: { isActive: true } } : {} },
+  allPurchasedProductIdentifiers: paid ? ['monthly'] : [],
 });
-
-const makeOfferings = (monthly = makePackage()) => ({
-  current: { identifier: 'default', availablePackages: monthly ? [monthly] : [] },
+const monthly = {
+  identifier: '$rc_monthly', packageType: 'MONTHLY',
+  product: { identifier: 'pro_monthly', priceString: '€9,99' },
+};
+let sdkId;
+let onForeground;
+beforeEach(() => {
+  jest.resetAllMocks();
+  sdkId = '$RCAnonymousID:empty';
+  getUserSessionToken.mockResolvedValue('session');
+  apiGetSubscriptionIdentity.mockResolvedValue(identity());
+  apiGetProStatus.mockResolvedValue(status());
+  apiGetAccessPolicy.mockResolvedValue(policy(false));
+  client.getAppUserID.mockImplementation(async () => sdkId);
+  client.logIn.mockImplementation(async id => { sdkId = id; return { customerInfo: info() }; });
+  client.getCustomerInfo.mockResolvedValue(info());
+  client.getOfferings.mockResolvedValue({ current: { identifier: 'live-offering', availablePackages: [monthly] } });
+  client.purchasePackage.mockResolvedValue({ customerInfo: info(true) });
+  client.restorePurchases.mockResolvedValue(info(true));
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_, callback) => {
+    onForeground = callback;
+    return { remove: jest.fn() };
+  });
 });
+afterEach(() => jest.restoreAllMocks());
 
-async function loadDefault(result, customerInfo = makeCustomerInfo([]), monthly = makePackage()) {
-  mockClient.logIn.mockResolvedValue({ customerInfo });
-  await act(async () => { await result.current.identifyRevenueCatUser('42'); });
-  mockClient.getCustomerInfo.mockResolvedValue(customerInfo);
-  mockClient.getOfferings.mockResolvedValue(makeOfferings(monthly));
-  await act(async () => { await result.current.loadIapData(); });
+async function start() {
+  const hook = renderHook(() => useIap());
+  await act(async () => { await hook.result.current.identifyRevenueCatUser('42'); });
+  return hook;
 }
 
-describe('useIap — Pro entitlement and offering', () => {
-  it('does not grant Pro from anonymous or inactive customer data', async () => {
-    const { result } = renderHook(() => useIap());
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([PRO_ENTITLEMENT]));
-    mockClient.getOfferings.mockResolvedValue(makeOfferings());
-    await act(async () => { await result.current.loadIapData(); });
-    expect(result.current.isPro).toBe(false);
-    const inactive = makeCustomerInfo([PRO_ENTITLEMENT]);
-    inactive.entitlements.active[PRO_ENTITLEMENT].isActive = false;
-    await loadDefault(result, inactive);
-    expect(result.current.isPro).toBe(false);
-  });
-
-  it('discards a previous customer load that resolves after account switching', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    let resolveOld;
-    mockClient.getCustomerInfo.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }));
-    let pending;
-    await act(async () => { pending = result.current.loadIapData(); });
-    mockClient.getAppUserID.mockResolvedValueOnce('99');
-    mockClient.logIn.mockResolvedValueOnce({ customerInfo: makeCustomerInfo([]) });
-    await act(async () => { await result.current.identifyRevenueCatUser('99'); });
-    await act(async () => { resolveOld(makeCustomerInfo([PRO_ENTITLEMENT])); await pending; });
-    expect(result.current.isPro).toBe(false);
-  });
-  it('uses the exact active Pro entitlement for isPro', async () => {
-    const { result } = renderHook(() => useIap());
-    expect(result.current.isPro).toBe(false);
-
-    await loadDefault(result, makeCustomerInfo([PRO_ENTITLEMENT]));
-
-    expect(result.current.isPro).toBe(true);
-    expect(result.current.hasEntitlement(PRO_ENTITLEMENT)).toBe(true);
-    expect(result.current.proPackage.packageType).toBe('MONTHLY');
-  });
-
-  it('does not unlock Pro for a different entitlement name', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result, makeCustomerInfo(['premium_themes']));
-
-    expect(result.current.isPro).toBe(false);
-    expect(result.current.hasEntitlement(PRO_ENTITLEMENT)).toBe(false);
-  });
-
-  it('loads the current offering and exposes the monthly package price', async () => {
-    const monthly = makePackage('$rc_monthly', '$9.99');
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result, makeCustomerInfo([]), monthly);
-
-    expect(mockClient.getCustomerInfo).toHaveBeenCalledTimes(1);
-    expect(mockClient.getOfferings).toHaveBeenCalledTimes(1);
-    expect(result.current.iapOffering.identifier).toBe('default');
-    expect(result.current.getIapPrice()).toBe('$9.99');
-    expect(result.current.getIapPrice(monthly)).toBe('$9.99');
-  });
-
-  it('opens one Pro paywall using the current monthly package', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-
-    const onSuccess = jest.fn();
-    await act(async () => { await result.current.presentProPaywall(onSuccess); });
-
-    expect(result.current.iapModal).toEqual(expect.objectContaining({
-      title: 'Pray Over Us Pro',
-      package: result.current.proPackage,
-      onSuccess,
-    }));
-  });
-
-  it('shows an unavailable message when the offering has no monthly package', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result, makeCustomerInfo([]), null);
-
-    await act(async () => { await result.current.presentProPaywall(); });
-
-    expect(mockShowModal).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Pray Over Us Pro',
-      message: expect.stringContaining('couldn’t load the monthly plan'),
-    }));
-  });
+test('uses backend status, not even an active anonymous SDK entitlement, to grant Pro', async () => {
+  client.getCustomerInfo.mockResolvedValue(info(true));
+  const { result } = await start();
+  expect(result.current.isPro).toBe(false);
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(apiGetSubscriptionIdentity).toHaveBeenCalledWith();
+  expect(apiGetProStatus).toHaveBeenCalledWith({ revenuecatAppUserId: ID, refresh: true });
+  expect(result.current.getIapPrice()).toBe('€9,99');
+  expect(result.current.iapOffering.identifier).toBe('live-offering');
 });
 
-describe('useIap — purchase and restore', () => {
-  it('purchases the selected monthly package and fires the success callback', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    const updatedInfo = makeCustomerInfo([PRO_ENTITLEMENT]);
-    mockClient.getCustomerInfo.mockResolvedValue(updatedInfo);
-    mockClient.purchasePackage.mockResolvedValue({ customerInfo: updatedInfo });
-    const onSuccess = jest.fn();
+test('accepts verified backend complimentary Pro even without SDK entitlement', async () => {
+  apiGetProStatus.mockResolvedValue(status(true));
+  const { result } = await start();
+  expect(result.current.isPro).toBe(true);
+  expect(result.current.hasEntitlement(PRO_ENTITLEMENT)).toBe(true);
+  expect(result.current.hasEntitlement('another-entitlement')).toBe(false);
+});
 
-    await act(async () => {
-      await result.current.doIapPurchase(result.current.proPackage, onSuccess);
-    });
+test('free access follows policy without pretending the account is Pro', async () => {
+  const { result } = await start();
+  expect(result.current.isPro).toBe(false);
+  expect(result.current.canAccessFeature('dailyBread')).toBe(true);
+  expect(result.current.canAccessFeature('prayerWalk')).toBe(true);
+  expect(result.current.canAccessFeature('extendedPrayer')).toBe(false);
+  apiGetAccessPolicy.mockResolvedValue(policy(true));
+  await act(async () => { await result.current.refreshAccessPolicy(); });
+  expect(result.current.canAccessFeature('dailyBread')).toBe(false);
+  expect(result.current.canAccessFeature('prayerWalk')).toBe(false);
+  apiGetProStatus.mockResolvedValue(status(true));
+  await act(async () => { await result.current.refreshProStatus(); });
+  expect(result.current.canAccessFeature('dailyBread')).toBe(true);
+});
 
-    expect(mockClient.purchasePackage).toHaveBeenCalledWith(result.current.proPackage);
-    expect(result.current.isPro).toBe(true);
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(result.current.iapPurchasing).toBe(false);
+test('policy succeeds independently of a subscription outage; unknown policy requires retry', async () => {
+  apiGetProStatus.mockRejectedValue(new Error('unavailable'));
+  const { result } = await start();
+  expect(result.current.canAccessFeature('dailyBread')).toBe(true);
+  expect(result.current.isPro).toBe(false);
+  apiGetAccessPolicy.mockRejectedValue(new Error('unavailable'));
+  await act(async () => { await result.current.refreshAccessPolicy(); });
+  expect(result.current.canAccessFeature('dailyBread')).toBeNull();
+  expect(result.current.accessError).toContain('try again');
+  expect(showModal).not.toHaveBeenCalled();
+});
+
+test('does not default malformed policy or status responses to paid/free access', async () => {
+  apiGetAccessPolicy.mockResolvedValue({});
+  apiGetProStatus.mockResolvedValue({ isPro: true });
+  const { result } = await start();
+  expect(result.current.canAccessFeature('dailyBread')).toBeNull();
+  expect(result.current.isPro).toBe(false);
+});
+
+test('opens the current monthly package without logging into an SDK customer', async () => {
+  const { result } = await start();
+  await act(async () => { await result.current.presentProPaywall(); });
+  expect(result.current.iapModal.package).toEqual(monthly);
+  expect(client.logIn).not.toHaveBeenCalled();
+});
+
+test('identifies SDK only with server identity, before purchase, then verifies backend', async () => {
+  const { result } = await start();
+  client.purchasePackage.mockImplementation(async () => {
+    expect(client.logIn).toHaveBeenCalledWith(ID);
+    expect(sdkId).toBe(ID);
+    apiGetProStatus.mockResolvedValue(status(true));
+    return { customerInfo: info(true) };
   });
+  const onSuccess = jest.fn();
+  let outcome;
+  await act(async () => { outcome = await result.current.doIapPurchase(monthly, onSuccess); });
+  expect(outcome.status).toBe('purchased');
+  expect(result.current.isPro).toBe(true);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+  expect(apiGetProStatus).toHaveBeenLastCalledWith({ revenuecatAppUserId: ID, refresh: true });
+});
 
-  it('does not show an error when the user cancels', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    mockClient.purchasePackage.mockRejectedValue({ userCancelled: true });
-
-    await act(async () => { await result.current.doIapPurchase(); });
-
-    expect(mockShowModal).not.toHaveBeenCalled();
-    expect(result.current.iapPurchasing).toBe(false);
+test('distinguishes store success from backend verification failure without telling user to rebuy', async () => {
+  const { result } = await start();
+  client.purchasePackage.mockImplementation(async () => {
+    apiGetProStatus.mockRejectedValue(new Error('backend unavailable'));
+    return { customerInfo: info(true) };
   });
+  const onSuccess = jest.fn();
+  let outcome;
+  await act(async () => { outcome = await result.current.doIapPurchase(monthly, onSuccess); });
+  expect(outcome.status).toBe('pending');
+  expect(outcome.message).toContain('Do not purchase again');
+  expect(onSuccess).not.toHaveBeenCalled();
+  expect(result.current.isPro).toBe(false);
+});
 
-  it('shows a failure modal when RevenueCat rejects the purchase', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    mockClient.purchasePackage.mockRejectedValue(new Error('Payment declined'));
-
-    await act(async () => { await result.current.doIapPurchase(); });
-
-    expect(mockShowModal).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Purchase failed',
-      message: 'Payment declined',
-    }));
-    expect(result.current.iapPurchasing).toBe(false);
+test('restores only after server identity login and grants access only after verification', async () => {
+  const { result } = await start();
+  client.restorePurchases.mockImplementation(async () => {
+    expect(sdkId).toBe(ID);
+    apiGetProStatus.mockResolvedValue(status(true));
+    return info(true);
   });
+  let outcome;
+  await act(async () => { outcome = await result.current.doIapRestore(); });
+  expect(outcome.status).toBe('restored');
+  expect(result.current.isPro).toBe(true);
+});
 
-  it('restores purchases and updates the entitlement state', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    const restoredInfo = makeCustomerInfo([PRO_ENTITLEMENT]);
-    mockClient.getCustomerInfo.mockResolvedValue(restoredInfo);
-    mockClient.restorePurchases.mockResolvedValue(restoredInfo);
+test('reports no subscription only after a verified restore with no purchase history', async () => {
+  const { result } = await start();
+  client.restorePurchases.mockResolvedValue(info());
+  let outcome;
+  await act(async () => { outcome = await result.current.doIapRestore(); });
+  expect(outcome.status).toBe('none');
+});
 
-    let restoreResult;
-    await act(async () => { restoreResult = await result.current.doIapRestore(); });
+test.each([403, 409])('blocks billing on identity mismatch HTTP %s without SDK relinking', async code => {
+  const { result } = await start();
+  apiGetProStatus.mockRejectedValue({ status: code, code: 'SUBSCRIPTION_IDENTITY_MISMATCH' });
+  await act(async () => { await result.current.doIapRestore(); });
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+  expect(result.current.subscriptionMessage).toBeTruthy();
+});
 
-    expect(mockClient.restorePurchases).toHaveBeenCalledTimes(1);
-    expect(result.current.isPro).toBe(true);
-    expect(restoreResult.status).toBe('restored');
-    expect(result.current.iapPurchasing).toBe(false);
+test('blocks ownership-required accounts from repeat purchase or automatic restore', async () => {
+  apiGetProStatus.mockResolvedValue(status(false, { identityVerificationRequired: true }));
+  const { result } = await start();
+  await act(async () => {
+    await result.current.presentProPaywall();
+    await result.current.doIapPurchase(monthly);
+    await result.current.doIapRestore();
   });
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+  expect(result.current.isPro).toBe(false);
+});
 
-  it('reports when Restore Purchases finds no active Pro subscription', async () => {
-    const { result } = renderHook(() => useIap());
-    await loadDefault(result);
-    mockClient.restorePurchases.mockResolvedValue(makeCustomerInfo([]));
-    mockClient.getCustomerInfo.mockResolvedValue(makeCustomerInfo([]));
+test.each(['$RCAnonymousID:legacy', '42'])('does not alias purchased legacy SDK identity %s', async currentId => {
+  const { result } = await start();
+  sdkId = currentId;
+  client.getCustomerInfo.mockResolvedValue(info(true));
+  await act(async () => { await result.current.doIapPurchase(monthly); });
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(result.current.subscriptionMessage).toContain('ownership');
+});
 
-    let restoreResult;
-    await act(async () => { restoreResult = await result.current.doIapRestore(); });
+test('a cancelled checkout produces no error and does not grant Pro', async () => {
+  const { result } = await start();
+  client.purchasePackage.mockRejectedValue({ userCancelled: true });
+  await act(async () => { await result.current.doIapPurchase(monthly); });
+  expect(showModal).not.toHaveBeenCalled();
+  expect(result.current.isPro).toBe(false);
+  expect(result.current.iapPurchasing).toBe(false);
+});
 
-    expect(restoreResult.status).toBe('none');
-    expect(restoreResult.message).toContain('No active Pray Over Us Pro subscription');
-    expect(result.current.iapPurchasing).toBe(false);
+test('shows a genuine payment failure without granting Pro', async () => {
+  const { result } = await start();
+  client.purchasePackage.mockRejectedValue(new Error('Payment declined'));
+  await act(async () => { await result.current.doIapPurchase(monthly); });
+  expect(showModal).toHaveBeenCalledWith(expect.objectContaining({ message: 'Payment declined' }));
+  expect(result.current.isPro).toBe(false);
+});
+
+test('serializes duplicate purchase taps', async () => {
+  const { result } = await start();
+  let resolvePurchase;
+  client.purchasePackage.mockReturnValue(new Promise(resolve => { resolvePurchase = resolve; }));
+  let first;
+  await act(async () => {
+    first = result.current.doIapPurchase(monthly);
+    expect((await result.current.doIapPurchase(monthly)).status).toBe('busy');
   });
+  expect(client.purchasePackage).toHaveBeenCalledTimes(1);
+  await act(async () => { resolvePurchase({ customerInfo: info() }); await first; });
+});
+
+test('foreground refresh checks policy and backend status with refresh true', async () => {
+  const { result } = await start();
+  apiGetProStatus.mockResolvedValue(status(true));
+  apiGetAccessPolicy.mockResolvedValue(policy(true));
+  await act(async () => { onForeground('active'); });
+  expect(result.current.isPro).toBe(true);
+  expect(apiGetProStatus).toHaveBeenLastCalledWith({ revenuecatAppUserId: ID, refresh: true });
+  expect(apiGetAccessPolicy).toHaveBeenCalledTimes(2);
+});
+
+test('account reset clears Pro immediately and discards late status/policy responses', async () => {
+  apiGetProStatus.mockResolvedValue(status(true));
+  const { result } = await start();
+  let resolveStatus, resolvePolicy;
+  apiGetProStatus.mockReturnValue(new Promise(resolve => { resolveStatus = resolve; }));
+  apiGetAccessPolicy.mockReturnValue(new Promise(resolve => { resolvePolicy = resolve; }));
+  let pending;
+  await act(async () => { pending = result.current.refreshSubscriptionAccess(); });
+  await act(async () => { await result.current.resetRevenueCatUser(); });
+  expect(result.current.isPro).toBe(false);
+  await act(async () => { resolveStatus(status(true)); resolvePolicy(policy(false)); await pending; });
+  expect(result.current.isPro).toBe(false);
+  expect(result.current.canAccessFeature('dailyBread')).toBeNull();
+});
+
+test('a store result completing after account switching cannot grant access or call success', async () => {
+  const { result } = await start();
+  let resolvePurchase;
+  client.purchasePackage.mockReturnValue(new Promise(resolve => { resolvePurchase = resolve; }));
+  const onSuccess = jest.fn();
+  let pending;
+  await act(async () => { pending = result.current.doIapPurchase(monthly, onSuccess); });
+  await act(async () => {
+    await result.current.resetRevenueCatUser();
+    apiGetSubscriptionIdentity.mockResolvedValue(identity('pou_v1_account99'));
+    apiGetProStatus.mockResolvedValue(status(false, { revenuecatAppUserId: 'pou_v1_account99' }));
+    await result.current.identifyRevenueCatUser('99');
+  });
+  await act(async () => { resolvePurchase({ customerInfo: info(true) }); await pending; });
+  expect(result.current.isPro).toBe(false);
+  expect(onSuccess).not.toHaveBeenCalled();
+  expect(showToast).not.toHaveBeenCalled();
 });

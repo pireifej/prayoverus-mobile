@@ -118,6 +118,20 @@ export default function ProPurchaseModal({ iap }) {
           <Text style={{ color: '#ddd', fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
             {iapModal?.description}
           </Text>
+          {!!iap.subscriptionMessage && (
+            <Text accessibilityRole="alert" testID="pro-subscription-message" style={{
+              color: '#fff',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 16,
+              fontSize: 14,
+              lineHeight: 20,
+              textAlign: 'center',
+            }}>
+              {iap.subscriptionMessage}
+            </Text>
+          )}
           <Pressable
             testID="pro-subscribe"
             accessibilityRole="button"
@@ -138,6 +152,20 @@ export default function ProPurchaseModal({ iap }) {
           <Pressable testID="pro-restore" accessibilityRole="button" onPress={doIapRestore} disabled={iapPurchasing} style={{ minHeight: 48, padding: 16 }}>
             <Text style={{ color: '#ddd', textAlign: 'center' }}>Restore purchases</Text>
           </Pressable>
+          {typeof iap.openManageSubscriptions === 'function' && (
+            <Pressable
+              testID="pro-manage-subscription"
+              accessibilityRole="link"
+              accessibilityState={{ disabled: !!iapPurchasing }}
+              onPress={iap.openManageSubscriptions}
+              disabled={!!iapPurchasing}
+              style={{ minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ color: '#fde68a', textAlign: 'center', fontWeight: '700' }}>
+                Manage subscription
+              </Text>
+            </Pressable>
+          )}
           <Pressable testID="pro-dismiss" accessibilityRole="button" onPress={dismiss} disabled={iapPurchasing} style={{ minHeight: 48, padding: 12 }}>
             <Text style={{ color: '#ddd', textAlign: 'center' }}>Not now</Text>
           </Pressable>

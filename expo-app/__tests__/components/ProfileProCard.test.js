@@ -46,7 +46,22 @@ test('shows feedback during plan loading and when billing cannot be verified', (
 test('shows restore progress and active Pro status', () => {
   const screen = render(<ProfileProCard {...baseProps} isPro restoreLoading />);
   expect(screen.getByTestId('profile-pro-section')).toBeTruthy();
-  expect(screen.getByText('YOUR SUBSCRIPTION IS ACTIVE')).toBeTruthy();
+  expect(screen.getByText('YOUR PRO MEMBERSHIP IS ACTIVE')).toBeTruthy();
   expect(screen.queryByTestId('profile-upgrade-pro')).toBeNull();
   expect(screen.getByText('Checking purchases…')).toBeTruthy();
+});
+
+test('blocks billing while ownership is unresolved but permits verification and management', () => {
+  const onVerify = jest.fn();
+  const onManage = jest.fn();
+  const screen = render(<ProfileProCard {...baseProps} billingBlocked
+    onVerify={onVerify} onManage={onManage} actionMessage="Account ownership needs verification." />);
+  fireEvent.press(screen.getByTestId('profile-upgrade-pro'));
+  fireEvent.press(screen.getByTestId('profile-restore-purchases'));
+  expect(baseProps.onUpgrade).not.toHaveBeenCalled();
+  expect(baseProps.onRestore).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByTestId('profile-verify-membership'));
+  fireEvent.press(screen.getByTestId('profile-manage-subscription'));
+  expect(onVerify).toHaveBeenCalledTimes(1);
+  expect(onManage).toHaveBeenCalledTimes(1);
 });

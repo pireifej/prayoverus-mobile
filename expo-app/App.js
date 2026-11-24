@@ -80,6 +80,7 @@ import { getUnspokenPrayerCopy } from './utils/unspokenPrayer';
 import * as Updates from 'expo-updates';
 import * as Notifications from 'expo-notifications';
 import DailyBreadScreen from './DailyBreadScreen';
+import ContentAccessNotice from './components/ContentAccessNotice';
 import PrayerWalkScreen from './PrayerWalkScreen';
 import OnboardingCarousel from './OnboardingCarousel';
 import t, { lang as userLang, setLang, translateRank } from './i18n';
@@ -286,10 +287,15 @@ function AppContent({ iap }) {
     iapCustomerInfo, iapProducts, iapOffering, proPackage, iapPurchasing, iapLoading, iapModal, setIapModal,
     isPro, getIapPrice,
     loadIapData, identifyRevenueCatUser, resetRevenueCatUser, refreshProStatus,
+    canAccessFeature, refreshSubscriptionAccess, accessLoading, accessError,
     presentProPaywall, doIapPurchase, doIapRestore,
   } = iap;
 
   const [currentScreen, setCurrentScreen] = useState('home');
+  useEffect(() => {
+    setProfileProMessage('');
+    setProfileProAction(null);
+  }, [currentUser?.id]);
 
   const renderBottomNav = () => (
     <View style={[styles.bottomNav, { paddingBottom: BOTTOM_INSET }]}>
@@ -390,7 +396,8 @@ function AppContent({ iap }) {
   });
   const [expandedPrayers, setExpandedPrayers] = useState({});
   const [authInitMode, setAuthInitMode] = useState('login');
-  const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState(null);
+  const currentIdempotencyKeyRef = useRef(null);
+  useEffect(() => { currentIdempotencyKeyRef.current = null; }, [currentUser?.id]);
   const [hasShownSuccessForCurrentKey, setHasShownSuccessForCurrentKey] = useState(false);
   const quickUnspokenIdempotencyKeyRef = useRef(null);
   const [isUpdatingPrayer, setIsPosting] = useState(false);
@@ -1575,11 +1582,13 @@ function AppContent({ iap }) {
 
   // handleLogin — thin wrapper; auth/storage/notification setup lives in hooks/useAuth.js
   const handleLogin = async (userData) => {
-    await _authHandleLogin(userData);
-    if (!userData?.isGuest && userData?.id) {
-      await identifyRevenueCatUser(userData.id);
-      await loadIapData();
-      await refreshProStatus();
+    resetRevenueCatUser();
+    let loggedIn = false;
+    try { loggedIn = await _authHandleLogin(userData); } catch (_) {}
+    if (!loggedIn) {
+      handleLogout();
+      showModal({ title: 'Please sign in again', message: 'A secure session could not be established. Please try signing in again.' });
+      return;
     }
     setShowMyRequestsOnly(false);
     setCurrentScreen('home');
@@ -1588,14 +1597,9 @@ function AppContent({ iap }) {
   // Re-check the backend subscription record after a cached login is restored.
   useEffect(() => {
     if (IS_TESTING || !currentUser || currentUser.isGuest) return undefined;
-    let cancelled = false;
     (async () => {
       await identifyRevenueCatUser(currentUser.id);
-      if (cancelled) return;
-      await loadIapData();
-      if (!cancelled) await refreshProStatus();
     })();
-    return () => { cancelled = true; };
   }, [currentUser?.id]);
 
   // Report a prayer/content — confirms first, then removes from local feed and notifies backend
@@ -1712,7 +1716,7 @@ function AppContent({ iap }) {
     try {
       const data = type === 'requests'
         ? await apiGetUserRequests(member.id, currentUser?.id, userLang)
-        : await apiGetPrayedFor(member.id, userLang);
+        : await apiGetPrayedFor(member.id, currentUser?.id, userLang);
       setMemberFeedData(Array.isArray(data) ? data : (data.result || []));
     } catch (e) {
       console.log('⚠️ loadMemberFeed error:', e?.message);
@@ -1781,6 +1785,19 @@ function AppContent({ iap }) {
           return;
         }
         if (error.accessFailureHandled) return;
+        if (error.status === 503 && error.code === 'PRAYER_GENERATION_UNAVAILABLE') {
+          showModal({
+            title: 'Prayer generation unavailable',
+            message: 'Your prayer was not posted. Your daily allowance has not been used. Please try again.',
+            buttons: [
+              ...(error.response?.retryable === true
+                ? [{ label: 'Retry', onPress: () => proceedToPost(prayer.content) }]
+                : []),
+              { label: 'Not now', style: 'cancel' },
+            ],
+          });
+          return;
+        }
         showModal({ icon: '⚠️', title: 'Error', message: error.message || 'Unable to create prayer request. Please try again.' });
       },
     });
@@ -1999,11 +2016,11 @@ function AppContent({ iap }) {
   ) => {
     try {
       // Generate unique idempotency key ONLY if we don't have one (for retries)
-      let idempotencyKey = idempotencyKeyOverride || currentIdempotencyKey;
+      let idempotencyKey = idempotencyKeyOverride || currentIdempotencyKeyRef.current;
       if (!idempotencyKey) {
         idempotencyKey = 'request-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         if (!idempotencyKeyOverride) {
-          setCurrentIdempotencyKey(idempotencyKey);
+          currentIdempotencyKeyRef.current = idempotencyKey;
           setHasShownSuccessForCurrentKey(false); // Reset success flag for new key
         }
       }
@@ -2061,7 +2078,7 @@ function AppContent({ iap }) {
           setHasShownSuccessForCurrentKey(true);
         }
         // Preserve a normal composer retry key when a separate quick request succeeds.
-        if (!idempotencyKeyOverride) setCurrentIdempotencyKey(null);
+        if (!idempotencyKeyOverride) currentIdempotencyKeyRef.current = null;
         setHasShownSuccessForCurrentKey(false);
       } else if (data.error) {
         // API returned an error response: { error: 1, result: "error message" }
@@ -4279,16 +4296,25 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             price={getIapPrice(proPackage)}
             upgradeLoading={profileProAction === 'upgrade'}
             restoreLoading={profileProAction === 'restore' || iapPurchasing}
-            actionMessage={profileProMessage}
+            actionMessage={profileProMessage || iap.subscriptionMessage}
+            billingBlocked={!!iap.subscriptionMessage}
+            contentIsFree={iap.accessPolicy?.dailyBread?.requiresPro === false && iap.accessPolicy?.prayerWalk?.requiresPro === false}
+            verificationLoading={profileProAction === 'verify'}
+            onVerify={async () => {
+              setProfileProAction('verify');
+              setProfileProMessage('');
+              try { await refreshSubscriptionAccess(); } finally { setProfileProAction(null); }
+            }}
+            onManage={iap.openManageSubscriptions}
             onUpgrade={async () => {
               setProfileProAction('upgrade');
               setProfileProMessage('');
               try {
                 const opened = await presentProPaywall();
                 if (!opened) {
-                  setProfileProMessage(iap.rcAvailable
+                  setProfileProMessage(iap.subscriptionMessage || (iap.rcAvailable
                     ? 'The monthly plan is taking longer to load than expected. Check your connection and try again.'
-                    : 'Google Play billing is unavailable right now. Check your connection and try again.');
+                    : 'Store billing is unavailable right now. Check your connection and try again.'));
                 }
               } catch (_) {
                 setProfileProMessage('We couldn’t open the subscription plans. Please try again.');
@@ -4922,6 +4948,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
               setPrayerImage(null);
               setShowTitleInput(false);
               resetUnspokenDraftSnapshot();
+              currentIdempotencyKeyRef.current = null;
             }
           }
         ]
@@ -5393,7 +5420,11 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </LinearGradient>
       );
     }
-    if (!isPro) {
+    if (canAccessFeature?.('prayerWalk') == null) {
+      return <ContentAccessNotice loading={accessLoading} error={accessError}
+        onRetry={refreshSubscriptionAccess} onBack={() => setCurrentScreen('home')} />;
+    }
+    if (!canAccessFeature('prayerWalk')) {
       return (
         <LinearGradient colors={['#071428', '#0d2151', '#1a3a8f']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
           <StatusBar style="light" />
@@ -5462,6 +5493,10 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         </LinearGradient>
       );
     }
+    if (canAccessFeature?.('dailyBread') == null) {
+      return <ContentAccessNotice loading={accessLoading} error={accessError}
+        onRetry={refreshSubscriptionAccess} onBack={() => setCurrentScreen('home')} />;
+    }
     return (
       <DailyBreadScreen
         devotional={selectedDevotional}
@@ -5487,6 +5522,7 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
         bannerAdProps={{ BannerAd, BannerAdSize, adUnitId: BANNER_AD_UNIT_ID, isAvailable: isAdMobAvailable }}
         archiveUnlocked={isPro}
         isPro={isPro}
+        contentAccess={canAccessFeature('dailyBread')}
         onOpenProPaywall={presentProPaywall}
         userId={currentUser?.id}
         onNewBadge={showBadgeCelebration}

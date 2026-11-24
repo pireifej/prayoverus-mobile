@@ -9,8 +9,15 @@ export default function ProfileProCard({
   actionMessage,
   onUpgrade,
   onRestore,
+  onVerify,
+  verificationLoading = false,
+  onManage,
+  billingBlocked = false,
+  contentIsFree = false,
 }) {
   const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
+  const upgradeDisabled = !!upgradeLoading || !!billingBlocked;
+  const restoreDisabled = !!restoreLoading || !!billingBlocked;
 
   return (
     <View
@@ -73,20 +80,22 @@ export default function ProfileProCard({
             fontWeight: '700',
             marginTop: 4,
           }}>
-            {isPro ? 'YOUR SUBSCRIPTION IS ACTIVE' : price ? `MONTHLY · ${price}` : 'GO DEEPER IN PRAYER'}
+            {isPro ? 'YOUR PRO MEMBERSHIP IS ACTIVE' : price ? `MONTHLY · ${price}` : 'GO DEEPER IN PRAYER'}
           </Text>
         </View>
 
         <Text style={{ color: '#e2e8f0', fontSize: 15, lineHeight: 23, marginBottom: 18 }}>
-          Unlimited prayer requests, full Daily Bread readings and audio, and guided Prayer Walk.
+          {contentIsFree
+            ? 'Unlimited prayer requests, Deepen Prayer, and premium themes. Daily Bread and Prayer Walk are currently available to all signed-in members.'
+            : 'Unlimited prayer requests, full Daily Bread readings and audio, and guided Prayer Walk.'}
         </Text>
 
         {!isPro && (
           <Pressable
             testID="profile-upgrade-pro"
             accessibilityRole="button"
-            accessibilityState={{ disabled: upgradeLoading }}
-            disabled={upgradeLoading}
+            accessibilityState={{ disabled: upgradeDisabled }}
+            disabled={upgradeDisabled}
             onPress={onUpgrade}
             style={({ pressed }) => ({
               minHeight: 54,
@@ -96,7 +105,7 @@ export default function ProfileProCard({
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row',
-              opacity: pressed || upgradeLoading ? 0.82 : 1,
+              opacity: pressed || upgradeDisabled ? 0.82 : 1,
             })}
           >
             {upgradeLoading ? (
@@ -117,16 +126,45 @@ export default function ProfileProCard({
         <Pressable
           testID="profile-restore-purchases"
           accessibilityRole="button"
-          accessibilityState={{ disabled: restoreLoading }}
-          disabled={restoreLoading}
+          accessibilityState={{ disabled: restoreDisabled }}
+          disabled={restoreDisabled}
           onPress={onRestore}
-          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 5 }}
+          style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 5, opacity: restoreDisabled ? 0.65 : 1 }}
         >
           {restoreLoading && <ActivityIndicator color="#fcd34d" size="small" />}
           <Text style={{ color: '#fde68a', fontSize: 14, lineHeight: 20, fontWeight: '700', marginLeft: restoreLoading ? 8 : 0, textAlign: 'center' }}>
             {restoreLoading ? 'Checking purchases…' : 'Restore purchases'}
           </Text>
         </Pressable>
+
+        {!!onVerify && (
+          <Pressable
+            testID="profile-verify-membership"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !!verificationLoading }}
+            disabled={!!verificationLoading}
+            onPress={onVerify}
+            style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
+          >
+            {verificationLoading && <ActivityIndicator color="#fcd34d" size="small" />}
+            <Text style={{ color: '#fde68a', fontSize: 14, lineHeight: 20, fontWeight: '700', marginLeft: verificationLoading ? 8 : 0, textAlign: 'center' }}>
+              {verificationLoading ? 'Verifying membership…' : 'Retry membership verification'}
+            </Text>
+          </Pressable>
+        )}
+
+        {!!onManage && (
+          <Pressable
+            testID="profile-manage-subscription"
+            accessibilityRole="button"
+            onPress={onManage}
+            style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: '#fde68a', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' }}>
+              Manage subscription
+            </Text>
+          </Pressable>
+        )}
 
         {!!actionMessage && (
           <Text accessibilityRole="alert" testID="profile-billing-message" style={{

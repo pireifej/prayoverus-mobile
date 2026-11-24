@@ -1,8 +1,4 @@
-import {
-  getUserSessionToken,
-  getRevenueCatAppUserId,
-} from './userSession';
-import { client as Purchases } from './purchasesClient';
+import { getUserSessionToken } from './userSession';
 
 // ─── API Configuration ────────────────────────────────────────────────────────
 export const API_BASE = 'https://shouldcallpaul.replit.app';
@@ -54,6 +50,14 @@ const notifyAuthFailure = (error) => {
   }
 };
 
+const notifyRequestFailure = async (error, headers) => {
+  // An old account's delayed 401/403 must not log out or open a paywall for
+  // the next account. Callers still receive the error for their own lifecycle.
+  const currentToken = await getUserSessionToken();
+  if ((headers['x-user-session-token'] || null) !== currentToken) return;
+  notifyAuthFailure(error);
+};
+
 const createApiError = (status, path, response) => {
   // Do not let legacy numeric `error: 1` hide the real access error code.
   const candidates = [
@@ -79,55 +83,45 @@ export const apiHeaders = async ({ json = true } = {}) => {
   return headers;
 };
 
-const currentRevenueCatAppUserId = async () => {
-  const cached = getRevenueCatAppUserId();
-  if (cached) return cached;
-  try {
-    const appUserId = await Purchases?.getAppUserID?.();
-    return appUserId || null;
-  } catch (_) {
-    return null;
-  }
-};
-
 // ─── Generic helpers ──────────────────────────────────────────────────────────
-const post = async (path, body) => {
-  const revenuecatAppUserId = await currentRevenueCatAppUserId();
-  const requestBody = body && typeof body === 'object' && !Array.isArray(body)
-    ? { ...body, ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}) }
-    : body;
+const post = async (path, body, signal) => {
+  // Account identity comes from the verified session. Never attach the SDK's
+  // possibly anonymous/previous-account ID to unrelated or identity requests.
+  const headers = await apiHeaders();
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: await apiHeaders(),
-    body: JSON.stringify(requestBody),
+    headers,
+    body: JSON.stringify(body),
+    ...(signal ? { signal } : {}),
   });
   let response;
   try { response = await res.json(); } catch (_) { response = null; }
   if (!res.ok) {
     const error = createApiError(res.status, path, response);
-    notifyAuthFailure(error);
+    await notifyRequestFailure(error, headers);
     throw error;
   }
   return response;
 };
 
-const readErrorResponse = async (res, path) => {
+const readErrorResponse = async (res, path, headers) => {
   let response;
   try { response = await res.json(); } catch (_) { response = null; }
   const error = createApiError(res.status, path, response);
-  notifyAuthFailure(error);
+  await notifyRequestFailure(error, headers);
   throw error;
 };
 
 const fetchWithApi = async (path, options = {}) => {
   const { headers: extraHeaders = {}, body, ...rest } = options;
   const isJson = typeof body === 'string' || body == null;
+  const headers = { ...(await apiHeaders({ json: isJson })), ...extraHeaders };
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
-    headers: { ...(await apiHeaders({ json: isJson })), ...extraHeaders },
+    headers,
     ...(body !== undefined ? { body } : {}),
   });
-  if (!res.ok) await readErrorResponse(res, path);
+  if (!res.ok) await readErrorResponse(res, path, headers);
   return res;
 };
 
@@ -160,7 +154,8 @@ export const apiGetAnsweredPrayers = (userId, lang) => post('/getAnsweredPrayers
 export const apiReportContent    = (payload)  => post('/reportContent',              payload);
 export const apiGetPrayer        = (requestId, lang) => post('/getPrayer',           { requestId, lang });
 export const apiGetUserRequests  = (targetUserId, userId, lang) => post('/getUserRequests', { targetUserId, userId, lang });
-export const apiGetPrayedFor     = (userId, lang) => post('/getPrayedFor',           { userId, lang });
+export const apiGetPrayedFor     = (targetUserId, userId, lang) =>
+  post('/getPrayedFor', { targetUserId, userId, lang });
 
 // ─── Generated Prayers ────────────────────────────────────────────────────────
 export const apiGetPrayerByRequestId = (requestId, lang) =>
@@ -195,13 +190,9 @@ export const apiReadDailyBread = (userId, devotionalId) =>
 // Returns the raw Response so callers can call .blob() for binary audio data.
 // Caller MUST check res.ok before consuming the body.
 export const apiGetDailyBreadAudio = async (payload) => {
-  const revenuecatAppUserId = await currentRevenueCatAppUserId();
   const res = await fetchWithApi('/getDailyBreadAudio', {
     method: 'POST',
-    body: JSON.stringify({
-      ...payload,
-      ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}),
-    }),
+    body: JSON.stringify(payload),
   });
   return res;
 };
@@ -213,7 +204,18 @@ export const apiGetAppVersion = () =>
 // ─── Auth endpoints (used from UserAuth.js) ───────────────────────────────────
 export const apiLogin = (email, password) => post('/login', { email, password });
 export const apiAppleLogin = (payload) => post('/appleLogin', payload);
-export const apiGetProStatus = (payload = {}) => post('/api/subscriptions/pro-status', payload);
+const subscriptionRequest = async request => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try { return await request(controller.signal); }
+  finally { clearTimeout(timeout); }
+};
+export const apiGetProStatus = (payload = {}) =>
+  subscriptionRequest(signal => post('/api/subscriptions/pro-status', payload, signal));
+export const apiGetSubscriptionIdentity = () =>
+  subscriptionRequest(signal => post('/api/subscriptions/identity', {}, signal));
+export const apiGetAccessPolicy = () => subscriptionRequest(signal =>
+  fetchWithApi('/api/subscriptions/access-policy', { method: 'GET', signal }).then(r => r.json()));
 
 // ─── Push Notifications ──────────────────────────────────────────────────────
 export const apiRegisterFCMToken = (userId, fcmToken) =>
@@ -223,14 +225,9 @@ export const apiRegisterFCMToken = (userId, fcmToken) =>
 // Returns raw Response so callers can call .blob() for binary audio data.
 // Caller MUST check res.ok before consuming the body.
 export const apiGetPrayerAudio = async (requestId, text) => {
-  const revenuecatAppUserId = await currentRevenueCatAppUserId();
   const res = await fetchWithApi('/getPrayerAudio', {
     method: 'POST',
-    body: JSON.stringify({
-      requestId,
-      text,
-      ...(revenuecatAppUserId ? { revenuecatAppUserId } : {}),
-    }),
+    body: JSON.stringify({ requestId, text }),
   });
   return res;
 };

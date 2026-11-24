@@ -104,6 +104,7 @@ export default function DailyBreadScreen({
   archiveUnlocked,
   onUnlockArchive,
   isPro = false,
+  contentAccess = isPro,
   onOpenProPaywall,
   userId,
   onNewBadge,
@@ -116,13 +117,17 @@ export default function DailyBreadScreen({
   const [showArchive, setShowArchive] = useState(false);
   const [streak, setStreak] = useState(null);
   const soundRef = useRef(null);
+  const audioAccessKey = contentAccess ? `${userId}:${devotional?.id}:${lang}` : null;
+  const audioAccessRef = useRef(audioAccessKey);
+  audioAccessRef.current = audioAccessKey;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Call readDailyBread once per day to award points, track streak, check for new badge
   useEffect(() => {
-    if (!userId || !devotional) return;
+    if (!userId || !devotional || !contentAccess) return;
     const today = new Date().toISOString().split('T')[0];
-    const storageKey = `readDailyBread_${today}`;
+    const storageKey = `readDailyBread_${String(userId)}_${today}`;
+    let cancelled = false;
     (async () => {
       let alreadyRead = null;
       try {
@@ -131,9 +136,10 @@ export default function DailyBreadScreen({
         console.warn('[DailyBread] Storage read error:', e?.message);
         // Treat a corrupt/unreadable cache key as "not yet read" so the API call still fires
       }
-      if (alreadyRead) return;
+      if (alreadyRead || cancelled) return;
       try {
         const data = await apiReadDailyBread(userId, devotional.id || devotional.date);
+        if (cancelled) return;
         if (data.streak) setStreak(data.streak);
         if (data.new_badge && onNewBadge) onNewBadge(data.new_badge);
         // Only mark as read after a successful API response — a failure leaves the
@@ -147,12 +153,24 @@ export default function DailyBreadScreen({
         console.warn('[DailyBread] readDailyBread error:', e?.message);
       }
     })();
-  }, [userId, devotional?.id]);
+    return () => { cancelled = true; };
+  }, [userId, devotional?.id, contentAccess]);
 
   // Unload audio when leaving the screen
   useEffect(() => {
-    return () => { soundRef.current?.unloadAsync(); };
+    return () => {
+      audioAccessRef.current = null;
+      soundRef.current?.unloadAsync();
+    };
   }, []);
+
+  useEffect(() => {
+    soundRef.current?.unloadAsync();
+    soundRef.current = null;
+    setAudioStatus('idle');
+    setAudioPosition(0);
+    setAudioDuration(0);
+  }, [audioAccessKey]);
 
   if (!devotional) {
     return (
@@ -220,6 +238,9 @@ export default function DailyBreadScreen({
   };
 
   const handlePlayPause = async () => {
+    const requestAccess = audioAccessRef.current;
+    const stillAllowed = () => !!requestAccess && audioAccessRef.current === requestAccess;
+    if (!stillAllowed()) return;
     try {
       if (audioStatus === 'playing') {
         await soundRef.current?.pauseAsync();
@@ -242,6 +263,7 @@ export default function DailyBreadScreen({
 
       // Check device cache first — skip network call if already downloaded today
       const cached = await FileSystem.getInfoAsync(localUri);
+      if (!stillAllowed()) return;
       if (!cached.exists) {
         // POST to Paul's backend — same Basic Auth as all other APIs, returns MP3 binary directly
         const res = await apiGetDailyBreadAudio({
@@ -275,13 +297,15 @@ export default function DailyBreadScreen({
       // Play from local cached file
       await soundRef.current?.unloadAsync();
       soundRef.current = null;
+      if (!stillAllowed()) return;
 
       setAudioPosition(0);
       setAudioDuration(0);
       const { sound } = await Audio.Sound.createAsync(
         { uri: localUri },
-        { shouldPlay: true },
+        { shouldPlay: false },
         (status) => {
+          if (!stillAllowed()) return;
           if (status.isLoaded) {
             setAudioPosition(status.positionMillis || 0);
             setAudioDuration(status.durationMillis || 0);
@@ -298,9 +322,15 @@ export default function DailyBreadScreen({
           }
         }
       );
+      if (!stillAllowed()) {
+        await sound.unloadAsync();
+        return;
+      }
       soundRef.current = sound;
+      await sound.playAsync();
       setAudioStatus('playing');
     } catch (e) {
+      if (!stillAllowed()) return;
       console.log('[TTS] error:', e?.message || e);
       setAudioStatus('idle');
       Alert.alert('Audio Error', e?.message || 'Could not load audio. Please try again.');
@@ -311,7 +341,7 @@ export default function DailyBreadScreen({
   const articleBody = String(devotional.content || '');
   const previewContent = firstTwoSentences(articleBody);
   const remainingContent = articleBody.slice(previewContent.length).trim();
-  const audioLabel = !isPro
+  const audioLabel = !contentAccess
     ? (isEs ? '🔒 Leer completo con Pro' : '🔒 Read Full Article with Pro')
     : audioStatus === 'loading'
       ? (isEs ? 'Cargando...' : 'Loading...')
@@ -390,7 +420,7 @@ export default function DailyBreadScreen({
           {/* Listen button + progress bar */}
           <TouchableOpacity
             style={[styles.listenBtn, audioStatus === 'playing' && styles.listenBtnActive, audioStatus === 'loading' && { opacity: 0.7 }]}
-            onPress={isPro ? handlePlayPause : onOpenProPaywall}
+            onPress={contentAccess ? handlePlayPause : onOpenProPaywall}
             activeOpacity={0.8}
             disabled={audioStatus === 'loading'}
           >
@@ -410,7 +440,7 @@ export default function DailyBreadScreen({
             </View>
           )}
 
-          {isPro ? fullArticle : (
+          {contentAccess ? fullArticle : (
             <View style={styles.lockedArticle}>
               {previewContent ? <Text style={styles.bodyText}>{previewContent}</Text> : null}
               <View style={styles.lockedArticleBody}>

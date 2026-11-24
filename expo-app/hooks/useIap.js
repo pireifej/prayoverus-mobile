@@ -1,25 +1,21 @@
 /**
- * useIap — owns all in-app purchase state and RevenueCat SDK calls.
- *
- * Extracted from App.js so that a crash in the RevenueCat SDK never brings
- * down the rest of the app. SDK bootstrap lives in services/purchasesClient.js
- * so it can be mocked independently in tests.
+ * RevenueCat handles the store transaction; only the verified backend status
+ * grants account access. Content policy is independent from membership.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import { showToast, showModal } from '../AppModals';
 import { client as Purchases, isAvailable as rcAvailable } from '../services/purchasesClient';
+import { getUserSessionToken, setRevenueCatAppUserId } from '../services/userSession';
+import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } from '../services/api';
 import {
-  getUserSessionToken,
-  setRevenueCatAppUserId as cacheRevenueCatAppUserId,
-} from '../services/userSession';
-import { apiGetProStatus } from '../services/api';
+  PRO_ENTITLEMENT, validateIdentity, validateProStatus, validateAccessPolicy,
+  featureAccess, hasPurchaseHistory, OWNERSHIP_MESSAGE, VERIFICATION_MESSAGE,
+} from '../utils/subscriptionAccess';
 
-// ── RevenueCat constants ─────────────────────────────────────────────────────
+export { PRO_ENTITLEMENT };
 
-export const PRO_ENTITLEMENT = 'Pray Over Us Pro';
-
-const selectMonthlyPackage = (offering) => {
+const selectMonthlyPackage = offering => {
   const packages = offering?.availablePackages || [];
   return offering?.monthly
     || packages.find(pkg => pkg.identifier === 'monthly' || pkg.product?.identifier === 'monthly')
@@ -28,264 +24,349 @@ const selectMonthlyPackage = (offering) => {
     || null;
 };
 
-// ── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useIap() {
   const [iapCustomerInfo, setIapCustomerInfo] = useState(null);
-  const [iapProducts, setIapProducts]         = useState([]);
-  const [iapOffering, setIapOffering]         = useState(null);
-  const [proPackage, setProPackage]           = useState(null);
+  const [iapProducts, setIapProducts] = useState([]);
+  const [iapOffering, setIapOffering] = useState(null);
+  const [proPackage, setProPackage] = useState(null);
   const [revenuecatAppUserId, setRevenuecatAppUserId] = useState(null);
-  const [iapLoading, setIapLoading]           = useState(false);
-  const [iapPurchasing, setIapPurchasing]     = useState(false);
-  const [iapModal, setIapModal]               = useState(null);
-  const [identifiedUserId, setIdentifiedUserId] = useState(null);
-  const identityEpoch = useRef(0);
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  const hasEntitlement = (key) =>
-    !!identifiedUserId && iapCustomerInfo?.entitlements?.active?.[key]?.isActive === true;
-
-  // Keep this check explicit: every paid feature uses the same RevenueCat
-  // entitlement and there are no per-feature purchase flags anymore.
-  const isPro = !!identifiedUserId
-    && iapCustomerInfo?.entitlements?.active?.[PRO_ENTITLEMENT]?.isActive === true;
-
-  const getIapPrice = (packageOrId = proPackage) => {
-    if (packageOrId?.product?.priceString) return packageOrId.product.priceString;
-    if (typeof packageOrId === 'string') {
-      return iapProducts.find(p => p.identifier === packageOrId)?.priceString ?? null;
-    }
-    return proPackage?.product?.priceString ?? null;
+  const [iapLoading, setIapLoading] = useState(false);
+  const [iapPurchasing, setIapPurchasing] = useState(false);
+  const [iapModal, setIapModal] = useState(null);
+  const [backendStatus, setBackendStatus] = useState(null);
+  const [accessPolicy, setAccessPolicy] = useState(null);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState('');
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const accountRef = useRef(null);
+  const epochRef = useRef(0);
+  const statusRequestRef = useRef(0);
+  const policyRequestRef = useRef(0);
+  const sdkQueue = useRef(Promise.resolve());
+  const billingAttemptRef = useRef(false);
+  const statusRef = useRef(null);
+  const packageRef = useRef(null);
+  const mounted = useRef(true);
+  const isCurrent = account => mounted.current && !!account && accountRef.current === account;
+  const enqueueSdk = task => {
+    const next = sdkQueue.current.catch(() => {}).then(task);
+    sdkQueue.current = next.catch(() => {});
+    return next;
   };
 
-  // ── Data loading ───────────────────────────────────────────────────────────
+  const isPro = backendStatus?.isPro === true && backendStatus?.identityVerificationRequired === false;
+  const canAccessFeature = feature => featureAccess(accessPolicy, isPro, feature);
+  const hasEntitlement = key => key === PRO_ENTITLEMENT && isPro;
+  const getIapPrice = (pkg = proPackage) => typeof pkg === 'string'
+    ? iapProducts.find(product => product.identifier === pkg)?.priceString ?? null
+    : pkg?.product?.priceString ?? null;
+
+  const clearAccountState = () => {
+    statusRef.current = null;
+    packageRef.current = null;
+    setRevenueCatAppUserId(null);
+    setBackendStatus(null);
+    setAccessPolicy(null);
+    setAccessError('');
+    setSubscriptionMessage('');
+    setIapCustomerInfo(null);
+    setIapOffering(null);
+    setIapProducts([]);
+    setProPackage(null);
+    setRevenuecatAppUserId(null);
+    setIapModal(null);
+    setIapLoading(false);
+    setAccessLoading(false);
+    // Do not clear the billing mutex until an outstanding native transaction
+    // actually settles, even if the app account changes.
+  };
 
   const loadIapData = async () => {
     if (!rcAvailable || !Purchases) return null;
-    const epoch = identityEpoch.current;
+    const epoch = epochRef.current;
     setIapLoading(true);
+    let timeout;
     try {
-      const [info, offerings] = await Promise.all([
-        Purchases.getCustomerInfo(),
-        Purchases.getOfferings
-          ? Purchases.getOfferings()
-          : Promise.resolve({ current: null }),
+      const [info, offerings, sdkId] = await Promise.race([
+        Promise.all([Purchases.getCustomerInfo(), Purchases.getOfferings(), Purchases.getAppUserID()]),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Store lookup timed out')), 15000);
+        }),
       ]);
-      const offering = offerings?.current?.identifier === 'default'
-        ? offerings.current
-        : offerings?.all?.default || offerings?.current || null;
+      if (!mounted.current || epoch !== epochRef.current) return null;
+      const offering = offerings?.current || null;
       const monthly = selectMonthlyPackage(offering);
-      const appUserId = await Purchases.getAppUserID?.();
-      if (epoch !== identityEpoch.current) return null;
-      setIapCustomerInfo(info);
+      const ownedInfo = sdkId === accountRef.current?.identity?.revenuecatAppUserId ? info : null;
+      setIapCustomerInfo(ownedInfo);
       setIapOffering(offering);
       setProPackage(monthly);
-      setRevenuecatAppUserId(appUserId || null);
-      cacheRevenueCatAppUserId(appUserId || null);
+      packageRef.current = monthly;
       setIapProducts((offering?.availablePackages || []).map(pkg => pkg.product).filter(Boolean));
-      return { info, offering, proPackage: monthly, revenuecatAppUserId: appUserId || null };
-    } catch (e) {
-      console.warn('[IAP] load error:', e?.message);
+      // SDK data is diagnostic/catalog data only, never proof of account Pro.
+      return { info: ownedInfo, offering, proPackage: monthly };
+    } catch (_) {
       return null;
     } finally {
-      setIapLoading(false);
+      clearTimeout(timeout);
+      if (mounted.current && epoch === epochRef.current) setIapLoading(false);
     }
   };
 
-  const identifyRevenueCatUser = async (userId) => {
-    if (!rcAvailable || !Purchases || !userId) return null;
-    const epoch = ++identityEpoch.current;
-    setIdentifiedUserId(null);
-    setIapCustomerInfo(null);
-    cacheRevenueCatAppUserId(null);
+  const refreshAccessPolicy = async () => {
+    const account = accountRef.current;
+    if (!isCurrent(account)) return null;
+    const request = ++policyRequestRef.current;
+    setAccessLoading(true);
     try {
-      const result = await Purchases.logIn?.(String(userId));
-      const info = result?.customerInfo || result;
-      const appUserId = await Purchases.getAppUserID?.();
-      if (epoch !== identityEpoch.current || String(appUserId) !== String(userId)) return null;
-      if (info?.entitlements) setIapCustomerInfo(info);
-      setIdentifiedUserId(String(userId));
-      setRevenuecatAppUserId(appUserId || null);
-      cacheRevenueCatAppUserId(appUserId || null);
-      return info || null;
-    } catch (e) {
-      console.warn('[IAP] RevenueCat user identification failed:', e?.message);
-      return null;
-    }
-  };
-
-  const resetRevenueCatUser = async () => {
-    const epoch = ++identityEpoch.current;
-    setIdentifiedUserId(null);
-    setIapCustomerInfo(null);
-    setIapModal(null);
-    if (!rcAvailable || !Purchases) return;
-    try {
-      await Purchases.logOut?.();
-    } catch (e) {
-      console.warn('[IAP] RevenueCat logout failed:', e?.message);
-    } finally {
-      if (epoch === identityEpoch.current) {
-        setIapCustomerInfo(null);
-        setRevenuecatAppUserId(null);
-        cacheRevenueCatAppUserId(null);
+      const policy = validateAccessPolicy(await apiGetAccessPolicy());
+      if (!isCurrent(account) || request !== policyRequestRef.current) return null;
+      setAccessPolicy(policy);
+      setAccessError('');
+      return policy;
+    } catch (_) {
+      if (isCurrent(account) && request === policyRequestRef.current) {
+        setAccessPolicy(null);
+        setAccessError('Content access could not be checked. Please try again.');
       }
+      return null;
+    } finally {
+      if (isCurrent(account) && request === policyRequestRef.current) setAccessLoading(false);
     }
   };
 
   const refreshProStatus = async () => {
-    const appUserId = revenuecatAppUserId || await Purchases?.getAppUserID?.();
-    if (!appUserId || !(await getUserSessionToken())) return null;
+    const account = accountRef.current;
+    if (!isCurrent(account)) return null;
+    const request = ++statusRequestRef.current;
     try {
-      return await apiGetProStatus({ revenuecatAppUserId: appUserId });
-    } catch (e) {
-      // The client-side entitlement remains RevenueCat's source of truth.
-      if (e?.code !== 'PRO_REQUIRED') {
-        console.warn('[IAP] backend Pro status refresh failed:', e?.message);
+      if (!(await getUserSessionToken())) throw new Error('Session missing');
+      // Request {} exactly: never disclose an anonymous/previous SDK identity.
+      const identity = validateIdentity(await apiGetSubscriptionIdentity());
+      if (!isCurrent(account) || request !== statusRequestRef.current) return null;
+      account.identity = identity;
+      setRevenuecatAppUserId(identity.revenuecatAppUserId);
+      const status = validateProStatus(await apiGetProStatus({
+        revenuecatAppUserId: identity.revenuecatAppUserId, refresh: true,
+      }), identity);
+      if (!isCurrent(account) || request !== statusRequestRef.current) return null;
+      statusRef.current = status;
+      setBackendStatus(status);
+      setSubscriptionMessage(status.identityVerificationRequired ? OWNERSHIP_MESSAGE : '');
+      return status;
+    } catch (error) {
+      if (isCurrent(account) && request === statusRequestRef.current) {
+        statusRef.current = null;
+        setBackendStatus(null);
+        setSubscriptionMessage(error?.code === 'SUBSCRIPTION_IDENTITY_MISMATCH'
+          ? OWNERSHIP_MESSAGE : VERIFICATION_MESSAGE);
       }
       return null;
     }
   };
 
-  const loadIapDataRef = useRef(loadIapData);
-  loadIapDataRef.current = loadIapData;
+  const refreshSubscriptionAccess = async () => Promise.all([
+    refreshAccessPolicy(), refreshProStatus(), loadIapData(),
+  ]);
 
+  const identifyRevenueCatUser = async userId => {
+    if (!userId) return null;
+    // Only establish the app account here. SDK logIn is delayed until a
+    // user-initiated billing action passes the ownership preflight.
+    const account = { userId: String(userId), epoch: ++epochRef.current, identity: null };
+    accountRef.current = account;
+    clearAccountState();
+    if (!(await getUserSessionToken()) || !isCurrent(account)) {
+      if (isCurrent(account)) setSubscriptionMessage('Please sign in again to verify membership.');
+      return null;
+    }
+    await refreshSubscriptionAccess();
+    return isCurrent(account) ? account.identity : null;
+  };
+
+  const resetRevenueCatUser = async () => {
+    ++epochRef.current;
+    accountRef.current = null;
+    clearAccountState();
+    // No automatic SDK logout: it creates anonymous customers and can race an
+    // in-flight transaction. Identity is checked before the next billing action.
+  };
+
+  const latestRefresh = useRef(refreshSubscriptionAccess);
+  latestRefresh.current = refreshSubscriptionAccess;
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextState => {
-      if (nextState === 'active') loadIapDataRef.current?.();
+    mounted.current = true;
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active' && accountRef.current && !billingAttemptRef.current) {
+        void latestRefresh.current();
+      }
     });
-    return () => subscription?.remove();
+    return () => {
+      mounted.current = false;
+      ++epochRef.current;
+      listener?.remove();
+    };
   }, []);
 
-  const presentProPaywall = async (onSuccess) => {
-    let monthly = proPackage;
-    if (!monthly) {
-      let timeoutId;
-      let loaded;
-      try {
-        loaded = await Promise.race([
-          loadIapData(),
-          new Promise(resolve => {
-            timeoutId = setTimeout(() => resolve(null), 15000);
-          }),
-        ]);
-      } finally {
-        if (timeoutId) clearTimeout(timeoutId);
-      }
-      monthly = loaded?.proPackage || null;
-    }
+  const explain = message => showModal({
+    title: 'Pray Over Us Pro', message,
+  });
 
-    if (!monthly) {
-      showModal({
-        icon: '🕊️',
-        title: 'Pray Over Us Pro',
-        message: rcAvailable
-          ? 'We couldn’t load the monthly plan. Check your connection and try again.'
-          : 'Google Play billing is unavailable in this build. Please check the store connection and try again.',
-      });
+  const prepareBilling = async account => {
+    if (!isCurrent(account) || !rcAvailable || !Purchases) {
+      throw new Error('Store billing or your signed-in account is unavailable. Please sign in and try again.');
+    }
+    const status = await refreshProStatus();
+    if (!isCurrent(account)) return false;
+    if (!status) throw new Error(VERIFICATION_MESSAGE);
+    if (status.identityVerificationRequired) throw new Error(OWNERSHIP_MESSAGE);
+    const expected = account.identity.revenuecatAppUserId;
+    return enqueueSdk(async () => {
+      if (!isCurrent(account)) return false;
+      const existing = await Purchases.getAppUserID();
+      if (!isCurrent(account)) return false;
+      if (existing !== expected) {
+        const info = await Purchases.getCustomerInfo();
+        if (!isCurrent(account)) return false;
+        // Never automatically alias, relink, or transfer a customer that has
+        // purchases. Backend ownership verification is a separate operation.
+        if (hasPurchaseHistory(info)) {
+          setSubscriptionMessage(OWNERSHIP_MESSAGE);
+          throw new Error(OWNERSHIP_MESSAGE);
+        }
+        await Purchases.logIn(expected);
+      }
+      if (!isCurrent(account)) return false;
+      if (await Purchases.getAppUserID() !== expected) throw new Error(OWNERSHIP_MESSAGE);
+      if (!isCurrent(account)) return false;
+      setRevenueCatAppUserId(expected);
+      return true;
+    });
+  };
+
+  const presentProPaywall = async onSuccess => {
+    const account = accountRef.current;
+    if (!isCurrent(account)) { explain('Please sign in to check your membership.'); return false; }
+    const status = await refreshProStatus();
+    if (!isCurrent(account)) return false;
+    if (!status || status.identityVerificationRequired) {
+      explain(status?.identityVerificationRequired ? OWNERSHIP_MESSAGE : VERIFICATION_MESSAGE);
       return false;
     }
-
+    if (status.isPro) {
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+        return true;
+      }
+      explain('Your Pray Over Us Pro membership is already active.');
+      return false;
+    }
+    let monthly = packageRef.current;
+    if (!monthly) monthly = (await loadIapData())?.proPackage;
+    if (!isCurrent(account)) return false;
+    if (!monthly) {
+      explain('We couldn’t load the monthly plan. Check your store connection and try again.');
+      return false;
+    }
     setIapModal({
-      package: monthly,
-      title: 'Pray Over Us Pro',
-      description: 'Unlock unlimited prayer requests, Deepen Prayer, premium themes, full Daily Bread devotionals, and Prayer Walk audio.',
+      package: monthly, title: 'Pray Over Us Pro',
+      description: 'Unlimited prayer requests, Deepen Prayer, and premium themes.'
+        + (accessPolicy?.dailyBread?.requiresPro || accessPolicy?.prayerWalk?.requiresPro
+          ? ' Plus full Daily Bread readings and Prayer Walk audio.'
+          : accessPolicy
+            ? ' Daily Bread and Prayer Walk are currently available to all signed-in members.'
+            : ''),
       onSuccess,
     });
     return true;
   };
 
-  // ── Purchase / restore ─────────────────────────────────────────────────────
-
-  const doIapPurchase = async (purchasePackage = proPackage, onSuccess) => {
-    const epoch = identityEpoch.current;
-    if (!rcAvailable || !Purchases) {
-      showToast('Purchases are not available on this device.', '⚠️');
-      return;
-    }
+  const runBilling = async (restore, purchasePackage, onSuccess) => {
+    if (billingAttemptRef.current) return { status: 'busy' };
+    billingAttemptRef.current = true;
     setIapPurchasing(true);
+    const account = accountRef.current;
+    let storeCompleted = false;
     try {
-      const packageToPurchase = purchasePackage?.product ? purchasePackage : proPackage;
-      if (!packageToPurchase) throw new Error('Pro subscription not found — check your RevenueCat offering setup.');
-      const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
-      if (epoch !== identityEpoch.current) return;
-      setIapCustomerInfo(customerInfo);
-      await loadIapData();
-      await refreshProStatus();
+      if (!(await prepareBilling(account)) || !isCurrent(account)) return { status: 'cancelled' };
+      if (!restore && statusRef.current?.isPro) {
+        explain('Your Pray Over Us Pro membership is already active.');
+        return { status: 'active' };
+      }
+      // Serialize native operations, including the account check immediately
+      // before entering the store UI. An old account may not start a purchase.
+      const info = await enqueueSdk(async () => {
+        if (!isCurrent(account)) return null;
+        const expected = account.identity.revenuecatAppUserId;
+        if (await Purchases.getAppUserID() !== expected) throw new Error(OWNERSHIP_MESSAGE);
+        if (!isCurrent(account)) return null;
+        if (restore) return Purchases.restorePurchases();
+        const existingInfo = await Purchases.getCustomerInfo();
+        if (!isCurrent(account)) return null;
+        if (existingInfo?.entitlements?.active?.[PRO_ENTITLEMENT]?.isActive === true) {
+          throw new Error(VERIFICATION_MESSAGE);
+        }
+        const pkg = purchasePackage?.product ? purchasePackage : packageRef.current;
+        if (!pkg) throw new Error('The monthly plan is unavailable. Please try again.');
+        return (await Purchases.purchasePackage(pkg)).customerInfo;
+      });
+      if (!isCurrent(account)) return { status: 'cancelled' };
+      if (!info) throw new Error('The store did not return a purchase result.');
+      storeCompleted = true;
+      setIapCustomerInfo(info);
+      const verified = await refreshProStatus();
+      if (!isCurrent(account)) return { status: 'cancelled' };
       setIapModal(null);
-      const callback = onSuccess || iapModal?.onSuccess;
-      if (callback) {
-        callback();
-      } else {
-        showToast('Welcome to Pray Over Us Pro.', '🙌');
+      if (verified?.isPro && !verified.identityVerificationRequired) {
+        const message = restore ? 'Your Pro membership was restored and verified.' : 'Your Pro membership is active.';
+        showToast(message, '✓');
+        const callback = onSuccess || (restore ? null : iapModal?.onSuccess);
+        if (typeof callback === 'function') callback();
+        return { status: restore ? 'restored' : 'purchased', message };
       }
-    } catch (e) {
-      if (!e?.userCancelled) {
-        setIapModal(null);
-        showModal({ icon: '😔', title: 'Purchase failed', message: e?.message ?? 'Please try again.' });
-      }
+      if (verified?.identityVerificationRequired) throw new Error(OWNERSHIP_MESSAGE);
+      // A successful store transaction is not the same as verified Pro.
+      const message = restore && verified && !hasPurchaseHistory(info)
+        ? 'No active Pray Over Us Pro subscription was found for this store account.'
+        : 'The store finished, but Pro access is not verified yet. Do not purchase again. Retry verification from Profile or contact support.';
+      setSubscriptionMessage(message);
+      if (!(restore && verified && !hasPurchaseHistory(info))) explain(message);
+      return { status: restore && verified && !hasPurchaseHistory(info) ? 'none' : 'pending', message };
+    } catch (error) {
+      if (!isCurrent(account)) return { status: 'cancelled' };
+      if (error?.userCancelled) return { status: 'cancelled' };
+      setIapModal(null);
+      const message = storeCompleted
+        ? `${VERIFICATION_MESSAGE} Account ownership may need support verification.`
+        : error?.message || VERIFICATION_MESSAGE;
+      setSubscriptionMessage(message);
+      showModal({ title: storeCompleted ? 'Verification pending' : restore ? 'Restore unavailable' : 'Purchase unavailable', message });
+      return { status: storeCompleted ? 'pending' : 'error', message };
     } finally {
-      setIapPurchasing(false);
+      billingAttemptRef.current = false;
+      if (mounted.current) setIapPurchasing(false);
     }
   };
 
-  const doIapRestore = async () => {
-    if (!rcAvailable || !Purchases) {
-      return {
-        status: 'unavailable',
-        message: 'Google Play billing could not start. Check your connection and try again.',
-      };
-    }
-    const epoch = identityEpoch.current;
-    setIapPurchasing(true);
+  const openManageSubscriptions = async () => {
     try {
-      const info = await Purchases.restorePurchases();
-      if (epoch !== identityEpoch.current) return;
-      setIapCustomerInfo(info);
-      await refreshProStatus();
-      const isProRestored = info?.entitlements?.active?.[PRO_ENTITLEMENT]?.isActive === true;
-      const message = isProRestored
-        ? 'Your Pray Over Us Pro subscription was restored.'
-        : 'No active Pray Over Us Pro subscription was found for this Google Play account.';
-      showToast(isProRestored ? 'Pro subscription restored.' : 'No Pro purchase found.', isProRestored ? '✅' : 'ℹ️');
-      setIapModal(null);
-      return { status: isProRestored ? 'restored' : 'none', message };
-    } catch (e) {
-      setIapModal(null);
-      showModal({ icon: '😔', title: 'Restore failed', message: e?.message ?? 'Please try again.' });
-      return { status: 'error', message: e?.message || 'Restore could not be completed. Please try again.' };
-    } finally {
-      setIapPurchasing(false);
+      await Linking.openURL(Platform.OS === 'ios'
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions');
+    } catch (_) {
+      explain('Open your App Store or Google Play account settings, then Subscriptions, to manage or cancel your plan.');
     }
   };
 
   return {
-    // state
-    rcAvailable, // true if RevenueCat SDK loaded and configured
-    iapCustomerInfo,
-    setIapCustomerInfo,
-    iapProducts,
-    setIapProducts,
-    iapOffering,
-    proPackage,
-    revenuecatAppUserId,
-    iapPurchasing,
-    iapLoading,
-    iapModal,
-    setIapModal,
-    // computed
-    isPro,
-    // functions
-    hasEntitlement,
-    getIapPrice,
-    loadIapData,
-    identifyRevenueCatUser,
-    resetRevenueCatUser,
-    refreshProStatus,
+    rcAvailable, iapCustomerInfo, setIapCustomerInfo, iapProducts, setIapProducts,
+    iapOffering, proPackage, revenuecatAppUserId, iapPurchasing, iapLoading,
+    iapModal, setIapModal, isPro, hasEntitlement, getIapPrice, loadIapData,
+    identifyRevenueCatUser, resetRevenueCatUser, refreshProStatus,
+    refreshAccessPolicy, refreshSubscriptionAccess, canAccessFeature,
+    accessPolicy, accessLoading, accessError, subscriptionMessage,
+    openManageSubscriptions,
     presentProPaywall,
-    doIapPurchase,
-    doIapRestore,
+    doIapPurchase: (pkg, onSuccess) => runBilling(false, pkg, onSuccess),
+    doIapRestore: () => runBilling(true),
   };
 }

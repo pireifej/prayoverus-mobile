@@ -3,18 +3,26 @@ name: RevenueCat Pro entitlement
 description: Subscription gating uses one entitlement and the live monthly package from the current offering.
 ---
 
-The app's paid feature boundary is the single RevenueCat entitlement `Pray Over Us Pro`; feature code must not introduce separate products or entitlement flags. The paywall reads the monthly package and localized price from RevenueCat's current offering instead of duplicating price data in the client.
+The app's paid feature boundary is the single RevenueCat entitlement `Pray Over Us Pro`, verified for the signed-in account by the backend; SDK customer information alone must not grant account access. Keep the current offering and localized price in RevenueCat.
 
 **Why:** Keeping entitlement and package selection centralized prevents a purchase from unlocking one feature but not another, and lets App Store/Play Store price changes reach the paywall without an app update.
 
-**How to apply:** Route new premium actions through the shared Pro paywall and check the active entitlement returned by RevenueCat. Keep platform product identifiers and prices in RevenueCat configuration. For catalog changes, use the connected RevenueCat integration and verify the current offering/package/entitlement relationships; its credentials may not be available to local shell scripts.
+**How to apply:** Use backend-issued identity and backend-verified membership for premium access. Keep platform product identifiers and prices in RevenueCat configuration. For catalog changes, use the connected integration; its credentials may not be available to local shell scripts.
 
 ## Confirmed feature-gating decisions
-Free users keep one prayer request per day; additional requests should be blocked with a contextual Pro offer. Keep today's Daily Bread preview free, but gate the full devotional and audio. Add a persistent Pro entry in Profile alongside contextual offers. Prayer Walk is Pro-only.
+Free users keep one successful prayer request per Eastern day. Extended prayers remain Pro-only. Daily Bread and Prayer Walk follow the backend's content-access policy: they are temporarily open to signed-in users until the paid boundary is explicitly enabled. Keep the Profile Pro entry.
 
-**Why:** The user selected these boundaries while discussing the subscription transition.
+**Why:** The paid launch requires a compatible backend/mobile test stage before paid content restrictions are enabled; membership and feature policy must not be conflated.
 
-**How to apply:** Use the same `Pray Over Us Pro` entitlement for every gate. A Google Play license-tester account is for test purchases and must not itself grant Pro access.
+**How to apply:** Treat backend publication and activating the content paywall as separate decisions. Do not fake Pro to permit interim free content. A Google Play license-tester account does not itself grant Pro.
+
+## Existing customer safety
+
+Use the backend-issued identity, not an independently chosen numeric ID. Ownership-required responses and existing SDK purchase history must not trigger automatic migration, restore, or repeat purchase. The SDK-login flag alone is not legacy ownership verification.
+
+**Why:** SDK identity changes can alias or reassign purchase relationships. A store success also does not prove the backend recognizes account Pro.
+
+**How to apply:** Require ownership preflight before user-initiated billing. If store success cannot be verified, report pending access and offer verification retry rather than another charge. Never invent an ownership-repair procedure.
 
 ## Prayer submission outcome
 After a successful prayer submission, clear the form's error and close the screen. Zero remaining allowance after that success is not an error. Show the daily-limit error only when an attempted submission actually returns HTTP 403 with `error: "DAILY_LIMIT_REACHED"`. Prevent duplicate submissions while posting, and ensure delayed quota checks cannot overwrite the successful state.
@@ -31,11 +39,11 @@ The Profile Pro area should be its own separate banner using the paywall's dark-
 **How to apply:** Preserve the distinct banner treatment and cross-platform dismissal controls when changing the Profile or paywall. Keep dismissal accessible without a physical or system Back button.
 
 ## Verifying a customer's subscription
-Match the app account's numeric user ID to the RevenueCat App User ID before making a claim about that user's entitlement. An empty email search does not prove that the account has no subscription.
+Use the backend-issued identity for the verified app account before making a claim about that user's entitlement. Do not assume the numeric app user ID is still the RevenueCat identity. An empty email search does not prove that an account has no subscription.
 
-**Why:** RevenueCat email searches can return no match when the customer is identified only by the app's numeric ID. Recent activity and app version are not sufficient evidence of customer identity.
+**Why:** RevenueCat email searches can miss customers, and the server-issued identity contract supersedes independently chosen numeric IDs. Legacy mappings need ownership verification.
 
-**How to apply:** Obtain the account's support ID from Profile or the backend account lookup, then query that exact RevenueCat customer and its active entitlements. Do not infer the account from a recent anonymous customer.
+**How to apply:** Resolve the signed-in account through the backend identity/status flow. Do not infer ownership from recent anonymous activity, a numeric-ID match, or app version alone.
 
 ## Apple configuration checks
 Distinguish RevenueCat's App Store Connect API credential from its In-App Purchase subscription key. A store-state lookup can fail because the former is absent even when the latter is configured; this alone does not prove receipt validation or purchases are broken.

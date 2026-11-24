@@ -5,7 +5,7 @@
  * render tree. App.js composes this hook and uses the returned values for
  * routing decisions and passing user context to other hooks.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from '../NotificationService';
 import { storage, STORAGE_KEYS } from '../utils/storage';
@@ -22,52 +22,73 @@ export function useAuth() {
   // defaults true so the EULA screen only shows when we confirm it was never accepted
   const [eulaAccepted, setEulaAccepted] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const cleanupRef = useRef(Promise.resolve());
+  const sessionEpoch = useRef(0);
+  const profileWrites = useRef(Promise.resolve());
+  const activeUserId = useRef(null);
+  activeUserId.current = currentUser?.id || null;
 
   // ── Storage helpers ─────────────────────────────────────────────────────────
 
   const saveUserToStorage = async (userData) => {
+    const epoch = sessionEpoch.current;
     try {
-      await storage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(userData));
+      const { user_session_token: _credential, ...profile } = userData;
+      const write = profileWrites.current.catch(() => {}).then(() => {
+        if (epoch === sessionEpoch.current) {
+          return storage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(profile));
+        }
+      });
+      profileWrites.current = write.catch(() => {});
+      await write;
     } catch (error) {
       console.warn('[Storage] Error saving user session:', error.message);
     }
   };
 
-  const clearUserFromStorage = async () => {
-    try {
-      // Clear all user-specific keys so shared devices don't expose one
-      // person's data to the next user who opens the app.
-      // This mirrors the key set that AppErrorBoundary already clears on crash.
-      await storage.multiRemove([
-        STORAGE_KEYS.USER_SESSION,
-        STORAGE_KEYS.COMMUNITY_CACHE,
-        STORAGE_KEYS.DAILY_POST_TRACKER,
-        STORAGE_KEYS.BLOCKED_USERS,
-        STORAGE_KEYS.REVIEW_STATE,
-        STORAGE_KEYS.OPEN_DATES,
-        STORAGE_KEYS.PRAY_ACTION_COUNT,
-        STORAGE_KEYS.REMEMBERED_EMAIL,
-        // ARCHIVE_UNLOCKED is an ad-reward unlock with no server-side user entitlement,
-        // but the key is written to storage on unlock and must be cleared here so the
-        // next person who opens the app on a shared device cannot inherit archive access.
-        // The in-memory archiveUnlocked state is reset by App.js's onBeforeLogout callback.
-        STORAGE_KEYS.ARCHIVE_UNLOCKED,
-      ]);
-      await clearUserSessionToken();
-    } catch (error) {
-      console.warn('[Storage] Error clearing user data on logout:', error.message);
-    }
+  const clearUserFromStorage = () => {
+    ++sessionEpoch.current;
+    const cleanup = (async () => {
+      // Attach a rejection handler immediately; cache cleanup may take longer
+      // than secure-store cleanup. Surface a secure-store failure afterward.
+      const tokenCleanup = clearUserSessionToken().then(() => null, error => error);
+      try {
+        const removal = profileWrites.current.catch(() => {}).then(() => storage.multiRemove([
+          STORAGE_KEYS.USER_SESSION,
+          STORAGE_KEYS.COMMUNITY_CACHE,
+          STORAGE_KEYS.DAILY_POST_TRACKER,
+          STORAGE_KEYS.BLOCKED_USERS,
+          STORAGE_KEYS.REVIEW_STATE,
+          STORAGE_KEYS.OPEN_DATES,
+          STORAGE_KEYS.PRAY_ACTION_COUNT,
+          STORAGE_KEYS.REMEMBERED_EMAIL,
+          // Never let another account inherit an ad-reward archive unlock.
+          STORAGE_KEYS.ARCHIVE_UNLOCKED,
+        ]));
+        profileWrites.current = removal.catch(() => {});
+        await removal;
+      } catch (error) {
+        console.warn('[Storage] Error clearing user data on logout:', error.message);
+      } finally {
+        const failure = await tokenCleanup;
+        if (failure) throw failure;
+      }
+    })();
+    cleanupRef.current = cleanup.catch(() => {});
+    return cleanup;
   };
 
   // ── Boot: read cached session ───────────────────────────────────────────────
 
   const checkStoredAuth = async () => {
+    const epoch = sessionEpoch.current;
     console.log('[Boot] Reading cached session...');
     try {
       // Hydrate the Keychain/Keystore-backed token before any background
       // profile or feature request can run.
-      await getUserSessionToken();
+      const secureToken = await getUserSessionToken();
       const userData = await storage.getItem(STORAGE_KEYS.USER_SESSION);
+      if (epoch !== sessionEpoch.current) return;
       if (userData) {
         let parsedUserData;
         try {
@@ -83,21 +104,36 @@ export function useAuth() {
           await storage.removeItem(STORAGE_KEYS.USER_SESSION);
           return;
         }
+        // Never recover credentials from the insecure legacy profile copy.
+        // Strip it even when the secure session is still valid.
+        if ('user_session_token' in parsedUserData) {
+          const { user_session_token: _legacyToken, ...profile } = parsedUserData;
+          parsedUserData = profile;
+          await saveUserToStorage(profile);
+        }
+        if (!secureToken) {
+          await clearUserFromStorage();
+          return;
+        }
+        if (epoch !== sessionEpoch.current) return;
         console.log('[Boot] Session found for user', parsedUserData.id, '—', parsedUserData.firstName);
         setCurrentUser(parsedUserData);
 
         // Re-register push notification token on every launch (token can rotate between sessions).
         // Delayed 2 s so it doesn't compete with boot-path storage I/O.
         setTimeout(() => {
+          if (epoch !== sessionEpoch.current) return;
           NotificationService.setupNotifications(parsedUserData.id)
             .catch(e => console.warn('[Boot] Push token renewal error:', e?.message));
         }, 2000);
 
         // Refresh profile from server to get latest data (church, faith rank, etc.)
         setTimeout(async () => {
+          if (epoch !== sessionEpoch.current) return;
           try {
             console.log('[Boot] Background profile refresh starting...');
             const data = await apiGetUser(parsedUserData.id);
+            if (epoch !== sessionEpoch.current) return;
             const userArray = Array.isArray(data) ? data : (data.result || []);
             if (userArray.length > 0) {
               const user = userArray[0];
@@ -144,24 +180,31 @@ export function useAuth() {
   // ── Auth actions ────────────────────────────────────────────────────────────
 
   const handleLogin = async (userData) => {
+    await cleanupRef.current;
     if (currentUser?.id && userData?.id && String(currentUser.id) !== String(userData.id)) {
       await clearUserFromStorage();
     }
     const sessionToken = userData?.user_session_token;
-    if (sessionToken) {
+    const epoch = ++sessionEpoch.current;
+    if (typeof sessionToken === 'string' && sessionToken.trim() && userData?.id) {
       await setUserSessionToken(sessionToken);
     } else {
       // Never let a previous account's signed session authenticate this one.
-      await clearUserSessionToken();
+      await clearUserFromStorage();
+      setCurrentUser(null);
+      return false;
     }
-    setCurrentUser(userData);
-    await saveUserToStorage(userData);
+    if (epoch !== sessionEpoch.current) return false;
+    const { user_session_token: _credential, ...profile } = userData;
+    setCurrentUser(profile);
+    await saveUserToStorage(profile);
 
     // Set up push notifications for the logged-in user
     if (userData?.id) {
       NotificationService.setupNotifications(userData.id)
         .catch(error => console.warn('[Notifications] Setup failed:', error?.message));
     }
+    return true;
   };
 
   /**
@@ -173,6 +216,7 @@ export function useAuth() {
   const handleLogout = ({ onBeforeLogout } = {}) => {
     console.log('🚪 Logout initiated');
     try {
+      activeUserId.current = null;
       try { NotificationService.cleanup(); } catch (e) {
         console.log('Notification cleanup error (non-blocking):', e);
       }
@@ -197,6 +241,8 @@ export function useAuth() {
    */
   const refreshUserProfile = async (userOverride) => {
     const user = userOverride || currentUser;
+    const epoch = sessionEpoch.current;
+    if (String(user?.id) !== String(activeUserId.current)) return;
     if (!user?.id) {
       console.log('No user ID available for refreshing profile');
       return;
@@ -204,6 +250,7 @@ export function useAuth() {
     try {
       console.log('🔄 Refreshing user profile data');
       const data = await apiGetUser(user.id.toString());
+      if (epoch !== sessionEpoch.current) return;
       const userArray = Array.isArray(data) ? data : (data.result || []);
       if (userArray.length > 0) {
         const u = userArray[0];

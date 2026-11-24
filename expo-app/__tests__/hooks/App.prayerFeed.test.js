@@ -25,6 +25,8 @@ const MOCK_USER = {
 };
 const mockLoadUserPrayers = jest.fn();
 const mockLoadCommunityPrayers = jest.fn();
+let mockFeatureAccess = null;
+const mockRefreshSubscriptionAccess = jest.fn();
 
 const MOCK_COMMUNITY_PRAYERS = [
   {
@@ -119,6 +121,9 @@ jest.mock('../../hooks/usePrayers', () => ({
 
 jest.mock('../../hooks/useIap', () => ({
   useIap: () => ({
+    isPro: false,
+    canAccessFeature: () => mockFeatureAccess,
+    refreshSubscriptionAccess: mockRefreshSubscriptionAccess,
     rcAvailable: false,
     iapCustomerInfo: null,
     iapProducts: [],
@@ -237,7 +242,7 @@ jest.mock('../../PrayerDetailScreen', () => ({ __esModule: true, default: () => 
 jest.mock('../../RosaryScreen', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../GroupRosaryScreen', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../DailyBreadScreen', () => ({ __esModule: true, default: () => null }));
-jest.mock('../../PrayerWalkScreen', () => ({ __esModule: true, default: () => null }));
+jest.mock('../../PrayerWalkScreen', () => ({ __esModule: true, default: jest.fn(() => null) }));
 jest.mock('../../OnboardingCarousel', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/HtmlText', () => ({ __esModule: true, default: () => null }));
 jest.mock('../../components/PrayerHandsLoader', () => ({ __esModule: true, default: () => null }));
@@ -331,6 +336,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockFeatureAccess = null;
   apiCreatePrayer.mockResolvedValue({ success: true, remaining: 0 });
   apiCheckContent.mockResolvedValue({ flagged: false });
   mockLoadUserPrayers.mockResolvedValue(undefined);
@@ -348,6 +354,26 @@ describe('App.js — prayer submission completion', () => {
     fireEvent.changeText(screen.getByPlaceholderText('shareWithCommunity'), 'Please pray for my family.');
     return screen;
   };
+
+  it.each([true, false, null])('routes Prayer Walk using content policy (%s), not Pro alone', async access => {
+    mockFeatureAccess = access;
+    const screen = render(<App />);
+    await act(async () => {});
+    fireEvent.press(screen.getByText('prayThroughTitle'));
+    const PrayerWalk = require('../../PrayerWalkScreen').default;
+    if (access === true) {
+      expect(PrayerWalk).toHaveBeenCalled();
+      expect(screen.queryByText('Prayer Walk is a Pro feature')).toBeNull();
+    } else if (access === false) {
+      expect(PrayerWalk).not.toHaveBeenCalled();
+      expect(screen.getByText('Prayer Walk is a Pro feature')).toBeTruthy();
+    } else {
+      expect(PrayerWalk).not.toHaveBeenCalled();
+      expect(screen.getByTestId('content-access-notice')).toBeTruthy();
+      fireEvent.press(screen.getByText('Retry access check'));
+      expect(mockRefreshSubscriptionAccess).toHaveBeenCalledTimes(1);
+    }
+  });
 
   it('closes a successful final free post without waiting for quota/feed refreshes', async () => {
     let resolvePost, rejectRefresh;
@@ -464,6 +490,24 @@ describe('App.js — prayer submission completion', () => {
     expect(screen.getByTestId('checkbox-unspoken-prayer').props.accessibilityState.checked).toBe(true);
     fireEvent.press(screen.getByTestId('checkbox-unspoken-prayer'));
     expect(screen.queryByText('unspokenIntentHelper')).toBeNull();
+  });
+
+  it('offers a manual generation retry without an upgrade prompt or losing the draft', async () => {
+    apiCreatePrayer.mockRejectedValueOnce(Object.assign(new Error('Generation unavailable'), {
+      status: 503, code: 'PRAYER_GENERATION_UNAVAILABLE',
+      response: { error: 'PRAYER_GENERATION_UNAVAILABLE', retryable: true },
+    }));
+    const screen = await openForm();
+    await act(async () => { fireEvent.press(screen.getByTestId('button-submit-prayer')); });
+    expect(screen.getByPlaceholderText('shareWithCommunity').props.value).toBe('Please pray for my family.');
+    const modal = showModal.mock.calls[showModal.mock.calls.length - 1][0];
+    expect(modal.title).toBe('Prayer generation unavailable');
+    expect(modal.buttons.find(button => button.label === 'Upgrade to Pro')).toBeUndefined();
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(1);
+    await act(async () => { await modal.buttons.find(button => button.label === 'Retry').onPress(); });
+    expect(apiCreatePrayer).toHaveBeenCalledTimes(2);
+    expect(apiCreatePrayer.mock.calls[0][0].idempotencyKey).toBe(apiCreatePrayer.mock.calls[1][0].idempotencyKey);
+    expect(screen.queryByPlaceholderText('shareWithCommunity')).toBeNull();
   });
 
   it('keeps the admin test-post control separate and preserves its submission flags', async () => {

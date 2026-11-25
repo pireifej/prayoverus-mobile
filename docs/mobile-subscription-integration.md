@@ -68,8 +68,12 @@ independent. Audio URLs/storage have not been changed.
 5. Verify live platform SDK keys, products, offering, entitlement, Apple metadata,
    subscription approval, and legal disclosures. Release-native configuration
    no longer falls back to a Test Store key, but live values were not inspected.
-6. Add verified privacy-policy and subscription-terms links to the paywall
-   before store submission. No unverified URLs were invented.
+6. The paywall now links the owner's approved Privacy Policy
+   (`https://prayoverus.com/tos.html?mode=privacy`) and Terms of Use
+   (`https://prayoverus.com/tos.html?mode=terms`). Both pages are publicly
+   accessible. Their current text is website-focused; review it for mobile
+   data practices and monthly subscriptions before public store submission.
+   Linking the pages is not a legal/compliance certification.
 7. Coordinate older-client compatibility before publishing backend guards.
 
 No OTA, AAB/IPA build, store submission, backend deployment, purchase, grant,

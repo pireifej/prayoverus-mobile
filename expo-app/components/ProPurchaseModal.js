@@ -1,9 +1,14 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import {
-  ActivityIndicator, Animated, Modal, PanResponder, Platform, Pressable,
+  ActivityIndicator, Alert, Animated, Linking, Modal, PanResponder, Platform, Pressable,
   ScrollView, StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
 import { SafeAreaInsetsContext, initialWindowMetrics } from 'react-native-safe-area-context';
+
+const LEGAL_LINKS = [
+  { id: 'privacy-policy', label: 'Privacy Policy', url: 'https://prayoverus.com/tos.html?mode=privacy' },
+  { id: 'terms-of-use', label: 'Terms of Use', url: 'https://prayoverus.com/tos.html?mode=terms' },
+];
 
 // Mounted outside screen-specific returns so every premium entry point works.
 export default function ProPurchaseModal({ iap }) {
@@ -20,6 +25,14 @@ export default function ProPurchaseModal({ iap }) {
   const dismiss = useCallback(() => {
     if (!iapPurchasing) setIapModal(null);
   }, [iapPurchasing, setIapModal]);
+  const openLegalPage = useCallback(async ({ label, url }) => {
+    if (iapPurchasing) return;
+    try {
+      await Linking.openURL(url);
+    } catch (_) {
+      Alert.alert(`Unable to open ${label}`, `Please try again or visit:\n${url}`);
+    }
+  }, [iapPurchasing]);
   const resetPosition = useCallback(() => {
     Animated.spring(translation, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
   }, [translation]);
@@ -149,6 +162,30 @@ export default function ProPurchaseModal({ iap }) {
           <Text style={{ color: '#ddd', textAlign: 'center', marginTop: 12, fontSize: 12 }}>
             Monthly subscription renews automatically unless canceled in your store settings.
           </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+            {LEGAL_LINKS.map(link => (
+              <Pressable
+                key={link.id}
+                testID={`pro-${link.id}`}
+                accessibilityRole="link"
+                accessibilityHint="Opens in your browser"
+                accessibilityState={{ disabled: !!iapPurchasing }}
+                disabled={!!iapPurchasing}
+                onPress={() => openLegalPage(link)}
+                style={({ pressed }) => ({
+                  minHeight: 48,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  justifyContent: 'center',
+                  opacity: iapPurchasing ? 0.45 : pressed ? 0.7 : 1,
+                })}
+              >
+                <Text style={{ color: '#fde68a', textAlign: 'center', textDecorationLine: 'underline', fontSize: 13 }}>
+                  {link.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <Pressable testID="pro-restore" accessibilityRole="button" onPress={doIapRestore} disabled={iapPurchasing} style={{ minHeight: 48, padding: 16 }}>
             <Text style={{ color: '#ddd', textAlign: 'center' }}>Restore purchases</Text>
           </Pressable>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal, PanResponder, StyleSheet } from 'react-native';
+import { Alert, Linking, Modal, PanResponder, StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import ProPurchaseModal from '../../components/ProPurchaseModal';
 
 const makeIap = (overrides = {}) => ({
@@ -70,7 +70,8 @@ test('keeps purchase, restore, and all dismissal controls locked during a transa
   const spy = jest.spyOn(PanResponder, 'create');
   const iap = makeIap({ iapPurchasing: true });
   const screen = render(<ProPurchaseModal iap={iap} />);
-  for (const target of ['pro-close', 'pro-backdrop', 'pro-dismiss', 'pro-subscribe', 'pro-restore']) {
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue();
+  for (const target of ['pro-close', 'pro-backdrop', 'pro-dismiss', 'pro-subscribe', 'pro-restore', 'pro-privacy-policy', 'pro-terms-of-use']) {
     fireEvent.press(screen.getByTestId(target, { includeHiddenElements: true }));
   }
   screen.UNSAFE_getByType(Modal).props.onRequestClose();
@@ -81,6 +82,32 @@ test('keeps purchase, restore, and all dismissal controls locked during a transa
   expect(iap.setIapModal).not.toHaveBeenCalled();
   expect(iap.doIapPurchase).not.toHaveBeenCalled();
   expect(iap.doIapRestore).not.toHaveBeenCalled();
+  expect(openURL).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['privacy-policy', 'Privacy Policy', 'https://prayoverus.com/tos.html?mode=privacy'],
+  ['terms-of-use', 'Terms of Use', 'https://prayoverus.com/tos.html?mode=terms'],
+])('opens the approved %s URL without dismissing or purchasing', async (id, label, url) => {
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue();
+  const iap = makeIap();
+  const screen = render(<ProPurchaseModal iap={iap} />);
+  expect(screen.getByRole('link', { name: label })).toBeTruthy();
+  await act(async () => { fireEvent.press(screen.getByTestId(`pro-${id}`)); });
+  expect(openURL).toHaveBeenCalledWith(url);
+  expect(iap.setIapModal).not.toHaveBeenCalled();
+  expect(iap.doIapPurchase).not.toHaveBeenCalled();
+});
+
+test('shows a readable fallback URL if the browser cannot open a legal page', async () => {
+  jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('Browser unavailable'));
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const iap = makeIap();
+  const screen = render(<ProPurchaseModal iap={iap} />);
+  await act(async () => { fireEvent.press(screen.getByTestId('pro-privacy-policy')); });
+  expect(alert).toHaveBeenCalledWith('Unable to open Privacy Policy',
+    'Please try again or visit:\nhttps://prayoverus.com/tos.html?mode=privacy');
+  expect(iap.doIapPurchase).not.toHaveBeenCalled();
 });
 
 test('fits a small phone with large text and keeps its close button outside scrollable content', () => {
@@ -102,4 +129,6 @@ test('fits a small phone with large text and keeps its close button outside scro
 test('does not expose the sheet when no package is open', () => {
   const screen = render(<ProPurchaseModal iap={makeIap({ iapModal: null })} />);
   expect(screen.queryByTestId('pro-close')).toBeNull();
+  expect(screen.queryByTestId('pro-privacy-policy')).toBeNull();
+  expect(screen.queryByTestId('pro-terms-of-use')).toBeNull();
 });

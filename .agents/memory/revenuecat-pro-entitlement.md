@@ -20,9 +20,9 @@ Free users keep one successful prayer request per Eastern day. Extended prayers 
 
 Use the existing backend for this monthly-subscription rollout, without a separate staging environment. The user accepts temporary breakage for older clients because the current user base is small.
 
-**Why:** The user explicitly chose to avoid extra staging resources and prioritize getting the current app working.
+**Why:** The user explicitly chose to avoid extra staging resources and prioritize getting the current app working. The same backend serves other projects whose updates must not wait for the Pro store rollout.
 
-**How to apply:** Do not make oldest-client compatibility a release requirement for this rollout. Continue verifying current-client sessions, purchase ownership, and backend Pro activation; accepting downtime does not establish that billing works.
+**How to apply:** Do not make oldest-client compatibility a release requirement for this rollout. Review shared-route and database changes for effects on the other projects. Continue verifying current-client sessions, purchase ownership, and backend Pro activation; accepting downtime does not establish that billing works.
 
 ## Existing customer safety
 

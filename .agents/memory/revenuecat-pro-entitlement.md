@@ -12,9 +12,17 @@ The app's paid feature boundary is the single RevenueCat entitlement `Pray Over 
 ## Confirmed feature-gating decisions
 Free users keep one successful prayer request per Eastern day. Extended prayers remain Pro-only. Daily Bread and Prayer Walk follow the backend's content-access policy: they are temporarily open to signed-in users until the paid boundary is explicitly enabled. Keep the Profile Pro entry.
 
-**Why:** The paid launch requires a compatible backend/mobile test stage before paid content restrictions are enabled; membership and feature policy must not be conflated.
+**Why:** The paid launch requires backend/mobile verification before paid content restrictions are enabled; membership and feature policy must not be conflated.
 
 **How to apply:** Treat backend publication and activating the content paywall as separate decisions. Do not fake Pro to permit interim free content. A Google Play license-tester account does not itself grant Pro.
+
+## Monthly rollout scope
+
+Use the existing backend for this monthly-subscription rollout, without a separate staging environment. The user accepts temporary breakage for older clients because the current user base is small.
+
+**Why:** The user explicitly chose to avoid extra staging resources and prioritize getting the current app working.
+
+**How to apply:** Do not make oldest-client compatibility a release requirement for this rollout. Continue verifying current-client sessions, purchase ownership, and backend Pro activation; accepting downtime does not establish that billing works.
 
 ## Existing customer safety
 

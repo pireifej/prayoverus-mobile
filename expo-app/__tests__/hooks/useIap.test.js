@@ -11,6 +11,10 @@ jest.mock('../../services/userSession', () => ({
 }));
 jest.mock('../../services/api', () => ({
   apiGetSubscriptionIdentity: jest.fn(), apiGetProStatus: jest.fn(), apiGetAccessPolicy: jest.fn(),
+  apiCompleteSubscriptionReconciliation: jest.fn(),
+}));
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn(),
 }));
 jest.mock('../../AppModals', () => ({ showToast: jest.fn(), showModal: jest.fn() }));
 
@@ -18,7 +22,8 @@ import { act, renderHook } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 import { useIap, PRO_ENTITLEMENT } from '../../hooks/useIap';
 import { client } from '../../services/purchasesClient';
-import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } from '../../services/api';
+import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy, apiCompleteSubscriptionReconciliation } from '../../services/api';
+import * as SecureStore from 'expo-secure-store';
 import { getUserSessionToken } from '../../services/userSession';
 import { showModal, showToast } from '../../AppModals';
 
@@ -41,8 +46,13 @@ const monthly = {
 };
 let sdkId;
 let onForeground;
+let journal;
 beforeEach(() => {
   jest.resetAllMocks();
+  journal = null;
+  SecureStore.getItemAsync.mockImplementation(async () => journal);
+  SecureStore.setItemAsync.mockImplementation(async (_, value) => { journal = value; });
+  SecureStore.deleteItemAsync.mockImplementation(async () => { journal = null; });
   sdkId = '$RCAnonymousID:empty';
   getUserSessionToken.mockResolvedValue('session');
   apiGetSubscriptionIdentity.mockResolvedValue(identity());
@@ -60,6 +70,185 @@ beforeEach(() => {
   });
 });
 afterEach(() => jest.restoreAllMocks());
+
+const approvedIdentity = () => ({
+  ...identity(), identityReconciliation: {
+    authorizationId: '12345678-1234-4234-8234-123456789abc',
+    action: 'switch_without_restore', fromAppUserId: 'synthetic-legacy', toAppUserId: ID,
+    expectedOriginalAppUserId: '$RCAnonymousID:synthetic',
+    expiresAt: new Date(Date.now() + 60000).toISOString(),
+  },
+});
+async function startRepair() {
+  sdkId = 'synthetic-legacy';
+  apiGetSubscriptionIdentity.mockResolvedValue(approvedIdentity());
+  apiGetProStatus.mockResolvedValue(status(false, { identityVerificationRequired: true }));
+  client.getCustomerInfo.mockResolvedValue({
+    ...info(true), originalAppUserId: '$RCAnonymousID:synthetic',
+  });
+  apiCompleteSubscriptionReconciliation.mockImplementation(async () => {
+    apiGetSubscriptionIdentity.mockResolvedValue(identity());
+    apiGetProStatus.mockResolvedValue(status(false));
+    return { completed: true, revenuecatAppUserId: ID };
+  });
+  return start();
+}
+async function confirmRepair(result) {
+  act(() => { result.current.presentIdentityReconciliation(); });
+  const confirmation = showModal.mock.calls.at(-1)[0];
+  expect(confirmation.title).toBe('Fix purchase setup?');
+  await act(async () => { await confirmation.buttons[1].onPress(); });
+}
+test('approved repair waits for confirmation, preserves ordinary billing guard, then verifies backend without granting expired Pro', async () => {
+  const { result } = await startRepair();
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(result.current.reconciliation.transition).toBeTruthy();
+  await act(async () => {
+    await result.current.doIapPurchase(monthly);
+    await result.current.doIapRestore();
+  });
+  expect(client.logIn).not.toHaveBeenCalled();
+  await confirmRepair(result);
+  expect(client.logIn).toHaveBeenCalledTimes(1);
+  expect(client.logIn).toHaveBeenCalledWith(ID);
+  expect(apiCompleteSubscriptionReconciliation).toHaveBeenCalledWith({
+    authorizationId: approvedIdentity().identityReconciliation.authorizationId,
+  });
+  expect(result.current.reconciliation).toBeNull();
+  expect(result.current.isPro).toBe(false);
+  expect(result.current.backendDiagnostic.identityVerificationRequired).toBe(false);
+  expect(journal).toBeNull();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+});
+test('a changed server approval after confirmation does not switch the SDK', async () => {
+  const { result } = await startRepair();
+  apiGetSubscriptionIdentity.mockResolvedValue({
+    ...approvedIdentity(), identityReconciliation: {
+      ...approvedIdentity().identityReconciliation,
+      authorizationId: '22345678-1234-4234-8234-123456789abc',
+    },
+  });
+  await confirmRepair(result);
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(result.current.subscriptionMessage).toContain('support review');
+});
+test('retains secure consent and billing block after completion timeout, then resumes after app restart without another login', async () => {
+  const first = await startRepair();
+  apiCompleteSubscriptionReconciliation.mockRejectedValueOnce(new Error('timeout'));
+  await confirmRepair(first.result);
+  expect(sdkId).toBe(ID);
+  expect(journal).not.toBeNull();
+  expect(first.result.current.reconciliation).toBeTruthy();
+  first.unmount();
+  // Backend may have completed despite timeout; replay still uses saved handle.
+  apiGetSubscriptionIdentity.mockResolvedValue(identity());
+  apiGetProStatus.mockResolvedValue(status(false));
+  const second = await start();
+  expect(second.result.current.reconciliation.pending).toBe(true);
+  await act(async () => { await second.result.current.presentIdentityReconciliation(); });
+  expect(client.logIn).toHaveBeenCalledTimes(1);
+  expect(apiCompleteSubscriptionReconciliation).toHaveBeenCalledTimes(2);
+  expect(second.result.current.reconciliation).toBeNull();
+  expect(journal).toBeNull();
+});
+test('account reset during SDK login cannot complete, grant Pro or keep the prior account journal', async () => {
+  const { result } = await startRepair();
+  let finish;
+  client.logIn.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await confirmRepair(result);
+  expect(journal).not.toBeNull();
+  await act(async () => { await result.current.resetRevenueCatUser(); });
+  await act(async () => { sdkId = ID; finish({ customerInfo: info() }); });
+  expect(apiCompleteSubscriptionReconciliation).not.toHaveBeenCalled();
+  expect(result.current.isPro).toBe(false);
+  expect(result.current.reconciliation).toBeNull();
+  expect(journal).toBeNull();
+});
+test('duplicates and attempted billing while repair is running cannot start another operation', async () => {
+  const { result } = await startRepair();
+  let finish;
+  client.logIn.mockImplementation(id => new Promise(resolve => {
+    finish = () => { sdkId = id; resolve({ customerInfo: info() }); };
+  }));
+  await confirmRepair(result);
+  await act(async () => {
+    result.current.presentIdentityReconciliation();
+    expect((await result.current.doIapPurchase(monthly)).status).toBe('busy');
+    expect((await result.current.doIapRestore()).status).toBe('busy');
+    await result.current.refreshProStatus();
+  });
+  expect(client.logIn).toHaveBeenCalledTimes(1);
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  await act(async () => { finish(); });
+});
+
+test('canceling repair confirmation performs no SDK switch or completion', async () => {
+  const { result } = await startRepair();
+  act(() => { result.current.presentIdentityReconciliation(); });
+  const cancel = showModal.mock.calls.at(-1)[0].buttons[0];
+  expect(cancel.label).toBe('Not now');
+  expect(cancel.onPress).toBeUndefined();
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(apiCompleteSubscriptionReconciliation).not.toHaveBeenCalled();
+  expect(journal).toBeNull();
+});
+
+test('cannot clear the journal or billing block if completion still leaves backend ownership unresolved', async () => {
+  const { result } = await startRepair();
+  apiCompleteSubscriptionReconciliation.mockImplementation(async () => {
+    apiGetSubscriptionIdentity.mockResolvedValue(identity());
+    // Deliberately inconsistent completion: the fresh status still blocks.
+    apiGetProStatus.mockResolvedValue(status(true, { identityVerificationRequired: true }));
+    return { completed: true, revenuecatAppUserId: ID };
+  });
+  await confirmRepair(result);
+  expect(journal).not.toBeNull();
+  expect(result.current.reconciliation).toBeTruthy();
+  expect(result.current.isPro).toBe(false);
+  await act(async () => { await result.current.doIapRestore(); });
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+});
+
+test('an edited approval with the same handle still requires fresh confirmation/review', async () => {
+  const { result } = await startRepair();
+  apiGetSubscriptionIdentity.mockResolvedValue({
+    ...approvedIdentity(), identityReconciliation: {
+      ...approvedIdentity().identityReconciliation,
+      expectedOriginalAppUserId: '$RCAnonymousID:edited',
+    },
+  });
+  await confirmRepair(result);
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(apiCompleteSubscriptionReconciliation).not.toHaveBeenCalled();
+});
+
+test('corrupt secure consent cannot be treated as an empty journal to allow normal billing', async () => {
+  journal = '{broken';
+  const { result } = await start();
+  expect(result.current.reconciliation.error).toBeTruthy();
+  await act(async () => {
+    await result.current.doIapPurchase(monthly);
+    await result.current.doIapRestore();
+  });
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+});
+
+test('an expired saved transition at the target remains blocked without another SDK login', async () => {
+  sdkId = ID;
+  journal = JSON.stringify({
+    version: 1, userId: '42', confirmed: true,
+    transition: { ...approvedIdentity().identityReconciliation, expiresAt: '2000-01-01T00:00:00Z' },
+  });
+  const { result } = await start();
+  expect(result.current.reconciliation.error).toContain('expired');
+  await act(async () => { await result.current.doIapPurchase(monthly); });
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(apiCompleteSubscriptionReconciliation).not.toHaveBeenCalled();
+});
 
 test('diagnostics reads the actual SDK identity and preserves ownership-required backend flags without billing mutations', async () => {
   apiGetProStatus.mockResolvedValue(status(false, {

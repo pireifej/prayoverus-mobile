@@ -85,6 +85,17 @@ describe('subscription API contract', () => {
   beforeEach(() => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
   });
+  it('completes reconciliation with only the authorization handle and signed session', async () => {
+    const { apiCompleteSubscriptionReconciliation } = require('../../services/api');
+    await apiCompleteSubscriptionReconciliation({
+      authorizationId: 'synthetic-authorization', fromAppUserId: 'not-sent', isPro: true,
+    });
+    const [url, request] = global.fetch.mock.calls[0];
+    expect(url).toContain('/api/subscriptions/identity-reconciliation/complete');
+    expect(JSON.parse(request.body)).toEqual({ authorizationId: 'synthetic-authorization' });
+    expect(request.headers['x-user-session-token']).toBeTruthy();
+    expect(request.headers.Authorization).toMatch(/^Basic /);
+  });
   it('sends an empty identity body, exact explicit status payload, and GET policy', async () => {
     const { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } = require('../../services/api');
     await apiGetSubscriptionIdentity();

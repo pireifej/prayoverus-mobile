@@ -4296,9 +4296,15 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             isPro={isPro}
             price={getIapPrice(proPackage)}
             upgradeLoading={profileProAction === 'upgrade'}
-            restoreLoading={profileProAction === 'restore' || iapPurchasing}
+            restoreLoading={profileProAction === 'restore' || (iapPurchasing && !iap.reconciliation)}
             actionMessage={profileProMessage || iap.subscriptionMessage}
             billingBlocked={!!iap.subscriptionMessage}
+            reconciliation={iap.reconciliation}
+            onRepair={() => {
+              setProfileProMessage('');
+              iap.presentIdentityReconciliation();
+            }}
+            repairLoading={!!iap.reconciliation && iapPurchasing}
             contentIsFree={iap.accessPolicy?.dailyBread?.requiresPro === false && iap.accessPolicy?.prayerWalk?.requiresPro === false}
             verificationLoading={profileProAction === 'verify'}
             onVerify={async () => {

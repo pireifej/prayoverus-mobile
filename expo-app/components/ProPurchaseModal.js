@@ -13,6 +13,7 @@ const LEGAL_LINKS = [
 // Mounted outside screen-specific returns so every premium entry point works.
 export default function ProPurchaseModal({ iap }) {
   const { iapModal, iapPurchasing, setIapModal, doIapPurchase, doIapRestore, getIapPrice } = iap;
+  const billingBlocked = !!iapPurchasing || !!iap.reconciliation;
   const { height, fontScale } = useWindowDimensions();
   // Some entry points have no SafeAreaProvider; don't use a hook that throws
   // in that case. Keep a conservative system-navigation fallback as well.
@@ -148,8 +149,8 @@ export default function ProPurchaseModal({ iap }) {
           <Pressable
             testID="pro-subscribe"
             accessibilityRole="button"
-            accessibilityState={{ disabled: !!iapPurchasing }}
-            disabled={iapPurchasing}
+            accessibilityState={{ disabled: billingBlocked }}
+            disabled={billingBlocked}
             onPress={() => doIapPurchase(iapModal?.package, iapModal?.onSuccess)}
             style={{ backgroundColor: '#fbbf24', borderRadius: 14, padding: 16, alignItems: 'center' }}
           >
@@ -186,7 +187,7 @@ export default function ProPurchaseModal({ iap }) {
               </Pressable>
             ))}
           </View>
-          <Pressable testID="pro-restore" accessibilityRole="button" onPress={doIapRestore} disabled={iapPurchasing} style={{ minHeight: 48, padding: 16 }}>
+          <Pressable testID="pro-restore" accessibilityRole="button" accessibilityState={{ disabled: billingBlocked }} onPress={doIapRestore} disabled={billingBlocked} style={{ minHeight: 48, padding: 16 }}>
             <Text style={{ color: '#ddd', textAlign: 'center' }}>Restore purchases</Text>
           </Pressable>
           {typeof iap.openManageSubscriptions === 'function' && (

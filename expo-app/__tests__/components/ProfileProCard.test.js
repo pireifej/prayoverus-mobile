@@ -65,3 +65,30 @@ test('blocks billing while ownership is unresolved but permits verification and 
   expect(onVerify).toHaveBeenCalledTimes(1);
   expect(onManage).toHaveBeenCalledTimes(1);
 });
+
+test('offers the approved repair with billing disabled and blocks repeated actions during setup', () => {
+  const onRepair = jest.fn();
+  const onVerify = jest.fn();
+  const props = { ...baseProps, onRepair, onVerify, reconciliation: { transition: {} } };
+  const screen = render(<ProfileProCard {...props} />);
+  expect(screen.getByText('Fix purchase setup')).toBeTruthy();
+  fireEvent.press(screen.getByTestId('profile-repair-purchases'));
+  fireEvent.press(screen.getByTestId('profile-upgrade-pro'));
+  fireEvent.press(screen.getByTestId('profile-restore-purchases'));
+  expect(onRepair).toHaveBeenCalledTimes(1);
+  expect(baseProps.onUpgrade).not.toHaveBeenCalled();
+  expect(baseProps.onRestore).not.toHaveBeenCalled();
+  screen.rerender(<ProfileProCard {...props} repairLoading />);
+  fireEvent.press(screen.getByTestId('profile-repair-purchases'));
+  fireEvent.press(screen.getByTestId('profile-verify-membership'));
+  expect(onRepair).toHaveBeenCalledTimes(1);
+  expect(onVerify).not.toHaveBeenCalled();
+});
+
+test('shows retry for saved consent and review message without repair for invalid approvals', () => {
+  const screen = render(<ProfileProCard {...baseProps} reconciliation={{ pending: true, transition: {} }} />);
+  expect(screen.getByText('Retry purchase setup')).toBeTruthy();
+  screen.rerender(<ProfileProCard {...baseProps} reconciliation={{ error: 'Contact support for a fresh review.' }} />);
+  expect(screen.getByText('Contact support for a fresh review.')).toBeTruthy();
+  expect(screen.queryByTestId('profile-repair-purchases')).toBeNull();
+});

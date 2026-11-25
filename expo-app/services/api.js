@@ -214,6 +214,8 @@ export const apiGetProStatus = (payload = {}) =>
   subscriptionRequest(signal => post('/api/subscriptions/pro-status', payload, signal));
 export const apiGetSubscriptionIdentity = () =>
   subscriptionRequest(signal => post('/api/subscriptions/identity', {}, signal));
+export const apiCompleteSubscriptionReconciliation = ({ authorizationId }) =>
+  subscriptionRequest(signal => post('/api/subscriptions/identity-reconciliation/complete', { authorizationId }, signal));
 export const apiGetAccessPolicy = () => subscriptionRequest(signal =>
   fetchWithApi('/api/subscriptions/access-policy', { method: 'GET', signal }).then(r => r.json()));
 

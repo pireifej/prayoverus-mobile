@@ -7,7 +7,11 @@ import { AppState, Linking, Platform } from 'react-native';
 import { showToast, showModal } from '../AppModals';
 import { client as Purchases, isAvailable as rcAvailable } from '../services/purchasesClient';
 import { getUserSessionToken, setRevenueCatAppUserId } from '../services/userSession';
-import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy } from '../services/api';
+import { apiGetSubscriptionIdentity, apiGetProStatus, apiGetAccessPolicy, apiCompleteSubscriptionReconciliation } from '../services/api';
+import {
+  reconciliationStore, validateReconciliation, sameReconciliation,
+  performReconciliation, repairErrorMessage, REPAIR_MESSAGE,
+} from '../services/subscriptionReconciliation';
 import {
   PRO_ENTITLEMENT, validateIdentity, validateProStatus, validateAccessPolicy,
   featureAccess, hasPurchaseHistory, OWNERSHIP_MESSAGE, VERIFICATION_MESSAGE,
@@ -42,6 +46,9 @@ export function useIap() {
   const [purchaseDiagnostics, setPurchaseDiagnostics] = useState(null);
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const [backendDiagnostic, setBackendDiagnostic] = useState(null);
+  const [reconciliation, setReconciliation] = useState(null);
+  const repairRef = useRef(null);
+  const reconcilingRef = useRef(false);
   const diagnosticRequestRef = useRef(0);
   const accountRef = useRef(null);
   const epochRef = useRef(0);
@@ -67,6 +74,8 @@ export function useIap() {
     : pkg?.product?.priceString ?? null;
 
   const clearAccountState = () => {
+    repairRef.current = null;
+    setReconciliation(null);
     ++diagnosticRequestRef.current;
     setPurchaseDiagnostics(null);
     setDiagnosticsLoading(false);
@@ -145,7 +154,7 @@ export function useIap() {
 
   const refreshProStatus = async () => {
     const account = accountRef.current;
-    if (!isCurrent(account)) return null;
+    if (!isCurrent(account) || reconcilingRef.current) return null;
     const request = ++statusRequestRef.current;
     try {
       if (!(await getUserSessionToken())) throw new Error('Session missing');
@@ -153,6 +162,38 @@ export function useIap() {
       const identity = validateIdentity(await apiGetSubscriptionIdentity());
       if (!isCurrent(account) || request !== statusRequestRef.current) return null;
       account.identity = identity;
+      // A malformed/expired offer is a block, never permission to use normal
+      // billing. A saved transition also blocks billing until verified complete.
+      if (!account.repairLoaded) {
+        try {
+          account.pendingRepair = await reconciliationStore.read(account.userId);
+          if (!isCurrent(account) || request !== statusRequestRef.current) return null;
+          account.repairLoaded = true;
+        } catch (_) {
+          if (!isCurrent(account) || request !== statusRequestRef.current) return null;
+          repairRef.current = { error: REPAIR_MESSAGE };
+          setReconciliation(repairRef.current);
+          throw new Error(REPAIR_MESSAGE);
+        }
+      }
+      if (identity.identityReconciliation || account.pendingRepair) {
+        try {
+          const transition = validateReconciliation(
+            account.pendingRepair || identity.identityReconciliation, identity.revenuecatAppUserId,
+          );
+          if (identity.identityReconciliation && !sameReconciliation(transition,
+            validateReconciliation(identity.identityReconciliation, identity.revenuecatAppUserId))) {
+            throw new Error('SUBSCRIPTION_RECONCILIATION_CONFLICT');
+          }
+          repairRef.current = { transition, pending: !!account.pendingRepair };
+        } catch (error) {
+          repairRef.current = { error: repairErrorMessage(error) };
+        }
+        setReconciliation(repairRef.current);
+      } else {
+        repairRef.current = null;
+        setReconciliation(null);
+      }
       setRevenuecatAppUserId(identity.revenuecatAppUserId);
       const status = validateProStatus(await apiGetProStatus({
         revenuecatAppUserId: identity.revenuecatAppUserId, refresh: true,
@@ -228,11 +269,16 @@ export function useIap() {
 
   const identifyRevenueCatUser = async userId => {
     if (!userId) return null;
+    const previous = accountRef.current;
     // Only establish the app account here. SDK logIn is delayed until a
     // user-initiated billing action passes the ownership preflight.
     const account = { userId: String(userId), epoch: ++epochRef.current, identity: null };
     accountRef.current = account;
     clearAccountState();
+    if (previous && previous.userId !== account.userId) {
+      await reconciliationStore.clear(previous.userId);
+      if (!isCurrent(account)) return null;
+    }
     if (!(await getUserSessionToken()) || !isCurrent(account)) {
       if (isCurrent(account)) setSubscriptionMessage('Please sign in again to verify membership.');
       return null;
@@ -242,9 +288,13 @@ export function useIap() {
   };
 
   const resetRevenueCatUser = async () => {
+    const previous = accountRef.current;
     ++epochRef.current;
     accountRef.current = null;
     clearAccountState();
+    if (previous) {
+      try { await reconciliationStore.clear(previous.userId); } catch (_) { /* Future reads fail closed. */ }
+    }
     // No automatic SDK logout: it creates anonymous customers and can race an
     // in-flight transaction. Identity is checked before the next billing action.
   };
@@ -269,12 +319,120 @@ export function useIap() {
     title: 'Pray Over Us Pro', message,
   });
 
+  const runIdentityReconciliation = async expectedTransition => {
+    if (billingAttemptRef.current) return;
+    const account = accountRef.current;
+    if (!isCurrent(account) || !rcAvailable || !Purchases) return;
+    billingAttemptRef.current = true;
+    reconcilingRef.current = true;
+    ++statusRequestRef.current;
+    statusRef.current = null;
+    setBackendStatus(null);
+    setIapPurchasing(true);
+    setIapModal(null);
+    try {
+      if (!(await getUserSessionToken()) || !isCurrent(account)) throw new Error('USER_SESSION_REQUIRED');
+      // Never act on the earlier UI offer: refetch from the signed session.
+      const identity = validateIdentity(await apiGetSubscriptionIdentity());
+      if (!isCurrent(account)) return;
+      const pending = await reconciliationStore.read(account.userId);
+      if (!isCurrent(account)) return;
+      const transition = validateReconciliation(pending || identity.identityReconciliation, identity.revenuecatAppUserId);
+      if (!sameReconciliation(transition, expectedTransition)) throw new Error('SUBSCRIPTION_RECONCILIATION_CONFLICT');
+      repairRef.current = { transition, pending: !!pending };
+      setReconciliation(repairRef.current);
+      await enqueueSdk(() => performReconciliation({
+        userId: account.userId, identity, pending, confirmed: true, sdk: Purchases,
+        current: () => isCurrent(account),
+        save: async (userId, value) => {
+          if (!isCurrent(account)) throw new Error('USER_ID_MISMATCH');
+          await reconciliationStore.save(userId, value);
+          if (isCurrent(account)) account.pendingRepair = value;
+          else await reconciliationStore.clear(userId);
+        },
+        complete: apiCompleteSubscriptionReconciliation,
+      }));
+      if (!isCurrent(account)) return;
+      // Leave the journal and billing block in place until a fresh identity and
+      // status both confirm the destination mapping.
+      const verifiedIdentity = validateIdentity(await apiGetSubscriptionIdentity());
+      if (!isCurrent(account)) return;
+      if (verifiedIdentity.revenuecatAppUserId !== transition.toAppUserId
+        || verifiedIdentity.identityReconciliation) throw new Error('SUBSCRIPTION_RECONCILIATION_CONFLICT');
+      const verified = validateProStatus(await apiGetProStatus({
+        revenuecatAppUserId: transition.toAppUserId, refresh: true,
+      }), verifiedIdentity);
+      if (!isCurrent(account)) return;
+      if (verified.identityVerificationRequired) throw new Error('SUBSCRIPTION_RECONCILIATION_REVIEW_REQUIRED');
+      if (await Purchases.getAppUserID() !== transition.toAppUserId) throw new Error('SUBSCRIPTION_RECONCILIATION_CONFLICT');
+      if (!isCurrent(account)) return;
+      await reconciliationStore.clear(account.userId);
+      if (!isCurrent(account)) return;
+      account.pendingRepair = null;
+      account.identity = verifiedIdentity;
+      account.repairLoaded = true;
+      // Invalidate any refresh begun before reconciliation.
+      ++statusRequestRef.current;
+      repairRef.current = null;
+      setReconciliation(null);
+      statusRef.current = verified;
+      setBackendStatus(verified);
+      setBackendDiagnostic(summarizeBackendStatus(verified));
+      setRevenuecatAppUserId(transition.toAppUserId);
+      setRevenueCatAppUserId(transition.toAppUserId);
+      setSubscriptionMessage('');
+      setPurchaseDiagnostics(null);
+      setIapCustomerInfo(null);
+      showModal({
+        title: 'Purchase setup complete',
+        message: verified.isPro
+          ? 'Your account is verified and Pro is active.'
+          : 'Your account is ready. No purchase was made or restored. Your previous test subscription has not been moved. You can now view the monthly plan.',
+      });
+    } catch (error) {
+      if (isCurrent(account)) {
+        const message = repairErrorMessage(error);
+        repairRef.current = { ...repairRef.current, pending: !!account.pendingRepair, error: message };
+        setReconciliation(repairRef.current);
+        setSubscriptionMessage(message);
+        statusRef.current = null;
+        setBackendStatus(null);
+        showModal({ title: 'Purchase setup paused', message });
+      }
+    } finally {
+      reconcilingRef.current = false;
+      billingAttemptRef.current = false;
+      if (mounted.current) setIapPurchasing(false);
+    }
+  };
+
+  const presentIdentityReconciliation = () => {
+    const account = accountRef.current;
+    const repair = repairRef.current;
+    if (!isCurrent(account) || billingAttemptRef.current) return;
+    if (!repair?.transition) { explain(repair?.error || OWNERSHIP_MESSAGE); return; }
+    const transition = repair.transition;
+    // Saved consent resumes completion, but never silently on app launch.
+    if (repair.pending) { void runIdentityReconciliation(transition); return; }
+    showModal({
+      title: 'Fix purchase setup?',
+      message: 'Support approved switching this app account to its verified purchase identity. Your expired test purchase stays on the old identity. This will not buy, restore, or transfer anything.',
+      buttons: [
+        { label: 'Not now' },
+        { label: 'Continue setup', onPress: () => {
+          if (isCurrent(account)) void runIdentityReconciliation(transition);
+        } },
+      ],
+    });
+  };
+
   const prepareBilling = async account => {
     if (!isCurrent(account) || !rcAvailable || !Purchases) {
       throw new Error('Store billing or your signed-in account is unavailable. Please sign in and try again.');
     }
     const status = await refreshProStatus();
     if (!isCurrent(account)) return false;
+    if (repairRef.current) throw new Error(REPAIR_MESSAGE);
     if (!status) throw new Error(VERIFICATION_MESSAGE);
     if (status.identityVerificationRequired) throw new Error(OWNERSHIP_MESSAGE);
     const expected = account.identity.revenuecatAppUserId;
@@ -306,6 +464,7 @@ export function useIap() {
     if (!isCurrent(account)) { explain('Please sign in to check your membership.'); return false; }
     const status = await refreshProStatus();
     if (!isCurrent(account)) return false;
+    if (repairRef.current) { explain(REPAIR_MESSAGE); return false; }
     if (!status || status.identityVerificationRequired) {
       explain(status?.identityVerificationRequired ? OWNERSHIP_MESSAGE : VERIFICATION_MESSAGE);
       return false;
@@ -423,6 +582,7 @@ export function useIap() {
     refreshAccessPolicy, refreshSubscriptionAccess, canAccessFeature,
     accessPolicy, accessLoading, accessError, subscriptionMessage,
     purchaseDiagnostics, diagnosticsLoading, backendDiagnostic, refreshPurchaseDiagnostics,
+    reconciliation, presentIdentityReconciliation,
     openManageSubscriptions,
     presentProPaywall,
     doIapPurchase: (pkg, onSuccess) => runBilling(false, pkg, onSuccess),

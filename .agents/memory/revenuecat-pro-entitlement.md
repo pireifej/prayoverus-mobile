@@ -32,6 +32,22 @@ Use the backend-issued identity, not an independently chosen numeric ID. Ownersh
 
 **How to apply:** Require ownership preflight before user-initiated billing. If store success cannot be verified, report pending access and offer verification retry rather than another charge. Never invent an ownership-repair procedure.
 
+### Approved expired-sandbox reconciliation boundary
+
+The backend's operator-approved, account-specific expired-sandbox procedure is
+the only agreed exception to the purchased-identity switch guard. It is not a
+general migration for paid customers. Publishing its source is separate from
+approving a particular account's transition.
+
+**Why:** The user approved implementing the narrow backend handoff to resolve an
+expired test-purchase identity conflict without transferring history or
+weakening ownership protection for other accounts.
+
+**How to apply:** Require the authenticated exact transition, explicit consent,
+secure account-bound interruption recovery and backend-confirmed completion.
+Do not substitute a mapping reset, restore, alias/transfer, free Pro grant or
+global ownership bypass. A phone's diagnostics alone never authorize repair.
+
 ## Prayer submission outcome
 After a successful prayer submission, clear the form's error and close the screen. Zero remaining allowance after that success is not an error. Show the daily-limit error only when an attempted submission actually returns HTTP 403 with `error: "DAILY_LIMIT_REACHED"`. Prevent duplicate submissions while posting, and ensure delayed quota checks cannot overwrite the successful state.
 

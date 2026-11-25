@@ -14,10 +14,13 @@ export default function ProfileProCard({
   onManage,
   billingBlocked = false,
   contentIsFree = false,
+  reconciliation = null,
+  onRepair,
+  repairLoading = false,
 }) {
   const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
-  const upgradeDisabled = !!upgradeLoading || !!billingBlocked;
-  const restoreDisabled = !!restoreLoading || !!billingBlocked;
+  const upgradeDisabled = !!upgradeLoading || !!billingBlocked || !!reconciliation || repairLoading;
+  const restoreDisabled = !!restoreLoading || !!billingBlocked || !!reconciliation || repairLoading;
 
   return (
     <View
@@ -137,12 +140,36 @@ export default function ProfileProCard({
           </Text>
         </Pressable>
 
+        {!!reconciliation && (
+          <View testID="profile-purchase-repair">
+            <Text accessibilityRole="alert" style={{ color: '#e2e8f0', fontSize: 14, lineHeight: 21, marginVertical: 8 }}>
+              {reconciliation.error || 'Support has approved a safe purchase-setup repair for this account. Purchases and restores stay paused until setup is verified.'}
+            </Text>
+            {!!reconciliation.transition && (
+              <Pressable
+                testID="profile-repair-purchases"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: repairLoading }}
+                disabled={repairLoading}
+                onPress={onRepair}
+                style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
+              >
+                {repairLoading && <ActivityIndicator color="#fcd34d" size="small" />}
+                <Text style={{ color: '#fde68a', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' }}>
+                  {repairLoading ? 'Verifying purchase setup…' : reconciliation.pending || reconciliation.error
+                    ? 'Retry purchase setup' : 'Fix purchase setup'}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {!!onVerify && (
           <Pressable
             testID="profile-verify-membership"
             accessibilityRole="button"
-            accessibilityState={{ disabled: !!verificationLoading }}
-            disabled={!!verificationLoading}
+            accessibilityState={{ disabled: !!verificationLoading || repairLoading }}
+            disabled={!!verificationLoading || repairLoading}
             onPress={onVerify}
             style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}
           >

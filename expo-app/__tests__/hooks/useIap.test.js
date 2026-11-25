@@ -61,6 +61,91 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
+test('diagnostics reads the actual SDK identity and preserves ownership-required backend flags without billing mutations', async () => {
+  apiGetProStatus.mockResolvedValue(status(false, {
+    identityVerificationRequired: true, reason: 'account_binding_required',
+  }));
+  const { result } = await start();
+  sdkId = '353';
+  client.getCustomerInfo.mockResolvedValue({
+    allPurchasedProductIdentifiers: ['monthly'], activeSubscriptions: [],
+    subscriptionsByProductIdentifier: {
+      monthly: { isSandbox: true, expiresDate: '2026-10-22T17:17:49Z' },
+    },
+    receipt: 'do-not-expose',
+  });
+  const backendCalls = apiGetProStatus.mock.calls.length;
+  await act(async () => { await result.current.refreshPurchaseDiagnostics(); });
+  expect(result.current.purchaseDiagnostics.sdkId).toBe('353');
+  expect(result.current.purchaseDiagnostics.products[0].environment).toBe('Sandbox / test');
+  expect(result.current.backendDiagnostic).toMatchObject({
+    isPro: false, identityVerificationRequired: true, reason: 'account_binding_required',
+  });
+  expect(result.current.revenuecatAppUserId).toBe(ID);
+  expect(result.current.isPro).toBe(false);
+  expect(JSON.stringify(result.current.purchaseDiagnostics)).not.toContain('do-not-expose');
+  expect(apiGetProStatus).toHaveBeenCalledTimes(backendCalls);
+  expect(client.logIn).not.toHaveBeenCalled();
+  expect(client.purchasePackage).not.toHaveBeenCalled();
+  expect(client.restorePurchases).not.toHaveBeenCalled();
+});
+
+test('clears diagnostics and discards delayed SDK data after account reset', async () => {
+  const { result } = await start();
+  let resolve;
+  client.getCustomerInfo.mockReturnValue(new Promise(done => { resolve = done; }));
+  let read;
+  await act(async () => { read = result.current.refreshPurchaseDiagnostics(); });
+  await act(async () => { await result.current.resetRevenueCatUser(); });
+  await act(async () => { resolve(info(true)); await read; });
+  expect(result.current.purchaseDiagnostics).toBeNull();
+  expect(result.current.backendDiagnostic).toBeNull();
+  expect(result.current.diagnosticsLoading).toBe(false);
+});
+
+test('does not expose raw SDK failures or stale backend flags', async () => {
+  const { result } = await start();
+  client.getCustomerInfo.mockRejectedValue(new Error('sensitive response'));
+  apiGetProStatus.mockRejectedValue(new Error('session secret'));
+  await act(async () => {
+    await result.current.refreshProStatus();
+    await result.current.refreshPurchaseDiagnostics();
+  });
+  expect(result.current.backendDiagnostic.state).toBe('error');
+  expect(result.current.backendDiagnostic.isPro).toBeUndefined();
+  expect(result.current.purchaseDiagnostics.state).toBe('error');
+  expect(JSON.stringify(result.current.purchaseDiagnostics)).not.toContain('sensitive');
+});
+
+test('rejects diagnostic snapshots when the device SDK identity changes during the read', async () => {
+  const { result } = await start();
+  client.getCustomerInfo.mockImplementation(async () => { sdkId = 'another-account'; return info(); });
+  await act(async () => { await result.current.refreshPurchaseDiagnostics(); });
+  expect(result.current.purchaseDiagnostics.state).toBe('error');
+  expect(result.current.purchaseDiagnostics.sdkId).toBeUndefined();
+});
+
+test('bounds a stalled SDK diagnostic read without blocking billing or accepting its late result', async () => {
+  jest.useFakeTimers();
+  try {
+    const { result } = await start();
+    let resolveInfo;
+    client.getCustomerInfo.mockReturnValueOnce(new Promise(resolve => { resolveInfo = resolve; }));
+    let pending;
+    await act(async () => { pending = result.current.refreshPurchaseDiagnostics(); });
+    await act(async () => { jest.advanceTimersByTime(10000); await pending; });
+    expect(result.current.diagnosticsLoading).toBe(false);
+    expect(result.current.purchaseDiagnostics.state).toBe('error');
+    await act(async () => { resolveInfo(info(true)); });
+    expect(result.current.purchaseDiagnostics.state).toBe('error');
+    client.getCustomerInfo.mockResolvedValue(info());
+    await act(async () => { await result.current.doIapPurchase(monthly); });
+    expect(client.purchasePackage).toHaveBeenCalledTimes(1);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 async function start() {
   const hook = renderHook(() => useIap());
   await act(async () => { await hook.result.current.identifyRevenueCatUser('42'); });

@@ -12,6 +12,7 @@ import {
   PRO_ENTITLEMENT, validateIdentity, validateProStatus, validateAccessPolicy,
   featureAccess, hasPurchaseHistory, OWNERSHIP_MESSAGE, VERIFICATION_MESSAGE,
 } from '../utils/subscriptionAccess';
+import { summarizePurchaseInfo, summarizeBackendStatus } from '../utils/purchaseDiagnostics';
 
 export { PRO_ENTITLEMENT };
 
@@ -38,6 +39,10 @@ export function useIap() {
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState('');
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [purchaseDiagnostics, setPurchaseDiagnostics] = useState(null);
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
+  const [backendDiagnostic, setBackendDiagnostic] = useState(null);
+  const diagnosticRequestRef = useRef(0);
   const accountRef = useRef(null);
   const epochRef = useRef(0);
   const statusRequestRef = useRef(0);
@@ -62,6 +67,10 @@ export function useIap() {
     : pkg?.product?.priceString ?? null;
 
   const clearAccountState = () => {
+    ++diagnosticRequestRef.current;
+    setPurchaseDiagnostics(null);
+    setDiagnosticsLoading(false);
+    setBackendDiagnostic(null);
     statusRef.current = null;
     packageRef.current = null;
     setRevenueCatAppUserId(null);
@@ -151,16 +160,65 @@ export function useIap() {
       if (!isCurrent(account) || request !== statusRequestRef.current) return null;
       statusRef.current = status;
       setBackendStatus(status);
+      setBackendDiagnostic(summarizeBackendStatus(status));
       setSubscriptionMessage(status.identityVerificationRequired ? OWNERSHIP_MESSAGE : '');
       return status;
     } catch (error) {
       if (isCurrent(account) && request === statusRequestRef.current) {
         statusRef.current = null;
         setBackendStatus(null);
+        setBackendDiagnostic({
+          state: 'error', checkedAt: new Date().toISOString(),
+          message: error?.code === 'SUBSCRIPTION_IDENTITY_MISMATCH'
+            ? 'SUBSCRIPTION_IDENTITY_MISMATCH' : 'Membership check failed; flags unavailable.',
+        });
         setSubscriptionMessage(error?.code === 'SUBSCRIPTION_IDENTITY_MISMATCH'
           ? OWNERSHIP_MESSAGE : VERIFICATION_MESSAGE);
       }
       return null;
+    }
+  };
+
+  const refreshPurchaseDiagnostics = async () => {
+    const account = accountRef.current;
+    if (!isCurrent(account) || billingAttemptRef.current) return;
+    const request = ++diagnosticRequestRef.current;
+    const current = () => isCurrent(account) && request === diagnosticRequestRef.current;
+    setDiagnosticsLoading(true);
+    setPurchaseDiagnostics(null);
+    let timeout;
+    let finished = false;
+    try {
+      if (!rcAvailable || !Purchases) throw new Error('unavailable');
+      const snapshot = await Promise.race([
+        (async () => {
+          if (finished || !current() || billingAttemptRef.current) throw new Error('busy');
+          const sdkId = await Purchases.getAppUserID();
+          if (!current()) return null;
+          const info = await Purchases.getCustomerInfo();
+          if (!info || finished || !current()) throw new Error('unavailable');
+          const afterId = await Purchases.getAppUserID();
+          if (sdkId !== afterId || billingAttemptRef.current) throw new Error('identity changed');
+          return {
+            state: 'success', sdkId,
+            checkedAt: new Date().toISOString(),
+            ...summarizePurchaseInfo(info),
+          };
+        })(),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('timeout')), 10000);
+        }),
+      ]);
+      if (current()) setPurchaseDiagnostics(snapshot);
+    } catch (_) {
+      if (current()) setPurchaseDiagnostics({
+        state: 'error',
+        message: 'Could not read device purchase information. Wait for any store action to finish, then try again.',
+      });
+    } finally {
+      finished = true;
+      clearTimeout(timeout);
+      if (current()) setDiagnosticsLoading(false);
     }
   };
 
@@ -364,6 +422,7 @@ export function useIap() {
     identifyRevenueCatUser, resetRevenueCatUser, refreshProStatus,
     refreshAccessPolicy, refreshSubscriptionAccess, canAccessFeature,
     accessPolicy, accessLoading, accessError, subscriptionMessage,
+    purchaseDiagnostics, diagnosticsLoading, backendDiagnostic, refreshPurchaseDiagnostics,
     openManageSubscriptions,
     presentProPaywall,
     doIapPurchase: (pkg, onSuccess) => runBilling(false, pkg, onSuccess),

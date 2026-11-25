@@ -75,6 +75,7 @@ import { useIap } from './hooks/useIap';
 import { buildLabel } from './utils/buildLabel';
 import ProPurchaseModal from './components/ProPurchaseModal';
 import ProfileProCard from './components/ProfileProCard';
+import PurchaseDiagnostics from './components/PurchaseDiagnostics';
 import { parsePrayerRequestLink } from './utils/prayerLinks';
 import { getUnspokenPrayerCopy } from './utils/unspokenPrayer';
 import * as Updates from 'expo-updates';
@@ -4336,8 +4337,22 @@ User ID: ${currentUser?.id || 'Not logged in'}`;
             }}
           />
           <Text selectable style={{ color: '#94a3b8', fontSize: 10, marginBottom: 12, textAlign: 'center' }}>
-            Support ID: {String(currentUser.id)} · RevenueCat: {iap.revenuecatAppUserId || 'Not connected'}
+            Support ID: {String(currentUser.id)} · Backend RevenueCat ID: {iap.revenuecatAppUserId || 'Not connected'}
           </Text>
+          <PurchaseDiagnostics
+            key={String(currentUser.id)}
+            sdk={iap.purchaseDiagnostics}
+            backend={iap.backendDiagnostic}
+            serverId={iap.revenuecatAppUserId}
+            loading={iap.diagnosticsLoading}
+            billingBusy={iapPurchasing}
+            onRead={iap.refreshPurchaseDiagnostics}
+            theme={{
+              container: styles.settingsSection,
+              body: styles.settingsDescription,
+              button: styles.settingsButtonText,
+            }}
+          />
           <View style={styles.memberProfileCard}>
             <View style={styles.memberProfileTop}>
               <View style={{ position: 'relative' }}>
